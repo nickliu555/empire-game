@@ -332,7 +332,6 @@
                 <div class="player-tracker-header">
                     <span class="player-count" id="playerCount">0</span> players joined
                 </div>
-                <div class="player-names-list" id="playerNamesList"></div>
             </div>
             
             <div class="input-group">
@@ -353,7 +352,7 @@
                 <button class="btn-reset" onclick="resetForm()">Clear</button>
             </div>
             
-            <button class="btn-submit" onclick="startGame()" style="margin-top: 20px;">
+            <button class="btn-submit" onclick="startGame()" style="margin-top: 40px;">
                 Start Game →
             </button>
             
@@ -385,7 +384,7 @@
                 <div id="attributionContainer"></div>
             </div>
             
-            <button class="btn-reset" onclick="resetGame()" style="margin-top: 20px;">New Round</button>
+            <button class="btn-reset" onclick="resetGame()" style="margin-top: 20px; background: linear-gradient(135deg, #b8860b, #d4a844); color: #1c1c1c; border: none;">New Round</button>
         </div>
     </div>
     
@@ -587,10 +586,6 @@ Respond ONLY with valid JSON (no markdown, no extra text):
         
         function updatePlayerTracker() {
             document.getElementById('playerCount').textContent = submissions.length;
-            const namesList = document.getElementById('playerNamesList');
-            namesList.innerHTML = submissions.map(s => 
-                `<span class="player-name-chip">${s.player}</span>`
-            ).join('');
         }
         
         function resetForm() {

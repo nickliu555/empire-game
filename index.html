@@ -563,6 +563,11 @@ Respond ONLY with valid JSON (no markdown, no extra text):
             document.getElementById('errorMessage').classList.remove('show');
             document.getElementById('successMessage').classList.remove('show');
             document.getElementById('playerName').focus();
+
+            // Reset toggle buttons and their displays
+            document.getElementById('wordsDisplay').classList.remove('show');
+            document.getElementById('attributionDisplay').classList.remove('show');
+            document.querySelectorAll('.toggle-button').forEach(btn => btn.classList.remove('active'));
         }
         
         // Focus on word input after name is entered

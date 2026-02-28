@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Empire Game - Word Submission</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .submission-phase {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        label {
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        input {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-submit {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-submit:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-reset {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-reset:hover {
+            background: #e0e0e0;
+        }
+        
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+            margin-top: 10px;
+            border-left: 4px solid #c33;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+        
+        .submissions-list {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #eee;
+        }
+        
+        .submissions-header {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .submission-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .submission-word {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .submission-player {
+            color: #999;
+            font-size: 12px;
+        }
+        
+        .game-phase {
+            display: none;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .toggle-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .toggle-button {
+            background: #f0f0f0;
+            color: #333;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .toggle-button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .toggle-button:hover {
+            border-color: #667eea;
+        }
+        
+        .words-display {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            display: none;
+        }
+        
+        .words-display.show {
+            display: block;
+        }
+        
+        .words-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .word-chip {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #ddd;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .attribution-display {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            display: none;
+        }
+        
+        .attribution-display.show {
+            display: block;
+        }
+        
+        .attribution-item {
+            background: white;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .attribution-player {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .attribution-word {
+            color: #333;
+            font-weight: 500;
+            font-size: 16px;
+            margin-top: 4px;
+        }
+        
+        .success-message {
+            background: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+            margin-top: 10px;
+            border-left: 4px solid #3c3;
+        }
+        
+        .success-message.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Empire Game</h1>
+        
+        <!-- API Key Setup (shown by default) -->
+        <div id="apiKeySetup" style="background: #f0f0f0; padding: 20px; border-radius: 6px; margin-bottom: 20px;">
+            <p style="color: #555; margin-bottom: 10px; font-size: 14px;">
+                Enter your Groq API key to get started. Get one free at <a href="https://console.groq.com" target="_blank" style="color: #667eea;">console.groq.com</a>
+            </p>
+            <div style="display: flex; gap: 10px;">
+                <input type="password" id="groqApiKey" placeholder="Enter your Groq API key" style="flex: 1;">
+                <button onclick="saveApiKey()" style="background: #667eea; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Save</button>
+            </div>
+        </div>
+        
+        <!-- Submission Phase (hidden until API key is set) -->
+        <div class="submission-phase" id="submissionPhase" style="display: none;">
+            <div class="input-group">
+                <label for="playerName">Player Name</label>
+                <input type="text" id="playerName" placeholder="Enter your name" autocomplete="off">
+            </div>
+            
+            <div class="input-group">
+                <label for="playerWord">Word</label>
+                <input type="text" id="playerWord" placeholder="Enter your word" autocomplete="off">
+            </div>
+            
+            <div class="error-message" id="errorMessage"></div>
+            <div class="success-message" id="successMessage"></div>
+            
+            <div class="button-group">
+                <button class="btn-submit" onclick="submitWord()">Submit Word</button>
+                <button class="btn-reset" onclick="resetForm()">Clear</button>
+            </div>
+            
+            <button class="btn-submit" onclick="startGame()" style="margin-top: 20px;">
+                Start Game →
+            </button>
+            
+            <!-- Submissions List -->
+            <div class="submissions-list" id="submissionsList" style="display: none;">
+                <div class="submissions-header">Submitted Words:</div>
+                <div id="submissionsContainer"></div>
+            </div>
+        </div>
+        
+        <!-- Game Phase -->
+        <div class="game-phase" id="gamePhase">
+            <h2 style="color: #667eea; text-align: center;">Game Started!</h2>
+            
+            <div class="toggle-group">
+                <button class="toggle-button" onclick="toggleWords()">Show All Words</button>
+                <button class="toggle-button" onclick="toggleAttribution()">Show All Words with Names</button>
+            </div>
+            
+            <!-- Words Display -->
+            <div class="words-display" id="wordsDisplay">
+                <div style="color: #667eea; font-weight: 600; margin-bottom: 15px;">All Words:</div>
+                <div class="words-grid" id="wordsGrid"></div>
+            </div>
+            
+            <!-- Attribution Display -->
+            <div class="attribution-display" id="attributionDisplay">
+                <div style="color: #667eea; font-weight: 600; margin-bottom: 15px;">All Words with Names:</div>
+                <div id="attributionContainer"></div>
+            </div>
+            
+            <button class="btn-reset" onclick="resetGame()" style="margin-top: 20px;">New Round</button>
+        </div>
+    </div>
+    
+    <script>
+        let submissions = []; // Array of {player: name, word: word}
+        let groqApiKey = localStorage.getItem('groq-api-key') || null;
+        let shuffledWordsForDisplay = []; // Store randomized order once
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            if (groqApiKey) {
+                // API key exists, show submission phase
+                document.getElementById('apiKeySetup').style.display = 'none';
+                document.getElementById('submissionPhase').style.display = 'flex';
+                document.getElementById('playerName').focus();
+            } else {
+                // No API key, show key input
+                document.getElementById('apiKeySetup').style.display = 'block';
+                document.getElementById('submissionPhase').style.display = 'none';
+                document.getElementById('groqApiKey').focus();
+            }
+        });
+        
+        function saveApiKey() {
+            const key = document.getElementById('groqApiKey').value.trim();
+            if (!key) {
+                alert('Please enter a valid API key');
+                return;
+            }
+            localStorage.setItem('groq-api-key', key);
+            groqApiKey = key;
+            document.getElementById('apiKeySetup').style.display = 'none';
+            document.getElementById('submissionPhase').style.display = 'flex';
+            document.getElementById('playerName').focus();
+        }
+        
+        async function checkSimilarity(newWord, existingWords) {
+            if (existingWords.length === 0) return null;
+            
+            const existingList = existingWords.map(w => `"${w}"`).join(', ');
+            const prompt = `You are a word similarity checker for a party game called "Empire". 
+Your job is to reject words that are TOO SIMILAR - only reject if they refer to the SAME concept or entity.
+
+New word submitted: "${newWord}"
+Existing words: ${existingList}
+
+Check if the new word is similar to ANY of the existing words. ONLY REJECT if:
+- Exact match or spelling variation (e.g., "color" vs "colour") → REJECT
+- Same person/entity with minor variations (e.g., "Kanye" vs "Kanye West", "Taylor" vs "Taylor Swift") → REJECT
+- Same concept phrased differently (e.g., "egg roll" and "spring roll" are both types of rolls) → REJECT
+- Obvious typos (e.g., "Chirs" vs "Chris") → REJECT
+
+DO NOT REJECT if:
+- Different people who share a first name (e.g., "Chris Pratt" vs "Chris Hemsworth") → ACCEPT
+- Different concepts that happen to share a word (e.g., "hot dog" vs "hot tub") → ACCEPT
+- Synonyms that are distinct enough (e.g., "happy" vs "joyful") → ACCEPT
+
+Respond ONLY with valid JSON (no markdown, no extra text):
+{"is_similar": true/false, "similar_to": "word or null", "reason": "brief explanation"}`;
+            
+            try {
+                console.log('Sending request to Groq with API key starting with:', groqApiKey.substring(0, 10) + '...');
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${groqApiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'llama-3.3-70b-versatile',
+                        messages: [{role: 'user', content: prompt}],
+                        temperature: 0.3,
+                        max_tokens: 200
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Groq API Error:', response.status, errorText);
+                    return null;
+                }
+                
+                const data = await response.json();
+                const resultText = data.choices[0].message.content.trim();
+                console.log('LLM Response:', resultText);
+                
+                // Extract JSON from response (model might add extra text)
+                const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+                if (!jsonMatch) {
+                    console.error('Could not parse JSON from response:', resultText);
+                    return null;
+                }
+                
+                const result = JSON.parse(jsonMatch[0]);
+                console.log('Parsed similarity result:', result);
+                return result;
+            } catch (error) {
+                console.error('Error checking similarity:', error);
+                return null;
+            }
+        }
+        
+        async function submitWord() {
+            const playerName = document.getElementById('playerName').value.trim();
+            const playerWord = document.getElementById('playerWord').value.trim().toLowerCase();
+            const errorEl = document.getElementById('errorMessage');
+            const successEl = document.getElementById('successMessage');
+            
+            errorEl.classList.remove('show');
+            successEl.classList.remove('show');
+            
+            if (!playerName || !playerWord) {
+                errorEl.textContent = 'Please enter both name and word.';
+                errorEl.classList.add('show');
+                return;
+            }
+            
+            // Check for exact duplicates
+            if (submissions.some(s => s.word === playerWord)) {
+                errorEl.textContent = `Word "${playerWord}" has already been submitted. Try another!`;
+                errorEl.classList.add('show');
+                return;
+            }
+            
+            // Check similarity using LLM
+            const existingWords = submissions.map(s => s.word);
+            const similarityResult = await checkSimilarity(playerWord, existingWords);
+            
+            if (similarityResult && similarityResult.is_similar) {
+                errorEl.textContent = `Word "${playerWord}" is too similar to a previously submitted word. Please try another word.`;
+                errorEl.classList.add('show');
+                return;
+            }
+            
+            // Accept the word
+            submissions.push({player: playerName, word: playerWord});
+            
+            successEl.textContent = `✓ Your word has been accepted!`;
+            successEl.classList.add('show');
+            
+            resetForm();
+            // Hide submissions list so next player doesn't see
+            document.getElementById('submissionsList').style.display = 'none';
+        }
+        
+        function resetForm() {
+            document.getElementById('playerName').value = '';
+            document.getElementById('playerWord').value = '';
+            document.getElementById('playerWord').focus();
+        }
+        
+        function updateSubmissionsList() {
+            const listEl = document.getElementById('submissionsList');
+            const containerEl = document.getElementById('submissionsContainer');
+            
+            if (submissions.length === 0) {
+                listEl.style.display = 'none';
+                return;
+            }
+            
+            listEl.style.display = 'block';
+            containerEl.innerHTML = submissions.map(s => `
+                <div class="submission-item">
+                    <span class="submission-word">${s.word}</span>
+                    <span class="submission-player">by ${s.player}</span>
+                </div>
+            `).join('');
+        }
+        
+        function startGame() {
+            if (submissions.length < 2) {
+                alert('Need at least 2 players to start the game!');
+                return;
+            }
+            
+            document.getElementById('submissionPhase').style.display = 'none';
+            document.getElementById('gamePhase').style.display = 'flex';
+            
+            // Shuffle words for display
+            const shuffled = [...submissions].sort(() => Math.random() - 0.5);
+            const wordsGrid = document.getElementById('wordsGrid');
+            wordsGrid.innerHTML = shuffled.map(s => `
+                <div class="word-chip">${s.word}</div>
+            `).join('');
+            
+            // Build attribution
+            const attributionContainer = document.getElementById('attributionContainer');
+            attributionContainer.innerHTML = submissions.map(s => `
+                <div class="attribution-item">
+                    <div class="attribution-player">${s.player}</div>
+                    <div class="attribution-word">${s.word}</div>
+                </div>
+            `).join('');
+        }
+        
+        function toggleWords() {
+            const wordsDisplay = document.getElementById('wordsDisplay');
+            const button = event.target;
+            
+            if (!wordsDisplay.classList.contains('show')) {
+                // Only randomize on first show
+                if (shuffledWordsForDisplay.length === 0) {
+                    shuffledWordsForDisplay = [...submissions].sort(() => Math.random() - 0.5);
+                }
+                
+                const wordsGrid = document.getElementById('wordsGrid');
+                wordsGrid.innerHTML = shuffledWordsForDisplay.map(s => `
+                    <div class="word-chip">${s.word}</div>
+                `).join('');
+            }
+            
+            wordsDisplay.classList.toggle('show');
+            button.classList.toggle('active');
+        }
+        
+        function toggleAttribution() {
+            const attributionDisplay = document.getElementById('attributionDisplay');
+            const button = event.target;
+            attributionDisplay.classList.toggle('show');
+            button.classList.toggle('active');
+        }
+        
+        function resetGame() {
+            submissions = [];
+            shuffledWordsForDisplay = [];
+            document.getElementById('submissionPhase').style.display = 'flex';
+            document.getElementById('gamePhase').style.display = 'none';
+            document.getElementById('submissionsList').style.display = 'none';
+            document.getElementById('playerName').value = '';
+            document.getElementById('playerWord').value = '';
+            document.getElementById('errorMessage').classList.remove('show');
+            document.getElementById('successMessage').classList.remove('show');
+            document.getElementById('playerName').focus();
+        }
+        
+        // Focus on word input after name is entered
+        document.getElementById('playerName').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('playerWord').focus();
+        });
+        
+        // Allow submit on Enter in word field
+        document.getElementById('playerWord').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') submitWord();
+        });
+        
+        // Initial focus
+        document.getElementById('playerName').focus();
+    </script>
+</body>
+</html>

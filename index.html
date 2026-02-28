@@ -548,6 +548,13 @@ Respond ONLY with valid JSON (no markdown, no extra text):
         function toggleAttribution() {
             const attributionDisplay = document.getElementById('attributionDisplay');
             const button = event.target;
+
+            // If turning ON, ask for confirmation first
+            if (!attributionDisplay.classList.contains('show')) {
+                const confirmed = confirm('Are you sure you want to reveal All Words with Names?');
+                if (!confirmed) return; // Do nothing if user clicks No
+            }
+
             attributionDisplay.classList.toggle('show');
             button.classList.toggle('active');
         }

@@ -548,36 +548,6 @@
             }
         }
 
-        async function hostSubmitWord() {
-            const name = document.getElementById('hostName').value.trim();
-            const word = document.getElementById('hostWord').value.trim();
-            const msgEl = document.getElementById('hostSubmitMsg');
-
-            if (!name || !word) {
-                showMsg(msgEl, 'Enter both name and word.', 'error');
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/submit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ player: name, word })
-                });
-                const data = await res.json();
-                if (!res.ok) {
-                    showMsg(msgEl, data.error, 'error');
-                    return;
-                }
-                showMsg(msgEl, '✓ Word accepted!', 'success');
-                document.getElementById('hostName').value = '';
-                document.getElementById('hostWord').value = '';
-                fetchState();
-            } catch (e) {
-                showMsg(msgEl, 'Connection error.', 'error');
-            }
-        }
-
         async function startGame() {
             try {
                 const res = await fetch('/api/start', { method: 'POST' });
@@ -711,8 +681,6 @@
             if (e.key !== 'Enter') return;
             const id = e.target.id;
             if (id === 'inputApiKey') saveApiKey();
-            else if (id === 'hostName') document.getElementById('hostWord').focus();
-            else if (id === 'hostWord') hostSubmitWord();
             else if (id === 'playerName') document.getElementById('playerWord').focus();
             else if (id === 'playerWord') playerSubmitWord();
         });

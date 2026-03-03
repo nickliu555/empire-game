@@ -5,10 +5,108 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Empire Game</title>
     <link rel="stylesheet" href="shared.css">
+    <style>
+        /* ─── Easter egg: Pink theme ─── */
+        body.pink-theme {
+            background: linear-gradient(135deg, #ff9ec6 0%, #ff6fa8 30%, #e84393 60%, #ff9ec6 100%);
+        }
+        body.pink-theme::before {
+            background-image: 
+                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Ctext x='10' y='40' font-size='28'%3E💕%3C/text%3E%3Ctext x='60' y='90' font-size='28'%3E💗%3C/text%3E%3Ctext x='10' y='90' font-size='22'%3E💖%3C/text%3E%3Ctext x='70' y='35' font-size='22'%3E💕%3C/text%3E%3C/svg%3E");
+            background-size: 120px 120px;
+            opacity: 0.15;
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+        }
+        .pink-theme .container {
+            background: #ffd6e8;
+            border: 2px solid #ff69b4;
+            box-shadow: 0 10px 40px rgba(255, 105, 180, 0.4), 0 0 60px rgba(255, 105, 180, 0.15);
+            position: relative;
+            z-index: 1;
+        }
+        .pink-theme h1 {
+            color: #d63384;
+            text-shadow: 0 0 10px rgba(255, 105, 180, 0.3);
+        }
+        .pink-theme .player-tracker {
+            background: #ffc0da;
+            border: 2px solid #ff85c8;
+        }
+        .pink-theme .player-tracker-header {
+            color: #c0246a;
+        }
+        .pink-theme .player-count {
+            color: #d63384;
+        }
+        .pink-theme label {
+            color: #a0205a;
+        }
+        .pink-theme input {
+            border: 2px solid #ffb0d0;
+            background: #ffecf2;
+            color: #6a1040;
+        }
+        .pink-theme input:focus {
+            border-color: #ff69b4;
+            box-shadow: 0 0 8px rgba(255, 105, 180, 0.4);
+        }
+        .pink-theme input::placeholder {
+            color: #d4809e;
+        }
+        .pink-theme .btn-primary {
+            background: linear-gradient(135deg, #ff69b4, #ff1493);
+            color: #fff;
+            font-weight: 700;
+        }
+        .pink-theme .btn-primary:hover {
+            background: linear-gradient(135deg, #ff1493, #ff44b0);
+            box-shadow: 0 4px 20px rgba(255, 20, 147, 0.6);
+        }
+        .pink-theme .btn-primary:disabled {
+            background: linear-gradient(135deg, #e0a0c0, #d090b0);
+            color: #fff;
+        }
+        .pink-theme .btn-secondary {
+            background: #ffc0da;
+            color: #a0205a;
+            border: 2px solid #ffb0d0;
+        }
+        .pink-theme .btn-secondary:hover {
+            background: #ffb0d0;
+        }
+        .pink-theme .waiting .text {
+            color: #8a1050;
+        }
+        .pink-theme .waiting .sub {
+            color: #b05080;
+        }
+        .pink-theme .spinner {
+            border-color: #ff69b4;
+            border-top-color: transparent;
+        }
+        .pink-theme .msg.error {
+            background: #ffcce0;
+            color: #c0205a;
+            border-left: 4px solid #ff1493;
+        }
+        .pink-theme .msg.success {
+            background: #e0ffe0;
+            color: #2a8a2a;
+            border-left: 4px solid #5cb85c;
+        }
+        .pink-theme .section-label,
+        .pink-theme h2 {
+            color: #d63384;
+        }
+        .pink-theme div[style*="color:#555"] {
+            color: #c06090 !important;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>👑 Empire Game ⚔️</h1>
+        <h1 id="gameTitle">👑 Empire Game ⚔️</h1>
 
         <!-- ═══ Waiting for host ═══ -->
         <div id="viewPlayerWaiting" style="display:none;">
@@ -162,6 +260,15 @@
 
         // ─── Player Actions ─────────────────────────────────
 
+        const EASTER_EGG_NAMES = ['carly', 'carshi', 'carcar'];
+
+        function checkEasterEgg(name) {
+            if (EASTER_EGG_NAMES.includes(name.toLowerCase().trim())) {
+                document.body.classList.add('pink-theme');
+                document.getElementById('gameTitle').textContent = '💖 Empire Game 💕';
+            }
+        }
+
         async function playerSubmitWord() {
             const name = document.getElementById('playerName').value.trim();
             const word = document.getElementById('playerWord').value.trim();
@@ -189,6 +296,7 @@
                     btn.textContent = 'Submit Word';
                     return;
                 }
+                checkEasterEgg(name);
                 playerSubmitted = true;
                 fetchState();
             } catch (e) {

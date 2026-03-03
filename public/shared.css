@@ -1,0 +1,180 @@
+/* ─── Empire Game – Shared Styles ────────────────────────── */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a0a0a 0%, #4a0e0e 50%, #2d0808 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    background: #1c1c1c;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    padding: 40px;
+    max-width: 500px;
+    width: 100%;
+    border: 1px solid #3a1a1a;
+}
+
+h1 {
+    text-align: center;
+    color: #d4a844;
+    margin-bottom: 30px;
+    font-size: 28px;
+}
+
+h2 {
+    color: #d4a844;
+    text-align: center;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
+label {
+    color: #ccc;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+input {
+    padding: 12px;
+    border: 2px solid #3a2a2a;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+    background: #2a2a2a;
+    color: #eee;
+}
+
+input:focus { outline: none; border-color: #d4a844; }
+
+button {
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    width: 100%;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #8b1a1a, #a52a2a);
+    color: #d4a844;
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, #a52a2a, #c0392b);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(165, 42, 42, 0.5);
+}
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-secondary {
+    background: #2a2a2a;
+    color: #ccc;
+    border: 1px solid #3a2a2a;
+}
+.btn-secondary:hover { background: #3a3a3a; }
+
+.btn-gold {
+    background: linear-gradient(135deg, #b8860b, #d4a844);
+    color: #1c1c1c;
+}
+.btn-gold:hover {
+    background: linear-gradient(135deg, #d4a844, #f0c860);
+    transform: translateY(-2px);
+}
+
+.msg {
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    display: none;
+    margin-top: 10px;
+}
+.msg.show { display: block; }
+.msg.error {
+    background: #3a1a1a;
+    color: #ff6b6b;
+    border-left: 4px solid #ff6b6b;
+}
+.msg.success {
+    background: #1a2e1a;
+    color: #5cb85c;
+    border-left: 4px solid #5cb85c;
+}
+
+.player-tracker {
+    background: #2a1a1a;
+    border: 2px solid #3a2a2a;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 15px;
+}
+.player-tracker-header {
+    color: #d4a844;
+    font-weight: 600;
+    font-size: 14px;
+}
+.player-count {
+    font-size: 24px;
+    font-weight: 700;
+    color: #d4a844;
+}
+
+.section-label {
+    color: #d4a844;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.gap { display: flex; flex-direction: column; gap: 12px; }
+
+.waiting {
+    text-align: center;
+    padding: 40px 20px;
+}
+.waiting .icon { font-size: 48px; margin-bottom: 16px; }
+.waiting .text { color: #ccc; font-size: 16px; }
+.waiting .sub { color: #888; font-size: 13px; margin-top: 8px; }
+
+.btn-row { display: flex; gap: 10px; }
+.btn-row button { flex: 1; }
+
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #d4a844;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}

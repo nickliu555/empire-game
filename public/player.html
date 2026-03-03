@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Empire Game</title>
+    <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+    <div class="container">
+        <h1>👑 Empire Game ⚔️</h1>
+
+        <!-- ═══ Waiting for host ═══ -->
+        <div id="viewPlayerWaiting" style="display:none;">
+            <div class="waiting">
+                <div class="icon">⏳</div>
+                <div class="text">Waiting for the host to set up the game...</div>
+                <div class="sub pulse">Hang tight!</div>
+            </div>
+        </div>
+
+        <!-- ═══ Submit Word ═══ -->
+        <div id="viewPlayerSubmit" style="display:none;">
+            <div class="player-tracker">
+                <div class="player-tracker-header">
+                    <span class="player-count" id="playerPlayerCount">0</span> players joined
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="playerName">Your Name</label>
+                <input type="text" id="playerName" placeholder="Enter your name" autocomplete="off">
+            </div>
+            <div class="input-group">
+                <label for="playerWord">Your Secret Word</label>
+                <input type="text" id="playerWord" placeholder="Enter your word" autocomplete="off">
+            </div>
+            <div id="playerSubmitMsg" class="msg"></div>
+            <div class="btn-row" style="margin-top:10px;">
+                <button class="btn-primary" id="btnPlayerSubmit" onclick="playerSubmitWord()">Submit Word</button>
+                <button class="btn-secondary" onclick="playerClear()">Clear</button>
+            </div>
+        </div>
+
+        <!-- ═══ Submitted, waiting ═══ -->
+        <div id="viewPlayerDone" style="display:none;">
+            <div class="waiting">
+                <div class="icon">✅</div>
+                <div class="text" style="color:#5cb85c;">Word submitted!</div>
+                <div class="sub">Waiting for the host to start the game...</div>
+                <div class="sub pulse" style="margin-top:16px;">
+                    <span class="player-count" id="donePlayerCount">0</span>
+                    <span style="color:#888;"> players so far</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Game started ═══ -->
+        <div id="viewPlayerGame" style="display:none;">
+            <div class="waiting">
+                <div class="icon">🎮</div>
+                <div class="text">The game has started!</div>
+                <div class="sub">Look at the host's screen to see the words.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ─── State ──────────────────────────────────────────
+        let playerSubmitted = false;
+        let pollInterval = null;
+
+        // ─── Init ───────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            hideAllViews();
+            fetchState();
+            pollInterval = setInterval(fetchState, 2000);
+        });
+
+        function hideAllViews() {
+            document.querySelectorAll('[id^="view"]').forEach(el => el.style.display = 'none');
+        }
+
+        async function fetchState() {
+            try {
+                const res = await fetch('/api/state');
+                const state = await res.json();
+                render(state);
+            } catch (e) {
+                console.error('Poll error:', e);
+            }
+        }
+
+        function render(state) {
+            hideAllViews();
+
+            if (state.phase === 'setup') {
+                show('viewPlayerWaiting');
+                return;
+            }
+            if (state.phase === 'submission') {
+                if (playerSubmitted) {
+                    show('viewPlayerDone');
+                    document.getElementById('donePlayerCount').textContent = state.playerCount;
+                } else {
+                    show('viewPlayerSubmit');
+                    document.getElementById('playerPlayerCount').textContent = state.playerCount;
+                }
+                return;
+            }
+            if (state.phase === 'playing') {
+                show('viewPlayerGame');
+                return;
+            }
+        }
+
+        function show(id) {
+            document.getElementById(id).style.display = 'block';
+        }
+
+        // ─── Player Actions ─────────────────────────────────
+
+        async function playerSubmitWord() {
+            const name = document.getElementById('playerName').value.trim();
+            const word = document.getElementById('playerWord').value.trim();
+            const msgEl = document.getElementById('playerSubmitMsg');
+            const btn = document.getElementById('btnPlayerSubmit');
+
+            if (!name || !word) {
+                showMsg(msgEl, 'Enter both your name and word.', 'error');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span>Checking...';
+
+            try {
+                const res = await fetch('/api/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ player: name, word })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    showMsg(msgEl, data.error, 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Submit Word';
+                    return;
+                }
+                playerSubmitted = true;
+                fetchState();
+            } catch (e) {
+                showMsg(msgEl, 'Connection error. Are you on the same WiFi?', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Submit Word';
+            }
+        }
+
+        function playerClear() {
+            document.getElementById('playerName').value = '';
+            document.getElementById('playerWord').value = '';
+            document.getElementById('playerSubmitMsg').classList.remove('show');
+            document.getElementById('playerName').focus();
+        }
+
+        // ─── Helpers ────────────────────────────────────────
+
+        function showMsg(el, text, type) {
+            el.className = `msg ${type} show`;
+            el.textContent = text;
+        }
+
+        document.addEventListener('keypress', (e) => {
+            if (e.key !== 'Enter') return;
+            if (e.target.id === 'playerName') document.getElementById('playerWord').focus();
+            else if (e.target.id === 'playerWord') playerSubmitWord();
+        });
+    </script>
+</body>
+</html>

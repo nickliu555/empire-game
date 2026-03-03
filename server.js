@@ -6,13 +6,25 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Serve the player page at root
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'player.html'));
+});
+
+// Serve the host page at /host
+app.get('/host', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'host.html'));
+});
+
 // ─── Game State ─────────────────────────────────────────────
 let gameState = createFreshState();
 
 function createFreshState() {
+    // If GROQ_API_KEY env var is set, skip the setup phase
+    const envKey = process.env.GROQ_API_KEY || null;
     return {
-        phase: 'setup',        // setup | submission | playing
-        groqApiKey: null,
+        phase: envKey ? 'submission' : 'setup',
+        groqApiKey: envKey,
         submissions: [],       // [{player, word}]
         shuffledWords: [],     // randomized once on game start
     };
@@ -129,11 +141,11 @@ app.post('/api/reset', (req, res) => {
     const key = gameState.groqApiKey; // preserve the API key
     gameState = createFreshState();
     gameState.groqApiKey = key;
-    gameState.phase = 'submission';
+    gameState.phase = 'submission';  // always go to submission after reset
     res.json({ ok: true });
 });
 
-// Full reset (back to API key setup)
+// Full reset (back to API key setup, unless env var is set)
 app.post('/api/full-reset', (req, res) => {
     gameState = createFreshState();
     res.json({ ok: true });
@@ -217,7 +229,7 @@ app.listen(PORT, '0.0.0.0', () => {
     if (process.env.RENDER_EXTERNAL_URL) {
         console.log(`  Live at: ${process.env.RENDER_EXTERNAL_URL}`);
     } else {
-        console.log(`  Host (you):   http://localhost:${PORT}?host=true`);
+        console.log(`  Host (you):   http://localhost:${PORT}/host`);
         console.log(`  Players:      http://${LOCAL_IP}:${PORT}`);
     }
     console.log('═══════════════════════════════════════════');

@@ -116,9 +116,13 @@ app.post('/api/start', (req, res) => {
         return res.status(400).json({ error: 'Need at least 2 players.' });
     }
     gameState.phase = 'playing';
-    gameState.shuffledWords = [...gameState.submissions]
-        .sort(() => Math.random() - 0.5)
-        .map(s => s.word);
+    // Fisher-Yates shuffle for uniform randomness
+    const arr = gameState.submissions.map(s => s.word);
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    gameState.shuffledWords = arr;
     res.json({ ok: true });
 });
 

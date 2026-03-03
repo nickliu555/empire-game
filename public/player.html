@@ -36,7 +36,7 @@
                 <input type="text" id="playerWord" placeholder="Enter your word" autocomplete="off">
             </div>
             <div id="playerSubmitMsg" class="msg"></div>
-            <div class="btn-row" style="margin-top:10px;">
+            <div class="btn-row" style="margin-top:25px;">
                 <button class="btn-primary" id="btnPlayerSubmit" onclick="playerSubmitWord()">Submit Word</button>
                 <button class="btn-secondary" onclick="playerClear()">Clear</button>
             </div>
@@ -73,6 +73,16 @@
                 <button class="btn-primary" onclick="dismissReset()" style="margin-top:20px; max-width:200px; margin-left:auto; margin-right:auto;">OK</button>
             </div>
         </div>
+
+        <!-- ═══ New round started ═══ -->
+        <div id="viewPlayerNewRound" style="display:none;">
+            <div class="waiting">
+                <div class="icon">🎉</div>
+                <div class="text" style="color:#d4a844;">New round!</div>
+                <div class="sub">The host has started a new round. Submit a new word!</div>
+                <button class="btn-primary" onclick="dismissReset()" style="margin-top:20px; max-width:200px; margin-left:auto; margin-right:auto;">Let's Go</button>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -81,6 +91,8 @@
         let pollInterval = null;
         let knownRound = null;
         let showingReset = false;
+        let resetType = null; // 'reset' or 'newround'
+        let lastPhase = null;
 
         // ─── Init ───────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', () => {
@@ -108,13 +120,16 @@
             if (knownRound !== null && state.round !== knownRound && playerSubmitted) {
                 playerSubmitted = false;
                 showingReset = true;
+                // If we were in the playing phase, it's a new round; otherwise it's a reset
+                resetType = (lastPhase === 'playing') ? 'newround' : 'reset';
             }
             knownRound = state.round;
+            lastPhase = state.phase;
 
             // If showing reset notification, stay on that screen
             if (showingReset) {
                 hideAllViews();
-                show('viewPlayerReset');
+                show(resetType === 'newround' ? 'viewPlayerNewRound' : 'viewPlayerReset');
                 return;
             }
 

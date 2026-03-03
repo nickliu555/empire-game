@@ -195,6 +195,20 @@
 
         // ─── Init ───────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', () => {
+            // Restore submission state from localStorage
+            const saved = localStorage.getItem('empire_submitted');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    playerSubmitted = true;
+                    knownRound = data.round;
+                    // Restore name field and easter egg
+                    if (data.name) {
+                        document.getElementById('playerName').value = data.name;
+                        checkEasterEgg(data.name);
+                    }
+                } catch(e) {}
+            }
             hideAllViews();
             fetchState();
             pollInterval = setInterval(fetchState, 2000);
@@ -218,6 +232,7 @@
             // Detect round reset
             if (knownRound !== null && state.round !== knownRound && playerSubmitted) {
                 playerSubmitted = false;
+                localStorage.removeItem('empire_submitted');
                 showingReset = true;
                 // If we were in the playing phase, it's a new round; otherwise it's a reset
                 resetType = (lastPhase === 'playing') ? 'newround' : 'reset';
@@ -266,6 +281,9 @@
             if (EASTER_EGG_NAMES.includes(name.toLowerCase().trim())) {
                 document.body.classList.add('pink-theme');
                 document.getElementById('gameTitle').textContent = '💖 Empire Game 💕';
+            } else {
+                document.body.classList.remove('pink-theme');
+                document.getElementById('gameTitle').textContent = '👑 Empire Game ⚔️';
             }
         }
 
@@ -298,6 +316,7 @@
                 }
                 checkEasterEgg(name);
                 playerSubmitted = true;
+                localStorage.setItem('empire_submitted', JSON.stringify({ round: knownRound, name }));
                 fetchState();
             } catch (e) {
                 showMsg(msgEl, 'Connection error. Are you on the same WiFi?', 'error');

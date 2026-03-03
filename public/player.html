@@ -63,12 +63,24 @@
                 <div class="sub">Look at the host's screen to see the words.</div>
             </div>
         </div>
+
+        <!-- ═══ Game was reset ═══ -->
+        <div id="viewPlayerReset" style="display:none;">
+            <div class="waiting">
+                <div class="icon">🔄</div>
+                <div class="text" style="color:#d4a844;">The host reset the game!</div>
+                <div class="sub">Please submit your word again.</div>
+                <button class="btn-primary" onclick="dismissReset()" style="margin-top:20px; max-width:200px; margin-left:auto; margin-right:auto;">OK</button>
+            </div>
+        </div>
     </div>
 
     <script>
         // ─── State ──────────────────────────────────────────
         let playerSubmitted = false;
         let pollInterval = null;
+        let knownRound = null;
+        let showingReset = false;
 
         // ─── Init ───────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', () => {
@@ -92,6 +104,20 @@
         }
 
         function render(state) {
+            // Detect round reset
+            if (knownRound !== null && state.round !== knownRound && playerSubmitted) {
+                playerSubmitted = false;
+                showingReset = true;
+            }
+            knownRound = state.round;
+
+            // If showing reset notification, stay on that screen
+            if (showingReset) {
+                hideAllViews();
+                show('viewPlayerReset');
+                return;
+            }
+
             hideAllViews();
 
             if (state.phase === 'setup') {
@@ -161,6 +187,16 @@
             document.getElementById('playerWord').value = '';
             document.getElementById('playerSubmitMsg').classList.remove('show');
             document.getElementById('playerName').focus();
+        }
+
+        function dismissReset() {
+            showingReset = false;
+            document.getElementById('playerWord').value = '';
+            document.getElementById('playerSubmitMsg').classList.remove('show');
+            const btn = document.getElementById('btnPlayerSubmit');
+            btn.disabled = false;
+            btn.textContent = 'Submit Word';
+            fetchState();
         }
 
         // ─── Helpers ────────────────────────────────────────

@@ -27,6 +27,7 @@ function createFreshState() {
         groqApiKey: envKey,
         submissions: [],       // [{player, word}]
         shuffledWords: [],     // randomized once on game start
+        round: 1,              // increments on each reset so clients detect it
     };
 }
 
@@ -57,6 +58,7 @@ app.get('/api/state', (req, res) => {
         playerCount: gameState.submissions.length,
         hasApiKey: !!gameState.groqApiKey,
         playerUrl,
+        round: gameState.round,
     });
 });
 
@@ -138,10 +140,12 @@ app.get('/api/attribution', (req, res) => {
 
 // Reset game (new round)
 app.post('/api/reset', (req, res) => {
-    const key = gameState.groqApiKey; // preserve the API key
+    const key = gameState.groqApiKey;
+    const nextRound = gameState.round + 1;
     gameState = createFreshState();
     gameState.groqApiKey = key;
-    gameState.phase = 'submission';  // always go to submission after reset
+    gameState.phase = 'submission';
+    gameState.round = nextRound;
     res.json({ ok: true });
 });
 

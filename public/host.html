@@ -165,9 +165,14 @@
                 </p>
             </div>
 
-            <button class="btn-primary" id="btnStartGame" onclick="startGame()" style="margin-top:40px;">
-                Start Game →
-            </button>
+            <div class="btn-row" style="margin-top:40px;">
+                <button class="btn-primary" id="btnStartGame" onclick="startGame()">
+                    Start Game →
+                </button>
+                <button class="btn-secondary" onclick="resetSubmissions()">
+                    Reset Players
+                </button>
+            </div>
         </div>
 
         <!-- ═══ Game Phase ═══ -->
@@ -345,6 +350,13 @@
             document.getElementById('wordsDisplay').classList.remove('show');
             document.getElementById('attributionDisplay').classList.remove('show');
             document.querySelectorAll('.toggle-button').forEach(b => b.classList.remove('active'));
+            document.getElementById('qrCode').innerHTML = '';
+            fetchState();
+        }
+
+        async function resetSubmissions() {
+            if (!confirm('This will clear all player submissions. Continue?')) return;
+            await fetch('/api/reset', { method: 'POST' });
             document.getElementById('qrCode').innerHTML = '';
             fetchState();
         }

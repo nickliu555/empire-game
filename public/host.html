@@ -180,8 +180,8 @@
             <div class="host-badge"><span>👑 HOST</span></div>
             <h2 style="margin-bottom:20px;">Game Started!</h2>
             <div class="gap">
-                <button class="toggle-button" onclick="toggleWords()">Show All Words</button>
-                <button class="toggle-button" onclick="toggleAttribution()">Show All Words with Names</button>
+                <button class="toggle-button" id="btnWords" onclick="toggleWords()">Show All Words</button>
+                <button class="toggle-button" id="btnAttribution" onclick="toggleAttribution()">Show All Words with Names</button>
             </div>
 
             <div class="words-display" id="wordsDisplay">
@@ -304,7 +304,11 @@
 
         async function toggleWords() {
             const display = document.getElementById('wordsDisplay');
-            const btn = event.target;
+            const btn = document.getElementById('btnWords');
+
+            // Close attribution if open
+            document.getElementById('attributionDisplay').classList.remove('show');
+            document.getElementById('btnAttribution').classList.remove('active');
 
             if (!display.classList.contains('show') && !wordsLoaded) {
                 const res = await fetch('/api/words');
@@ -320,10 +324,14 @@
 
         async function toggleAttribution() {
             const display = document.getElementById('attributionDisplay');
-            const btn = event.target;
+            const btn = document.getElementById('btnAttribution');
 
             if (!display.classList.contains('show')) {
                 if (!confirm('Are you sure? This will reveal which word belongs to which player.')) return;
+
+                // Close words if open
+                document.getElementById('wordsDisplay').classList.remove('show');
+                document.getElementById('btnWords').classList.remove('active');
 
                 if (!attributionLoaded) {
                     const res = await fetch('/api/attribution');

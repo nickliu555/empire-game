@@ -116,6 +116,22 @@
             margin-top: 15px;
             text-align: center;
         }
+
+        .audio-indicator {
+            font-size: 36px;
+            text-align: center;
+            margin-bottom: 8px;
+            opacity: 0.3;
+            transition: opacity 0.3s;
+        }
+        .audio-indicator.active {
+            opacity: 1;
+            animation: audioWave 1s ease-in-out infinite;
+        }
+        @keyframes audioWave {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.25); }
+        }
         .connection-url .label { color: #888; font-size: 12px; margin-bottom: 6px; }
         .connection-url .url { color: #d4a844; font-size: 18px; font-weight: 700; word-break: break-all; }
     </style>
@@ -196,6 +212,7 @@
             </div>
 
             <div class="hear-display" id="hearDisplay">
+                <div id="audioIndicator" class="audio-indicator">🔊</div>
                 <div id="hearProgress" style="text-align:center; color:#888; font-size:13px; margin-bottom:12px;"></div>
                 <div style="display:flex; gap:10px; justify-content:center;">
                     <button class="btn-secondary" id="btnHearPause" onclick="pauseHear()" style="width:auto; padding:8px 20px;">Pause</button>
@@ -375,6 +392,7 @@
                     document.getElementById('hearProgress').textContent = `All ${hearWords.length} words read.`;
                     document.getElementById('btnHearPause').textContent = 'Play Again';
                     document.getElementById('btnHearRestart').style.display = 'none';
+                    document.getElementById('audioIndicator').classList.remove('active');
                     hearActive = false;
                 }
                 return;
@@ -382,6 +400,7 @@
 
             const word = hearWords[hearIndex];
             document.getElementById('hearProgress').textContent = `Word ${hearIndex + 1} of ${hearWords.length}`;
+            document.getElementById('audioIndicator').classList.add('active');
 
             const utterance = new SpeechSynthesisUtterance(word);
             utterance.rate = 0.9;
@@ -389,6 +408,7 @@
             utterance.onend = () => {
                 hearIndex++;
                 if (hearActive && !hearPaused) {
+                    document.getElementById('audioIndicator').classList.remove('active');
                     hearTimeout = setTimeout(() => speakNextWord(), 800);
                 }
             };
@@ -408,6 +428,7 @@
                 hearPaused = true;
                 clearTimeout(hearTimeout);
                 speechSynthesis.cancel();
+                document.getElementById('audioIndicator').classList.remove('active');
                 btn.textContent = 'Resume';
             } else {
                 // Finished — restart
@@ -432,6 +453,7 @@
             hearActive = false;
             hearPaused = false;
             hearIndex = 0;
+            document.getElementById('audioIndicator').classList.remove('active');
         }
 
         async function toggleWords() {

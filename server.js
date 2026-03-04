@@ -91,7 +91,8 @@ app.post('/api/submit', async (req, res) => {
 
     // Check if this player already submitted
     if (gameState.submissions.some(s => s.player.toLowerCase() === cleanName.toLowerCase())) {
-        return res.status(400).json({ error: `${cleanName} has already submitted a word.` });
+        const displayName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1).toLowerCase();
+        return res.status(400).json({ error: `${displayName} is already another player's name.` });
     }
 
     // Exact duplicate check
@@ -184,6 +185,7 @@ Existing words: ${existingList}
 
 Check if the new word is similar to ANY of the existing words. ONLY REJECT if:
 - Exact match or spelling variation (e.g., "color" vs "colour") → REJECT
+- Same root word in a different form - plurals, verb tenses, gerunds, etc. (e.g., "bike" vs "biking", "run" vs "running", "cat" vs "cats", "swim" vs "swimmer", "drive" vs "driving") → REJECT
 - Same person/entity with minor variations (e.g., "Kanye" vs "Kanye West", "Taylor" vs "Taylor Swift") → REJECT
 - Nicknames, aliases, or stage names referring to the same person/thing (e.g., "Drake" vs "Drizzy", "The Rock" vs "Dwayne Johnson", "MJ" vs "Michael Jordan", "Bey" vs "Beyoncé") → REJECT
 - Same concept phrased differently (e.g., "egg roll" and "spring roll" are both types of rolls) → REJECT

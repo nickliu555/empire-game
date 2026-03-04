@@ -180,7 +180,8 @@
         <!-- ═══ Game Phase ═══ -->
         <div id="viewHostGame" style="display:none;">
             <div class="host-badge"><span>👑 HOST</span></div>
-            <h2 style="margin-bottom:20px;">Game Started!</h2>
+            <h2 style="margin-bottom:4px;">Game Started!</h2>
+            <div id="gamePlayerCount" style="color:#888; font-size:0.9em; margin-bottom:20px; text-align:center;"></div>
             <div class="gap">
                 <button class="toggle-button" id="btnHear" onclick="toggleHear()">🔊 Hear All Words</button>
                 <button class="toggle-button" id="btnWords" onclick="toggleWords()">👁️ Reveal All Words</button>
@@ -271,6 +272,7 @@
             }
             if (state.phase === 'playing') {
                 show('viewHostGame');
+                document.getElementById('gamePlayerCount').textContent = `(${state.playerCount} players)`;
                 return;
             }
         }

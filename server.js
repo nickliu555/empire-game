@@ -45,21 +45,46 @@ function getLocalIP() {
 }
 const LOCAL_IP = getLocalIP();
 
-// ─── API Routes ─────────────────────────────────────────────
+// ─── SSE (Server-Sent Events) ───────────────────────────────
+const sseClients = new Set();
 
-// Get current game state (public - no secrets)
-app.get('/api/state', (req, res) => {
-    // When deployed (Render etc), use the public URL; locally use LAN IP
+function getPublicState() {
     const playerUrl = process.env.RENDER_EXTERNAL_URL
         || process.env.PUBLIC_URL
         || `http://${LOCAL_IP}:${PORT}`;
-    res.json({
+    return {
         phase: gameState.phase,
         playerCount: gameState.submissions.length,
         hasApiKey: !!gameState.groqApiKey,
         playerUrl,
         round: gameState.round,
+    };
+}
+
+function broadcast() {
+    const data = JSON.stringify(getPublicState());
+    for (const client of sseClients) {
+        client.write(`data: ${data}\n\n`);
+    }
+}
+
+app.get('/api/events', (req, res) => {
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
     });
+    // Send current state immediately on connect
+    res.write(`data: ${JSON.stringify(getPublicState())}\n\n`);
+    sseClients.add(res);
+    req.on('close', () => sseClients.delete(res));
+});
+
+// ─── API Routes ─────────────────────────────────────────────
+
+// Get current game state (public - no secrets)
+app.get('/api/state', (req, res) => {
+    res.json(getPublicState());
 });
 
 // Save API key (host only)
@@ -72,6 +97,7 @@ app.post('/api/set-key', async (req, res) => {
 
     gameState.groqApiKey = key;
     gameState.phase = 'submission';
+    broadcast();
     res.json({ ok: true });
 });
 
@@ -108,6 +134,7 @@ app.post('/api/submit', async (req, res) => {
     }
 
     gameState.submissions.push({ player: cleanName, word: cleanWord });
+    broadcast();
     res.json({ ok: true, playerCount: gameState.submissions.length });
 });
 
@@ -124,6 +151,7 @@ app.post('/api/start', (req, res) => {
         [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     gameState.shuffledWords = arr;
+    broadcast();
     res.json({ ok: true });
 });
 
@@ -151,12 +179,14 @@ app.post('/api/reset', (req, res) => {
     gameState.groqApiKey = key;
     gameState.phase = 'submission';
     gameState.round = nextRound;
+    broadcast();
     res.json({ ok: true });
 });
 
 // Full reset (back to API key setup, unless env var is set)
 app.post('/api/full-reset', (req, res) => {
     gameState = createFreshState();
+    broadcast();
     res.json({ ok: true });
 });
 

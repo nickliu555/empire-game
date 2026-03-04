@@ -215,7 +215,6 @@
 
     <script>
         // ─── State ──────────────────────────────────────────
-        let pollInterval = null;
         let wordsLoaded = false;
         let attributionLoaded = false;
         let hearWords = [];
@@ -227,12 +226,27 @@
         // ─── Init ───────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', () => {
             hideAllViews();
-            fetchState();
-            pollInterval = setInterval(fetchState, 2000);
+            connectSSE();
         });
 
         function hideAllViews() {
             document.querySelectorAll('[id^="view"]').forEach(el => el.style.display = 'none');
+        }
+
+        // ─── SSE (real-time updates) ────────────────────────
+        function connectSSE() {
+            const es = new EventSource('/api/events');
+            es.onmessage = (evt) => {
+                try {
+                    const state = JSON.parse(evt.data);
+                    render(state);
+                } catch (e) {
+                    console.error('SSE parse error:', e);
+                }
+            };
+            es.onerror = () => {
+                console.warn('SSE connection lost, reconnecting...');
+            };
         }
 
         async function fetchState() {
@@ -241,7 +255,7 @@
                 const state = await res.json();
                 render(state);
             } catch (e) {
-                console.error('Poll error:', e);
+                console.error('Fetch error:', e);
             }
         }
 

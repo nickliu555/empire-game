@@ -246,6 +246,7 @@
                 resetType = (lastPhase === 'playing') ? 'newround' : 'reset';
             }
             knownRound = state.round;
+            const prevPhase = lastPhase;
             lastPhase = state.phase;
 
             // If showing reset notification, stay on that screen
@@ -275,6 +276,11 @@
             if (state.phase === 'playing') {
                 show('viewPlayerGame');
                 document.getElementById('gamePlayerName').textContent = document.getElementById('playerName').value.trim();
+                // Reset word toggle to hidden when first entering game phase
+                if (prevPhase !== 'playing') {
+                    document.getElementById('myWordDisplay').style.display = 'none';
+                    document.getElementById('btnToggleWord').textContent = '👁️ Show My Word';
+                }
                 return;
             }
         }

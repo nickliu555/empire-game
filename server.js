@@ -1,7 +1,17 @@
 const express = require('express');
 const path = require('path');
 const os = require('os');
+const rateLimit = require('express-rate-limit');
 const app = express();
+
+// Rate limit for submission endpoint (max 10 requests per minute per IP)
+const submitLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests. Please wait a moment and try again.' },
+});
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -102,7 +112,7 @@ app.post('/api/set-key', async (req, res) => {
 });
 
 // Submit a word (players)
-app.post('/api/submit', async (req, res) => {
+app.post('/api/submit', submitLimiter, async (req, res) => {
     if (gameState.phase !== 'submission') {
         return res.status(400).json({ error: 'Not accepting submissions right now.' });
     }
@@ -193,13 +203,18 @@ app.post('/api/full-reset', (req, res) => {
 // ─── Groq API helpers ───────────────────────────────────────
 
 async function validateApiKey(key) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
     try {
         const resp = await fetch('https://api.groq.com/openai/v1/models', {
-            headers: { 'Authorization': `Bearer ${key}` }
+            headers: { 'Authorization': `Bearer ${key}` },
+            signal: controller.signal,
         });
         return resp.ok;
     } catch (e) {
         return false;
+    } finally {
+        clearTimeout(timeout);
     }
 }
 
@@ -230,6 +245,8 @@ DO NOT REJECT if:
 Respond ONLY with valid JSON (no markdown, no extra text):
 {"is_similar": true/false, "similar_to": "word or null", "reason": "brief explanation"}`;
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     try {
         const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
@@ -242,7 +259,8 @@ Respond ONLY with valid JSON (no markdown, no extra text):
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.3,
                 max_tokens: 200
-            })
+            }),
+            signal: controller.signal,
         });
 
         if (!resp.ok) return null;
@@ -255,6 +273,8 @@ Respond ONLY with valid JSON (no markdown, no extra text):
     } catch (e) {
         console.error('Similarity check error:', e);
         return null;
+    } finally {
+        clearTimeout(timeout);
     }
 }
 

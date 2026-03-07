@@ -240,10 +240,35 @@
         let hearPaused = false;
         let hearTimeout = null;
 
+        // ─── Screen Wake Lock (keep TV screen awake) ────────
+        let wakeLock = null;
+
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Screen Wake Lock acquired');
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Screen Wake Lock released');
+                    });
+                }
+            } catch (err) {
+                console.warn('Wake Lock request failed:', err.message);
+            }
+        }
+
+        // Re-acquire wake lock when tab becomes visible again
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
+        });
+
         // ─── Init ───────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', () => {
             hideAllViews();
             connectSSE();
+            requestWakeLock();
         });
 
         function hideAllViews() {

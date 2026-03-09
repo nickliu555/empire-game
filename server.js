@@ -38,6 +38,7 @@ function createFreshState() {
         submissions: [],       // [{player, word}]
         shuffledWords: [],     // randomized once on game start
         round: 1,              // increments on each reset so clients detect it
+        category: '',          // optional category set by host
     };
 }
 
@@ -68,6 +69,7 @@ function getPublicState() {
         hasApiKey: !!gameState.groqApiKey,
         playerUrl,
         round: gameState.round,
+        category: gameState.category,
     };
 }
 
@@ -146,6 +148,14 @@ app.post('/api/submit', submitLimiter, async (req, res) => {
     gameState.submissions.push({ player: cleanName, word: cleanWord });
     broadcast();
     res.json({ ok: true, playerCount: gameState.submissions.length });
+});
+
+// Set category (host only)
+app.post('/api/category', (req, res) => {
+    const { category } = req.body;
+    gameState.category = (category || '').trim().substring(0, 100);
+    broadcast();
+    res.json({ ok: true });
 });
 
 // Start game (host only)

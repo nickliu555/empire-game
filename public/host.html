@@ -134,6 +134,50 @@
         }
         .connection-url .label { color: #888; font-size: 12px; margin-bottom: 6px; }
         .connection-url .url { color: #d4a844; font-size: 18px; font-weight: 700; word-break: break-all; }
+
+        .category-box {
+            background: #1c1c1c;
+            border: 2px solid #3a2a2a;
+            border-radius: 6px;
+            padding: 14px 16px;
+            margin-top: 15px;
+            text-align: center;
+            transition: border-color 0.3s;
+            cursor: pointer;
+        }
+        .category-box:hover { border-color: #5a3a3a; }
+        .category-box .category-label { color: #888; font-size: 12px; margin-bottom: 6px; }
+        .category-box .category-value {
+            color: #d4a844;
+            font-size: 20px;
+            font-weight: 700;
+            min-height: 28px;
+        }
+        .category-box .category-placeholder {
+            color: #555;
+            font-style: italic;
+            font-size: 16px;
+        }
+        .category-input {
+            background: #1c1c1c;
+            border: 2px solid #d4a844;
+            border-radius: 4px;
+            color: #d4a844;
+            font-size: 20px;
+            font-weight: 700;
+            text-align: center;
+            padding: 6px 10px;
+            width: 100%;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .category-input::placeholder { color: #555; font-style: italic; font-weight: 400; }
+        .category-game {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .category-game .category-label { color: #888; font-size: 12px; margin-bottom: 4px; }
+        .category-game .category-value { color: #d4a844; font-size: 20px; font-weight: 700; }
     </style>
 </head>
 <body>
@@ -177,6 +221,16 @@
                 <div class="url" id="playerUrl"></div>
             </div>
 
+            <div class="category-box" id="categoryBox" onclick="startEditCategory()">
+                <div class="category-label">📂 Category (click to edit)</div>
+                <div class="category-value" id="categoryDisplay"><span class="category-placeholder">No category set</span></div>
+            </div>
+            <div id="categoryEditBox" style="display:none; margin-top:15px; text-align:center;">
+                <div style="color:#888; font-size:12px; margin-bottom:6px;">📂 Category</div>
+                <input type="text" class="category-input" id="categoryInput" placeholder="e.g. Animals, Movies, Celebrities..." maxlength="100">
+                <div style="color:#666; font-size:11px; margin-top:6px;">Press Enter or click away to save</div>
+            </div>
+
             <div style="margin-top:20px;">
                 <p style="color:#888; font-size:13px; text-align:center; margin-bottom:12px;">
                     Waiting for players to submit words...
@@ -197,6 +251,9 @@
         <div id="viewHostGame" style="display:none;">
             <div class="host-badge"><span>👑 HOST</span></div>
             <h2 style="margin-bottom:4px;">Game Started!</h2>
+            <div id="gameCategoryDisplay" style="display:none; text-align:center; margin-bottom:4px;">
+                <span style="color:#888; font-size:12px;">📂 </span><span id="gameCategoryValue" style="color:#ccc; font-size:14px; font-weight:600;"></span>
+            </div>
             <div id="gamePlayerCount" style="color:#888; font-size:0.9em; margin-bottom:20px; text-align:center;"></div>
             <div class="gap">
                 <button class="toggle-button" id="btnHear" onclick="toggleHear()">🔊 Hear All Words</button>
@@ -239,6 +296,8 @@
         let hearActive = false;
         let hearPaused = false;
         let hearTimeout = null;
+        let currentCategory = '';
+        let editingCategory = false;
 
         // ─── Screen Wake Lock (keep TV screen awake) ────────
         let wakeLock = null;
@@ -324,11 +383,23 @@
                         correctLevel: QRCode.CorrectLevel.M
                     });
                 }
+                currentCategory = state.category || '';
+                if (!editingCategory) {
+                    updateCategoryDisplay();
+                }
                 return;
             }
             if (state.phase === 'playing') {
                 show('viewHostGame');
                 document.getElementById('gamePlayerCount').textContent = `(${state.playerCount} players)`;
+                const cat = state.category || '';
+                const gameCatEl = document.getElementById('gameCategoryDisplay');
+                if (cat) {
+                    document.getElementById('gameCategoryValue').textContent = cat;
+                    gameCatEl.style.display = 'block';
+                } else {
+                    gameCatEl.style.display = 'none';
+                }
                 return;
             }
         }
@@ -563,6 +634,61 @@
             el.className = `msg ${type} show`;
             el.textContent = text;
         }
+
+        // ─── Category editing ───────────────────────────────
+
+        function updateCategoryDisplay() {
+            const displayEl = document.getElementById('categoryDisplay');
+            if (currentCategory) {
+                displayEl.textContent = currentCategory;
+            } else {
+                displayEl.innerHTML = '<span class="category-placeholder">No category set</span>';
+            }
+        }
+
+        function startEditCategory() {
+            editingCategory = true;
+            document.getElementById('categoryBox').style.display = 'none';
+            document.getElementById('categoryEditBox').style.display = 'block';
+            const input = document.getElementById('categoryInput');
+            input.value = currentCategory;
+            input.focus();
+        }
+
+        function finishEditCategory() {
+            if (!editingCategory) return;
+            editingCategory = false;
+            const input = document.getElementById('categoryInput');
+            const newCategory = input.value.trim();
+            currentCategory = newCategory;
+            document.getElementById('categoryEditBox').style.display = 'none';
+            document.getElementById('categoryBox').style.display = 'block';
+            updateCategoryDisplay();
+            fetch('/api/category', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ category: newCategory })
+            }).catch(() => {});
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const catInput = document.getElementById('categoryInput');
+            catInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    finishEditCategory();
+                }
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    editingCategory = false;
+                    document.getElementById('categoryEditBox').style.display = 'none';
+                    document.getElementById('categoryBox').style.display = 'block';
+                }
+            });
+            catInput.addEventListener('blur', () => {
+                finishEditCategory();
+            });
+        });
 
         function escapeHtml(str) {
             const div = document.createElement('div');

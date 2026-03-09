@@ -102,6 +102,22 @@
         .pink-theme div[style*="color:#555"] {
             color: #c06090 !important;
         }
+        .category-banner {
+            text-align: center;
+            margin-bottom: 16px;
+            padding: 10px 14px;
+            background: #1c1c1c;
+            border: 1px solid #3a2a2a;
+            border-radius: 6px;
+        }
+        .category-banner .category-label { color: #888; font-size: 11px; margin-bottom: 3px; }
+        .category-banner .category-value { color: #d4a844; font-size: 18px; font-weight: 700; }
+        .pink-theme .category-banner {
+            background: #ffecf2;
+            border-color: #ffb0d0;
+        }
+        .pink-theme .category-banner .category-label { color: #c06090; }
+        .pink-theme .category-banner .category-value { color: #d63384; }
     </style>
 </head>
 <body>
@@ -125,6 +141,10 @@
                 </div>
             </div>
 
+            <div id="submitCategoryBanner" class="category-banner" style="display:none;">
+                <div class="category-label">📂 Category</div>
+                <div class="category-value" id="submitCategoryValue"></div>
+            </div>
             <div class="input-group">
                 <label for="playerName">Your Name</label>
                 <input type="text" id="playerName" placeholder="Enter your name" autocomplete="off" maxlength="50">
@@ -142,6 +162,10 @@
 
         <!-- ═══ Submitted, waiting ═══ -->
         <div id="viewPlayerDone" style="display:none;">
+            <div id="doneCategoryBanner" class="category-banner" style="display:none;">
+                <div class="category-label">📂 Category</div>
+                <div class="category-value" id="doneCategoryValue"></div>
+            </div>
             <div class="waiting">
                 <div class="icon">✅</div>
                 <div class="text" style="color:#5cb85c;">Word submitted!</div>
@@ -156,6 +180,10 @@
 
         <!-- ═══ Game started ═══ -->
         <div id="viewPlayerGame" style="display:none;">
+            <div id="gameCategoryBanner" class="category-banner" style="display:none;">
+                <div class="category-label">📂 Category</div>
+                <div class="category-value" id="gameCategoryValue"></div>
+            </div>
             <div class="waiting">
                 <div class="icon">🎮</div>
                 <div class="text">The game has started!</div>
@@ -282,15 +310,18 @@
                     show('viewPlayerDone');
                     document.getElementById('donePlayerCount').textContent = state.playerCount;
                     document.getElementById('donePlayerName').textContent = document.getElementById('playerName').value.trim();
+                    showCategoryBanner('done', state.category);
                 } else {
                     show('viewPlayerSubmit');
                     document.getElementById('playerPlayerCount').textContent = state.playerCount;
+                    showCategoryBanner('submit', state.category);
                 }
                 return;
             }
             if (state.phase === 'playing') {
                 show('viewPlayerGame');
                 document.getElementById('gamePlayerName').textContent = document.getElementById('playerName').value.trim();
+                showCategoryBanner('game', state.category);
                 // Reset word toggle to hidden when first entering game phase
                 if (prevPhase !== 'playing') {
                     document.getElementById('myWordDisplay').style.display = 'none';
@@ -302,6 +333,17 @@
 
         function show(id) {
             document.getElementById(id).style.display = 'block';
+        }
+
+        function showCategoryBanner(prefix, category) {
+            const banner = document.getElementById(prefix + 'CategoryBanner');
+            const value = document.getElementById(prefix + 'CategoryValue');
+            if (category) {
+                value.textContent = category;
+                banner.style.display = 'block';
+            } else {
+                banner.style.display = 'none';
+            }
         }
 
         // ─── Player Actions ─────────────────────────────────

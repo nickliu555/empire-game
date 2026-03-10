@@ -150,6 +150,25 @@ app.post('/api/submit', submitLimiter, async (req, res) => {
     res.json({ ok: true, playerCount: gameState.submissions.length });
 });
 
+// Withdraw a submission (player changes their mind before game starts)
+app.post('/api/withdraw', (req, res) => {
+    if (gameState.phase !== 'submission') {
+        return res.status(400).json({ error: 'Cannot withdraw right now.' });
+    }
+    const { player } = req.body;
+    const cleanName = (player || '').trim();
+    if (!cleanName) {
+        return res.status(400).json({ error: 'Player name is required.' });
+    }
+    const idx = gameState.submissions.findIndex(s => s.player.toLowerCase() === cleanName.toLowerCase());
+    if (idx === -1) {
+        return res.status(404).json({ error: 'Submission not found.' });
+    }
+    gameState.submissions.splice(idx, 1);
+    broadcast();
+    res.json({ ok: true });
+});
+
 // Set category (host only)
 app.post('/api/category', (req, res) => {
     const { category } = req.body;

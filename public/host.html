@@ -323,6 +323,63 @@
             }
         });
 
+        // ─── Ding sound for new player joins ────────────
+        let lastPlayerCount = -1;
+        let lastHostPhase = null;
+        let audioCtx = null;
+        function getAudioCtx() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            return audioCtx;
+        }
+        function playDing() {
+            const ctx = getAudioCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            osc.frequency.setValueAtTime(1174.66, ctx.currentTime + 0.08);
+            gain.gain.setValueAtTime(0.3, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.4);
+        }
+        function playTrumpet() {
+            const ctx = getAudioCtx();
+            const t = ctx.currentTime;
+            // Trumpet fanfare with harmonics for a brassy timbre
+            const notes = [
+                { freq: 523.25, start: 0,    dur: 0.18 },  // C5
+                { freq: 659.25, start: 0.2,  dur: 0.18 },  // E5
+                { freq: 783.99, start: 0.4,  dur: 0.55 },  // G5 (held)
+            ];
+            notes.forEach(n => {
+                // Layer harmonics: fundamental + 2nd + 3rd partial
+                const harmonics = [
+                    { mult: 1,   gain: 0.18, type: 'sawtooth' },
+                    { mult: 2,   gain: 0.08, type: 'square' },
+                    { mult: 3,   gain: 0.04, type: 'sine' },
+                ];
+                harmonics.forEach(h => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = h.type;
+                    osc.frequency.setValueAtTime(n.freq * h.mult, t + n.start);
+                    // Bright brass-like attack then sustain then decay
+                    gain.gain.setValueAtTime(0, t + n.start);
+                    gain.gain.linearRampToValueAtTime(h.gain, t + n.start + 0.015);
+                    gain.gain.setValueAtTime(h.gain * 0.85, t + n.start + 0.04);
+                    gain.gain.setValueAtTime(h.gain * 0.75, t + n.start + n.dur * 0.7);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + n.start + n.dur);
+                    osc.start(t + n.start);
+                    osc.stop(t + n.start + n.dur);
+                });
+            });
+        }
+
         // ─── Init ───────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', () => {
             hideAllViews();
@@ -361,6 +418,8 @@
         }
 
         function render(state) {
+            const prevPhase = lastHostPhase;
+            lastHostPhase = state.phase;
             hideAllViews();
 
             if (state.phase === 'setup' || !state.hasApiKey) {
@@ -369,6 +428,11 @@
             }
             if (state.phase === 'submission') {
                 show('viewHostSubmission');
+                // Play ding when a new player joins
+                if (lastPlayerCount >= 0 && state.playerCount > lastPlayerCount) {
+                    playDing();
+                }
+                lastPlayerCount = state.playerCount;
                 document.getElementById('hostPlayerCount').textContent = state.playerCount;
                 const url = state.playerUrl || location.origin;
                 document.getElementById('playerUrl').textContent = url;
@@ -436,12 +500,15 @@
 
         async function startGame() {
             try {
+                // Ensure AudioContext is created from user gesture
+                getAudioCtx();
                 const res = await fetch('/api/start', { method: 'POST' });
                 const data = await res.json();
                 if (!res.ok) {
                     alert(data.error || 'Cannot start game.');
                     return;
                 }
+                playTrumpet();
                 wordsLoaded = false;
                 attributionLoaded = false;
                 fetchState();

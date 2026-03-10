@@ -175,6 +175,10 @@
                     <span class="player-count" id="donePlayerCount">0</span>
                     <span style="color:#888;"> players so far</span>
                 </div>
+                <button class="btn-secondary" id="btnToggleWordDone" onclick="toggleMyWordDone()" style="margin-top:20px; max-width:240px; margin-left:auto; margin-right:auto;">👁️ Show My Word</button>
+                <div id="myWordDisplayDone" style="display:none; margin-top:14px; padding:12px 18px; background:rgba(255,255,255,0.08); border-radius:10px; border:1px solid rgba(255,255,255,0.15); font-size:1.2em; font-weight:600; letter-spacing:0.5px;"></div>
+                <button class="btn-secondary" id="btnChangeWord" onclick="withdrawSubmission()" style="margin-top:12px; max-width:240px; margin-left:auto; margin-right:auto;">↩️ Go Back & Resubmit</button>
+                <div id="withdrawMsg" class="msg"></div>
             </div>
         </div>
 
@@ -390,6 +394,9 @@
                 checkEasterEgg(name);
                 playerSubmitted = true;
                 submittedWord = word;
+                // Reset the done-screen word toggle so it starts hidden with the new word
+                document.getElementById('myWordDisplayDone').style.display = 'none';
+                document.getElementById('btnToggleWordDone').textContent = '👁️ Show My Word';
                 localStorage.setItem('empire_submitted', JSON.stringify({ round: knownRound, name, word }));
                 fetchState();
             } catch (e) {
@@ -416,6 +423,53 @@
             } else {
                 display.style.display = 'none';
                 btn.textContent = '👁️ Show My Word';
+            }
+        }
+
+        function toggleMyWordDone() {
+            const display = document.getElementById('myWordDisplayDone');
+            const btn = document.getElementById('btnToggleWordDone');
+            if (display.style.display === 'none') {
+                display.textContent = submittedWord;
+                display.style.display = 'block';
+                btn.textContent = '🙈 Hide My Word';
+            } else {
+                display.style.display = 'none';
+                btn.textContent = '👁️ Show My Word';
+            }
+        }
+
+        async function withdrawSubmission() {
+            const name = document.getElementById('playerName').value.trim();
+            const btn = document.getElementById('btnChangeWord');
+            const msgEl = document.getElementById('withdrawMsg');
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/withdraw', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ player: name })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    showMsg(msgEl, data.error, 'error');
+                    btn.disabled = false;
+                    return;
+                }
+                // Go back to submission form with name pre-populated
+                playerSubmitted = false;
+                submittedWord = '';
+                localStorage.removeItem('empire_submitted');
+                document.getElementById('playerWord').value = '';
+                document.getElementById('playerSubmitMsg').classList.remove('show');
+                const submitBtn = document.getElementById('btnPlayerSubmit');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Word';
+                btn.disabled = false;
+                fetchState();
+            } catch (e) {
+                showMsg(msgEl, 'Connection error.', 'error');
+                btn.disabled = false;
             }
         }
 

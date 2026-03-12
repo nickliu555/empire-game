@@ -348,34 +348,68 @@
         function playTrumpet() {
             const ctx = getAudioCtx();
             const t = ctx.currentTime;
-            // Trumpet fanfare with harmonics for a brassy timbre
+
+            // Royal trumpet fanfare — Bb major charge pattern
             const notes = [
-                { freq: 523.25, start: 0,    dur: 0.18 },  // C5
-                { freq: 659.25, start: 0.2,  dur: 0.18 },  // E5
-                { freq: 783.99, start: 0.4,  dur: 0.55 },  // G5 (held)
+                { freq: 466.16, start: 0,     dur: 0.12 },  // Bb4 (pickup)
+                { freq: 587.33, start: 0.13,  dur: 0.12 },  // D5
+                { freq: 698.46, start: 0.26,  dur: 0.12 },  // F5
+                { freq: 932.33, start: 0.40,  dur: 0.22 },  // Bb5 (peak)
+                { freq: 698.46, start: 0.65,  dur: 0.10 },  // F5 (grace)
+                { freq: 932.33, start: 0.78,  dur: 0.55 },  // Bb5 (sustained finale)
             ];
-            notes.forEach(n => {
-                // Layer harmonics: fundamental + 2nd + 3rd partial
+
+            // Master compressor to glue it together
+            const compressor = ctx.createDynamicsCompressor();
+            compressor.threshold.setValueAtTime(-20, t);
+            compressor.ratio.setValueAtTime(6, t);
+            compressor.attack.setValueAtTime(0.003, t);
+            compressor.release.setValueAtTime(0.15, t);
+            compressor.connect(ctx.destination);
+
+            notes.forEach((n, i) => {
+                const isFinale = i === notes.length - 1;
+                const peak = isFinale ? 0.22 : 0.20;
+
+                // Harmonics layered for a brassy, rich timbre
                 const harmonics = [
-                    { mult: 1,   gain: 0.18, type: 'sawtooth' },
-                    { mult: 2,   gain: 0.08, type: 'square' },
-                    { mult: 3,   gain: 0.04, type: 'sine' },
+                    { mult: 1,   vol: 1.0,  type: 'sawtooth' },
+                    { mult: 2,   vol: 0.5,  type: 'square'   },
+                    { mult: 3,   vol: 0.25, type: 'sine'     },
+                    { mult: 4,   vol: 0.12, type: 'sawtooth' },
                 ];
                 harmonics.forEach(h => {
                     const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
                     osc.connect(gain);
-                    gain.connect(ctx.destination);
+                    gain.connect(compressor);
                     osc.type = h.type;
                     osc.frequency.setValueAtTime(n.freq * h.mult, t + n.start);
-                    // Bright brass-like attack then sustain then decay
+
+                    const g = peak * h.vol;
+                    // Sharp brass attack → sustain → decay
                     gain.gain.setValueAtTime(0, t + n.start);
-                    gain.gain.linearRampToValueAtTime(h.gain, t + n.start + 0.015);
-                    gain.gain.setValueAtTime(h.gain * 0.85, t + n.start + 0.04);
-                    gain.gain.setValueAtTime(h.gain * 0.75, t + n.start + n.dur * 0.7);
-                    gain.gain.exponentialRampToValueAtTime(0.001, t + n.start + n.dur);
+                    gain.gain.linearRampToValueAtTime(g, t + n.start + 0.012);
+                    gain.gain.setValueAtTime(g * 0.8, t + n.start + 0.04);
+                    if (isFinale) {
+                        // Vibrato on the held final note
+                        const lfo = ctx.createOscillator();
+                        const lfoGain = ctx.createGain();
+                        lfo.frequency.setValueAtTime(5.5, t + n.start);
+                        lfoGain.gain.setValueAtTime(4, t + n.start);
+                        lfo.connect(lfoGain);
+                        lfoGain.connect(osc.frequency);
+                        lfo.start(t + n.start + 0.15);
+                        lfo.stop(t + n.start + n.dur);
+                        // Slow fade on finale
+                        gain.gain.setValueAtTime(g * 0.75, t + n.start + n.dur * 0.5);
+                        gain.gain.exponentialRampToValueAtTime(0.001, t + n.start + n.dur);
+                    } else {
+                        gain.gain.setValueAtTime(g * 0.7, t + n.start + n.dur * 0.6);
+                        gain.gain.exponentialRampToValueAtTime(0.001, t + n.start + n.dur);
+                    }
                     osc.start(t + n.start);
-                    osc.stop(t + n.start + n.dur);
+                    osc.stop(t + n.start + n.dur + 0.05);
                 });
             });
         }

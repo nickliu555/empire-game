@@ -301,6 +301,7 @@
                 const submitBtn = document.getElementById('btnPlayerSubmit');
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Submit Word';
+                checkEasterEgg(''); // Clear pink theme
             } else if (roundMismatch && playerSubmitted) {
                 // Same server session, host reset the game — show notification
                 playerSubmitted = false;
@@ -434,7 +435,7 @@
             const display = document.getElementById('myWordDisplay');
             const btn = document.getElementById('btnToggleWord');
             if (display.style.display === 'none') {
-                display.textContent = submittedWord;
+                display.textContent = submittedWord.toLowerCase();
                 display.style.display = 'block';
                 btn.textContent = '🙈 Hide My Word';
             } else {
@@ -447,7 +448,7 @@
             const display = document.getElementById('myWordDisplayDone');
             const btn = document.getElementById('btnToggleWordDone');
             if (display.style.display === 'none') {
-                display.textContent = submittedWord;
+                display.textContent = submittedWord.toLowerCase();
                 display.style.display = 'block';
                 btn.textContent = '🙈 Hide My Word';
             } else {

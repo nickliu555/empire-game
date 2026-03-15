@@ -287,8 +287,8 @@
 
         function render(state) {
             // Detect server restart (gameId changed) or round reset
-            const gameIdMismatch = knownGameId !== null && state.gameId && state.gameId !== knownGameId;
-            const roundMismatch = knownRound !== null && state.round !== knownRound;
+            const gameIdMismatch = state.gameId && knownGameId !== state.gameId;
+            const roundMismatch = knownRound !== null && state.round !== knownRound && !gameIdMismatch;
             if (gameIdMismatch && playerSubmitted) {
                 // Server restarted — silently clear stale state, no notification
                 playerSubmitted = false;

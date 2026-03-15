@@ -178,6 +178,52 @@
         }
         .category-game .category-label { color: #888; font-size: 12px; margin-bottom: 4px; }
         .category-game .category-value { color: #d4a844; font-size: 20px; font-weight: 700; }
+
+        .spinner-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .spinner-overlay.show { display: flex; }
+        .spinner-modal {
+            text-align: center;
+            min-width: 280px;
+        }
+        .spinner-label {
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .spinner-name {
+            color: #d4a844;
+            font-size: 48px;
+            font-weight: 700;
+            min-height: 60px;
+            transition: transform 0.08s;
+        }
+        .spinner-result {
+            color: #fff;
+            font-size: 20px;
+            margin-top: 20px;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+        .spinner-result.visible { opacity: 1; }
+        .spinner-dismiss-hint {
+            color: #555;
+            font-size: 13px;
+            margin-top: 24px;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+        .spinner-dismiss-hint.visible { opacity: 1; }
     </style>
 </head>
 <body>
@@ -256,6 +302,7 @@
             </div>
             <div id="gamePlayerCount" style="color:#888; font-size:0.9em; margin-bottom:20px; text-align:center;"></div>
             <div class="gap">
+                <button class="toggle-button" id="btnFirstPlayer" onclick="chooseFirstPlayer()">🎲 Randomly Choose 1st Player</button>
                 <button class="toggle-button" id="btnHear" onclick="toggleHear()">🔊 Hear All Words</button>
                 <button class="toggle-button" id="btnWords" onclick="toggleWords()">👁️ Reveal All Words</button>
                 <button class="toggle-button" id="btnAttribution" onclick="toggleAttribution()">🎭 Reveal All Words with Names</button>
@@ -298,6 +345,8 @@
         let hearTimeout = null;
         let currentCategory = '';
         let editingCategory = false;
+        let spinnerPlayers = [];
+        let spinnerDone = false;
 
         // ─── Screen Wake Lock (keep TV screen awake) ────────
         let wakeLock = null;
@@ -708,8 +757,87 @@
             btn.classList.toggle('active');
         }
 
+        async function chooseFirstPlayer() {
+            // Fetch player names if we don't have them yet
+            if (!spinnerPlayers.length) {
+                try {
+                    const res = await fetch('/api/attribution');
+                    const data = await res.json();
+                    spinnerPlayers = data.attribution.map(s => s.player);
+                } catch (e) { return; }
+            }
+            if (spinnerPlayers.length < 2) return;
+
+            const overlay = document.getElementById('spinnerOverlay');
+            const nameEl = document.getElementById('spinnerName');
+            const resultEl = document.getElementById('spinnerResult');
+            const hintEl = document.getElementById('spinnerDismissHint');
+            resultEl.classList.remove('visible');
+            hintEl.classList.remove('visible');
+            nameEl.style.color = '';
+            spinnerDone = false;
+            overlay.classList.add('show');
+
+            // Pick the winner (crypto-strong)
+            const randomBytes = new Uint32Array(1);
+            crypto.getRandomValues(randomBytes);
+            const winnerIdx = randomBytes[0] % spinnerPlayers.length;
+            const winner = spinnerPlayers[winnerIdx];
+
+            // Build a shuffled sequence of names to cycle through
+            const totalCycles = 20 + Math.floor(Math.random() * 10);
+            const sequence = [];
+            for (let c = 0; c < totalCycles; c++) {
+                // Build a shuffled copy each time we exhaust the pool
+                if (c % spinnerPlayers.length === 0) {
+                    const shuffled = [...spinnerPlayers];
+                    for (let s = shuffled.length - 1; s > 0; s--) {
+                        const rb = new Uint32Array(1);
+                        crypto.getRandomValues(rb);
+                        const j = rb[0] % (s + 1);
+                        [shuffled[s], shuffled[j]] = [shuffled[j], shuffled[s]];
+                    }
+                    sequence.push(...shuffled);
+                }
+            }
+            // Trim to exact length and ensure last one isn't the winner (so the final reveal is distinct)
+            const spin = sequence.slice(0, totalCycles);
+            if (spin[spin.length - 1] === winner) {
+                const other = spinnerPlayers.find(p => p !== winner);
+                spin[spin.length - 1] = other;
+            }
+
+            let i = 0;
+            function tick() {
+                if (i < spin.length) {
+                    nameEl.textContent = spin[i];
+                    i++;
+                    const progress = i / spin.length;
+                    const delay = 60 + 300 * Math.pow(progress, 2.5);
+                    setTimeout(tick, delay);
+                } else {
+                    // Final reveal: show the winner
+                    nameEl.textContent = winner;
+                    nameEl.style.color = '#fff';
+                    resultEl.textContent = `${winner} starts first!`;
+                    resultEl.classList.add('visible');
+                    hintEl.classList.add('visible');
+                    spinnerDone = true;
+                }
+            }
+            tick();
+        }
+
+        function dismissSpinner() {
+            if (!spinnerDone) return;
+            const overlay = document.getElementById('spinnerOverlay');
+            overlay.classList.remove('show');
+            document.getElementById('spinnerName').style.color = '';
+        }
+
         async function newRound() {
             stopHear();
+            spinnerPlayers = [];
             await fetch('/api/reset', { method: 'POST' });
             wordsLoaded = false;
             attributionLoaded = false;
@@ -815,10 +943,20 @@
                 <li><strong>Players join</strong> on their phones by scanning a QR code — no app install needed</li>
                 <li>Everyone secretly submits a word (optionally within a chosen category)</li>
                 <li>The shuffled list of words is revealed — but not who wrote them</li>
-                <li>Players take turns guessing which word belongs to which person — guess right and you "capture" them into your empire</li>
+                <li>Players take turns guessing which word belongs to which person — guess correctly and you "capture" them into your empire</li>
                 <li><strong>Last empire standing wins!</strong></li>
             </ol>
         </div>
     </div>
+    <!-- First Player Spinner Overlay -->
+    <div class="spinner-overlay" id="spinnerOverlay" onclick="dismissSpinner()">
+        <div class="spinner-modal" onclick="event.stopPropagation(); dismissSpinner();">
+            <div class="spinner-label">Who goes first?</div>
+            <div class="spinner-name" id="spinnerName"></div>
+            <div class="spinner-result" id="spinnerResult"></div>
+            <div class="spinner-dismiss-hint" id="spinnerDismissHint">Tap anywhere to close</div>
+        </div>
+    </div>
+
 </body>
 </html>

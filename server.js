@@ -45,6 +45,23 @@ function createFreshState() {
     };
 }
 
+// ─── Inactivity auto-reset (45 min) ─────────────────────────
+let lastActivity = Date.now();
+
+function touchActivity() {
+    lastActivity = Date.now();
+}
+
+setInterval(() => {
+    if (Date.now() - lastActivity >= 30 * 60 * 1000) {
+        const nextRound = gameState.round + 1;
+        gameState = createFreshState();
+        gameState.round = nextRound;
+        broadcast();
+        console.log('Game auto-reset after 30 minutes of inactivity.');
+    }
+}, 60 * 1000);
+
 // ─── Compute LAN IP once at startup ─────────────────────────
 function getLocalIP() {
     const interfaces = os.networkInterfaces();
@@ -105,6 +122,7 @@ app.get('/api/state', (req, res) => {
 
 // Save API key (host only)
 app.post('/api/set-key', async (req, res) => {
+    touchActivity();
     const { key } = req.body;
     if (!key) return res.status(400).json({ error: 'Key required' });
 
@@ -119,6 +137,7 @@ app.post('/api/set-key', async (req, res) => {
 
 // Submit a word (players)
 app.post('/api/submit', submitLimiter, async (req, res) => {
+    touchActivity();
     if (gameState.phase !== 'submission') {
         return res.status(400).json({ error: 'Not accepting submissions right now.' });
     }
@@ -156,6 +175,7 @@ app.post('/api/submit', submitLimiter, async (req, res) => {
 
 // Withdraw a submission (player changes their mind before game starts)
 app.post('/api/withdraw', (req, res) => {
+    touchActivity();
     if (gameState.phase !== 'submission') {
         return res.status(400).json({ error: 'Cannot withdraw right now.' });
     }
@@ -175,6 +195,7 @@ app.post('/api/withdraw', (req, res) => {
 
 // Set category (host only)
 app.post('/api/category', (req, res) => {
+    touchActivity();
     const { category } = req.body;
     gameState.category = (category || '').trim().substring(0, 100);
     broadcast();
@@ -183,6 +204,7 @@ app.post('/api/category', (req, res) => {
 
 // Start game (host only)
 app.post('/api/start', (req, res) => {
+    touchActivity();
     if (gameState.submissions.length < 2) {
         return res.status(400).json({ error: 'Need at least 2 players.' });
     }
@@ -216,6 +238,7 @@ app.get('/api/attribution', (req, res) => {
 
 // Reset game (new round)
 app.post('/api/reset', (req, res) => {
+    touchActivity();
     const key = gameState.groqApiKey;
     const nextRound = gameState.round + 1;
     gameState = createFreshState();
@@ -228,6 +251,7 @@ app.post('/api/reset', (req, res) => {
 
 // Full reset (back to API key setup, unless env var is set)
 app.post('/api/full-reset', (req, res) => {
+    touchActivity();
     const nextRound = gameState.round + 1;
     gameState = createFreshState();
     gameState.round = nextRound;

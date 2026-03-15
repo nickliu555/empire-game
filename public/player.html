@@ -225,6 +225,7 @@
         let playerSubmitted = false;
         let submittedWord = '';
         let knownRound = null;
+        let knownGameId = null;
         let showingReset = false;
         let resetType = null; // 'reset' or 'newround'
         let lastPhase = null;
@@ -238,6 +239,7 @@
                     const data = JSON.parse(saved);
                     playerSubmitted = true;
                     knownRound = data.round;
+                    knownGameId = data.gameId || null;
                     // Restore name field, word, and easter egg
                     if (data.name) {
                         document.getElementById('playerName').value = data.name;
@@ -284,15 +286,30 @@
         }
 
         function render(state) {
-            // Detect round reset
-            if (knownRound !== null && state.round !== knownRound && playerSubmitted) {
+            // Detect server restart (gameId changed) or round reset
+            const gameIdMismatch = knownGameId !== null && state.gameId && state.gameId !== knownGameId;
+            const roundMismatch = knownRound !== null && state.round !== knownRound;
+            if (gameIdMismatch && playerSubmitted) {
+                // Server restarted — silently clear stale state, no notification
+                playerSubmitted = false;
+                submittedWord = '';
+                localStorage.removeItem('empire_submitted');
+                // Reset submission form DOM so it's clean
+                document.getElementById('playerName').value = '';
+                document.getElementById('playerWord').value = '';
+                document.getElementById('playerSubmitMsg').classList.remove('show');
+                const submitBtn = document.getElementById('btnPlayerSubmit');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Word';
+            } else if (roundMismatch && playerSubmitted) {
+                // Same server session, host reset the game — show notification
                 playerSubmitted = false;
                 localStorage.removeItem('empire_submitted');
                 showingReset = true;
-                // If we were in the playing phase, it's a new round; otherwise it's a reset
                 resetType = (lastPhase === 'playing') ? 'newround' : 'reset';
             }
             knownRound = state.round;
+            knownGameId = state.gameId || null;
             const prevPhase = lastPhase;
             lastPhase = state.phase;
 
@@ -397,10 +414,10 @@
                 // Reset the done-screen word toggle so it starts hidden with the new word
                 document.getElementById('myWordDisplayDone').style.display = 'none';
                 document.getElementById('btnToggleWordDone').textContent = '👁️ Show My Word';
-                localStorage.setItem('empire_submitted', JSON.stringify({ round: knownRound, name, word }));
+                localStorage.setItem('empire_submitted', JSON.stringify({ round: knownRound, gameId: knownGameId, name, word }));
                 fetchState();
             } catch (e) {
-                showMsg(msgEl, 'Connection error. Are you on the same WiFi?', 'error');
+                showMsg(msgEl, 'Connection error. Check your internet and try again.', 'error');
                 btn.disabled = false;
                 btn.textContent = 'Submit Word';
             }
@@ -468,7 +485,7 @@
                 btn.disabled = false;
                 fetchState();
             } catch (e) {
-                showMsg(msgEl, 'Connection error.', 'error');
+                showMsg(msgEl, 'Connection error. Check your internet and try again.', 'error');
                 btn.disabled = false;
             }
         }

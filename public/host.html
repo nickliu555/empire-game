@@ -347,6 +347,8 @@
         let editingCategory = false;
         let spinnerPlayers = [];
         let spinnerDone = false;
+        let knownHostGameId = null;
+        let knownHostRound = null;
 
         // ─── Screen Wake Lock (keep TV screen awake) ────────
         let wakeLock = null;
@@ -500,7 +502,41 @@
             }
         }
 
+        function resetHostCachedState() {
+            wordsLoaded = false;
+            attributionLoaded = false;
+            hearWords = [];
+            hearIndex = 0;
+            stopHear();
+            spinnerPlayers = [];
+            spinnerDone = false;
+            lastPlayerCount = -1;
+            currentCategory = '';
+            editingCategory = false;
+            lastHostPhase = null;
+            // Clear cached DOM content
+            document.getElementById('wordsGrid').innerHTML = '';
+            document.getElementById('attributionContainer').innerHTML = '';
+            document.getElementById('wordsDisplay').classList.remove('show');
+            document.getElementById('attributionDisplay').classList.remove('show');
+            document.getElementById('hearDisplay').classList.remove('show');
+            document.querySelectorAll('.toggle-button').forEach(b => b.classList.remove('active'));
+            document.getElementById('qrCode').innerHTML = '';
+            // Clear spinner overlay
+            document.getElementById('spinnerOverlay').classList.remove('show');
+            document.getElementById('spinnerName').style.color = '';
+        }
+
         function render(state) {
+            // Detect server restart or round change — clear all cached game data
+            const gameIdChanged = knownHostGameId !== null && state.gameId && state.gameId !== knownHostGameId;
+            const roundChanged = knownHostRound !== null && state.round !== knownHostRound;
+            if (gameIdChanged || roundChanged) {
+                resetHostCachedState();
+            }
+            knownHostGameId = state.gameId || null;
+            knownHostRound = state.round;
+
             const prevPhase = lastHostPhase;
             lastHostPhase = state.phase;
             hideAllViews();
@@ -537,6 +573,24 @@
                 return;
             }
             if (state.phase === 'playing') {
+                // Reset game view state when first entering playing phase
+                if (prevPhase !== 'playing') {
+                    wordsLoaded = false;
+                    attributionLoaded = false;
+                    hearWords = [];
+                    hearIndex = 0;
+                    stopHear();
+                    spinnerPlayers = [];
+                    spinnerDone = false;
+                    document.getElementById('wordsGrid').innerHTML = '';
+                    document.getElementById('attributionContainer').innerHTML = '';
+                    document.getElementById('wordsDisplay').classList.remove('show');
+                    document.getElementById('attributionDisplay').classList.remove('show');
+                    document.getElementById('hearDisplay').classList.remove('show');
+                    document.querySelectorAll('.toggle-button').forEach(b => b.classList.remove('active'));
+                    document.getElementById('spinnerOverlay').classList.remove('show');
+                    document.getElementById('spinnerName').style.color = '';
+                }
                 show('viewHostGame');
                 document.getElementById('gamePlayerCount').textContent = `(${state.playerCount} players)`;
                 const cat = state.category || '';
@@ -836,25 +890,12 @@
         }
 
         async function newRound() {
-            stopHear();
-            spinnerPlayers = [];
             await fetch('/api/reset', { method: 'POST' });
-            wordsLoaded = false;
-            attributionLoaded = false;
-            hearWords = [];
-            document.getElementById('wordsDisplay').classList.remove('show');
-            document.getElementById('attributionDisplay').classList.remove('show');
-            document.getElementById('hearDisplay').classList.remove('show');
-            document.querySelectorAll('.toggle-button').forEach(b => b.classList.remove('active'));
-            document.getElementById('qrCode').innerHTML = '';
-            fetchState();
         }
 
         async function resetSubmissions() {
             if (!confirm('This will clear all player submissions. Continue?')) return;
             await fetch('/api/reset', { method: 'POST' });
-            document.getElementById('qrCode').innerHTML = '';
-            fetchState();
         }
 
         // ─── Helpers ────────────────────────────────────────

@@ -28,6 +28,7 @@ app.get('/host', (req, res) => {
 });
 
 // ─── Game State ─────────────────────────────────────────────
+const SERVER_GAME_ID = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 let gameState = createFreshState();
 
 function createFreshState() {
@@ -40,6 +41,7 @@ function createFreshState() {
         shuffledWords: [],     // randomized once on game start
         round: 1,              // increments on each reset so clients detect it
         category: '',          // optional category set by host
+        gameId: SERVER_GAME_ID, // stable for entire server lifetime
     };
 }
 
@@ -71,6 +73,7 @@ function getPublicState() {
         playerUrl,
         round: gameState.round,
         category: gameState.category,
+        gameId: gameState.gameId,
     };
 }
 
@@ -225,7 +228,9 @@ app.post('/api/reset', (req, res) => {
 
 // Full reset (back to API key setup, unless env var is set)
 app.post('/api/full-reset', (req, res) => {
+    const nextRound = gameState.round + 1;
     gameState = createFreshState();
+    gameState.round = nextRound;
     broadcast();
     res.json({ ok: true });
 });

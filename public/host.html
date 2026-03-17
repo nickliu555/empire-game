@@ -387,6 +387,7 @@
         document.addEventListener('click', () => getAudioCtx(), { once: true });
         function playDing() {
             const ctx = getAudioCtx();
+            if (ctx.state === 'suspended') return; // Audio not unlocked yet, skip
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
             osc.connect(gain);

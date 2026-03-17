@@ -380,8 +380,11 @@
         let audioCtx = null;
         function getAudioCtx() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             return audioCtx;
         }
+        // Unlock AudioContext on first user interaction so dings can play
+        document.addEventListener('click', () => getAudioCtx(), { once: true });
         function playDing() {
             const ctx = getAudioCtx();
             const osc = ctx.createOscillator();

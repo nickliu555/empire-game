@@ -525,6 +525,7 @@
                     document.getElementById('categoryWarningText').textContent = data.reason;
                     document.getElementById('categoryWarningBox').style.display = 'block';
                     document.getElementById('submitBtnRow').style.display = 'none';
+                    document.getElementById('playerWord').disabled = true;
                     btn.disabled = false;
                     btn.textContent = 'Submit Word';
                     return;
@@ -555,12 +556,14 @@
         function submitAnyway() {
             document.getElementById('categoryWarningBox').style.display = 'none';
             document.getElementById('submitBtnRow').style.display = '';
+            document.getElementById('playerWord').disabled = false;
             playerSubmitWord(true);
         }
 
         function dismissCategoryWarning() {
             document.getElementById('categoryWarningBox').style.display = 'none';
             document.getElementById('submitBtnRow').style.display = '';
+            document.getElementById('playerWord').disabled = false;
             document.getElementById('playerWord').focus();
         }
 

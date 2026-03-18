@@ -173,14 +173,14 @@ app.post('/api/submit', submitLimiter, async (req, res) => {
 
     // Exact duplicate check
     if (gameState.submissions.some(s => s.word === cleanWord)) {
-        return res.status(400).json({ error: `That word has already been submitted. Try another!` });
+        return res.status(400).json({ error: `That word is not available. Try another!` });
     }
 
     // LLM similarity check
     const existingWords = gameState.submissions.map(s => s.word);
     const sim = await checkSimilarity(cleanWord, existingWords, gameState.groqApiKey);
     if (sim && sim.is_similar) {
-        return res.status(400).json({ error: `Your word is too similar to a previously submitted word. Try another!` });
+        return res.status(400).json({ error: `That word is not available. Try another!` });
     }
 
     // LLM category fit check (soft warning, not a hard reject)
@@ -380,17 +380,23 @@ async function checkCategoryFit(word, category, apiKey) {
     if (!category || !apiKey) return null;
 
     const prompt = `You are a category checker for a party game called "Empire".
-Players must submit a word that fits a given category. Check if the word is a clear, obvious fit.
+Players submit a word that should fit a given category.
 
 Category: "${category}"
 Word submitted: "${word}"
 
-Be STRICT — the word should clearly and obviously belong in the category.
-Do NOT accept words that only fit through obscure or stretch connections.
-For example, if the category is "Movies", the word should be a well-known movie title, not just a random word that happens to also be an obscure movie title.
+Be LENIENT. This is a casual party game, not a strict quiz.
+If there is ANY reasonable way the word could fit the category, accept it.
+Only reject if the word is completely unrelated — something that would make everyone in the room say "that doesn't fit at all."
+
+For example:
+- "swimmer" for "Occupations" → ACCEPT (professional swimmers exist)
+- "runner" for "Occupations" → ACCEPT (people run professionally)
+- "pizza" for "Occupations" → REJECT (pizza is a food, not an occupation)
+- "cake" for "Movies" → REJECT (not a well-known movie)
 
 Respond ONLY with valid JSON (no markdown, no extra text):
-{"fits_category": true/false, "reason": "brief explanation"}`;
+{"fits_category": true/false}`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);

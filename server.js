@@ -385,15 +385,18 @@ Players submit a word that should fit a given category.
 Category: "${category}"
 Word submitted: "${word}"
 
-Be LENIENT. This is a casual party game, not a strict quiz.
-If there is ANY reasonable way the word could fit the category, accept it.
-Only reject if the word is completely unrelated — something that would make everyone in the room say "that doesn't fit at all."
+Be lenient for borderline cases — this is a casual party game, not a strict quiz.
+But the word should reasonably belong in the category based on what it is PRIMARILY KNOWN FOR.
+Do not stretch to find tenuous connections.
 
 For example:
 - "swimmer" for "Occupations" → ACCEPT (professional swimmers exist)
 - "runner" for "Occupations" → ACCEPT (people run professionally)
 - "pizza" for "Occupations" → REJECT (pizza is a food, not an occupation)
 - "cake" for "Movies" → REJECT (not a well-known movie)
+- "kanye" for "Athletes" → REJECT (he is primarily a musician, not an athlete)
+- "lebron" for "Athletes" → ACCEPT (he is primarily known as an athlete)
+- "shaq" for "Actors" → REJECT (he is primarily known as a basketball player)
 
 Respond ONLY with valid JSON (no markdown, no extra text):
 {"fits_category": true/false}`;

@@ -14,6 +14,15 @@ const submitLimiter = rateLimit({
     message: { error: 'Too many requests. Please wait a moment and try again.' },
 });
 
+// Rate limit for reactions (max 30 per minute per IP)
+const reactLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many reactions.' },
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -53,12 +62,12 @@ function touchActivity() {
 }
 
 setInterval(() => {
-    if (Date.now() - lastActivity >= 30 * 60 * 1000) {
+    if (Date.now() - lastActivity >= 60 * 60 * 1000) {
         const nextRound = gameState.round + 1;
         gameState = createFreshState();
         gameState.round = nextRound;
         broadcast();
-        console.log('Game auto-reset after 30 minutes of inactivity.');
+        console.log('Game auto-reset after 60 minutes of inactivity.');
     }
 }, 60 * 1000);
 
@@ -98,6 +107,12 @@ function broadcast() {
     const data = JSON.stringify(getPublicState());
     for (const client of sseClients) {
         client.write(`data: ${data}\n\n`);
+    }
+}
+
+function broadcastReaction(emoji) {
+    for (const client of sseClients) {
+        client.write(`event: reaction\ndata: ${JSON.stringify({ emoji })}\n\n`);
     }
 }
 
@@ -142,7 +157,7 @@ app.post('/api/submit', submitLimiter, async (req, res) => {
         return res.status(400).json({ error: 'Not accepting submissions right now.' });
     }
 
-    const { player, word } = req.body;
+    const { player, word, skipCategoryCheck } = req.body;
     const cleanWord = (word || '').trim().toLowerCase();
     const cleanName = (player || '').trim();
 
@@ -166,6 +181,16 @@ app.post('/api/submit', submitLimiter, async (req, res) => {
     const sim = await checkSimilarity(cleanWord, existingWords, gameState.groqApiKey);
     if (sim && sim.is_similar) {
         return res.status(400).json({ error: `Your word is too similar to a previously submitted word. Try another!` });
+    }
+
+    // LLM category fit check (soft warning, not a hard reject)
+    if (gameState.category && !skipCategoryCheck) {
+        console.log(`Category check: word="${cleanWord}", category="${gameState.category}"`);
+        const fit = await checkCategoryFit(cleanWord, gameState.category, gameState.groqApiKey);
+        console.log('Category check result:', fit);
+        if (fit && !fit.fits_category) {
+            return res.status(200).json({ categoryWarning: true, reason: `"${cleanWord}" doesn't typically fall under "${gameState.category}".` });
+        }
     }
 
     gameState.submissions.push({ player: cleanName, word: cleanWord });
@@ -199,6 +224,20 @@ app.post('/api/category', (req, res) => {
     const { category } = req.body;
     gameState.category = (category || '').trim().substring(0, 100);
     broadcast();
+    res.json({ ok: true });
+});
+
+// Send a reaction (players)
+const ALLOWED_REACTIONS = ['😂', '🔥', '👀', '👑', '💀', '🎉', '😱', '👏'];
+app.post('/api/react', reactLimiter, (req, res) => {
+    if (gameState.phase !== 'playing') {
+        return res.status(400).json({ error: 'Reactions only during gameplay.' });
+    }
+    const { emoji } = req.body;
+    if (!emoji || !ALLOWED_REACTIONS.includes(emoji)) {
+        return res.status(400).json({ error: 'Invalid reaction.' });
+    }
+    broadcastReaction(emoji);
     res.json({ ok: true });
 });
 
@@ -331,6 +370,55 @@ Respond ONLY with valid JSON (no markdown, no extra text):
         return JSON.parse(jsonMatch[0]);
     } catch (e) {
         console.error('Similarity check error:', e);
+        return null;
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+async function checkCategoryFit(word, category, apiKey) {
+    if (!category || !apiKey) return null;
+
+    const prompt = `You are a category checker for a party game called "Empire".
+Players must submit a word that fits a given category. Check if the word is a clear, obvious fit.
+
+Category: "${category}"
+Word submitted: "${word}"
+
+Be STRICT — the word should clearly and obviously belong in the category.
+Do NOT accept words that only fit through obscure or stretch connections.
+For example, if the category is "Movies", the word should be a well-known movie title, not just a random word that happens to also be an obscure movie title.
+
+Respond ONLY with valid JSON (no markdown, no extra text):
+{"fits_category": true/false, "reason": "brief explanation"}`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+        const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 0.3,
+                max_tokens: 200
+            }),
+            signal: controller.signal,
+        });
+
+        if (!resp.ok) return null;
+
+        const data = await resp.json();
+        const text = data.choices[0].message.content.trim();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) return null;
+        return JSON.parse(jsonMatch[0]);
+    } catch (e) {
+        console.error('Category check error:', e);
         return null;
     } finally {
         clearTimeout(timeout);

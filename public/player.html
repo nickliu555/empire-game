@@ -118,6 +118,91 @@
         }
         .pink-theme .category-banner .category-label { color: #c06090; }
         .pink-theme .category-banner .category-value { color: #d63384; }
+
+        .reaction-wrapper {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            margin-top: 28px;
+        }
+        .reaction-toggle {
+            background: rgba(255,255,255,0.06);
+            border: 1px dotted rgba(255,255,255,0.2);
+            border-radius: 50px;
+            padding: 8px 14px;
+            font-size: 14px;
+            width: auto;
+            cursor: pointer;
+            color: #777;
+            transition: color 0.2s, transform 0.15s, background 0.2s, border-color 0.2s;
+            -webkit-tap-highlight-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .reaction-toggle:hover { color: #bbb; background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+        .reaction-toggle:active { transform: scale(0.95); }
+        .reaction-toggle.active {
+            color: #d4a844;
+            background: rgba(212,168,68,0.1);
+            border-color: rgba(212,168,68,0.3);
+        }
+        .reaction-toggle .chevron {
+            font-size: 10px;
+            transition: transform 0.2s;
+        }
+        .reaction-toggle.active .chevron {
+            transform: rotate(180deg);
+        }
+        .reaction-picker {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1c1c1c;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 14px;
+            padding: 10px 12px;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: fit-content;
+            max-width: 200px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            z-index: 50;
+        }
+        .reaction-picker.show { display: flex; }
+        .reaction-btn {
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 26px;
+            cursor: pointer;
+            transition: transform 0.12s, background 0.15s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .reaction-btn:active {
+            transform: scale(1.3);
+            background: rgba(255,255,255,0.12);
+        }
+        .reaction-btn.cooldown {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        .pink-theme .reaction-toggle {
+            color: #c06090;
+        }
+        .pink-theme .reaction-toggle:hover { color: #d63384; }
+        .pink-theme .reaction-toggle.active { color: #d63384; }
+        .pink-theme .reaction-picker {
+            background: #ffecf2;
+            border-color: rgba(255, 105, 180, 0.3);
+        }
+        .pink-theme .reaction-btn:active {
+            background: rgba(255, 105, 180, 0.2);
+        }
     </style>
 </head>
 <body>
@@ -154,7 +239,16 @@
                 <input type="text" id="playerWord" placeholder="Enter your word" autocomplete="off" maxlength="150">
             </div>
             <div id="playerSubmitMsg" class="msg"></div>
-            <div class="btn-row" style="margin-top:25px;">
+            <div id="categoryWarningBox" style="display:none; margin-top:12px; text-align:center;">
+                <div class="msg warning show" style="background:rgba(212,168,68,0.1); color:#d4a844; border-left:4px solid #d4a844; text-align:left; margin-bottom:10px;">
+                    <span id="categoryWarningText"></span>
+                </div>
+                <div class="btn-row">
+                    <button class="btn-primary" id="btnSubmitAnyway" onclick="submitAnyway()">Submit Anyway</button>
+                    <button class="btn-secondary" onclick="dismissCategoryWarning()">Change Word</button>
+                </div>
+            </div>
+            <div class="btn-row" id="submitBtnRow" style="margin-top:25px;">
                 <button class="btn-primary" id="btnPlayerSubmit" onclick="playerSubmitWord()">Submit Word</button>
                 <button class="btn-secondary" onclick="playerClear()">Clear</button>
             </div>
@@ -195,6 +289,19 @@
                 <div class="sub">Look at the host's screen to see the words.</div>
                 <button class="btn-secondary" id="btnToggleWord" onclick="toggleMyWord()" style="margin-top:20px; max-width:240px; margin-left:auto; margin-right:auto;">👁️ Show My Word</button>
                 <div id="myWordDisplay" style="display:none; margin-top:14px; padding:12px 18px; background:rgba(255,255,255,0.08); border-radius:10px; border:1px solid rgba(255,255,255,0.15); font-size:1.2em; font-weight:600; letter-spacing:0.5px;"></div>
+                <div class="reaction-wrapper">
+                    <button class="reaction-toggle" id="reactionToggle" onclick="toggleReactionPicker()">🫥 React <span class="chevron">▲</span></button>
+                    <div class="reaction-picker" id="reactionPicker">
+                        <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
+                        <button class="reaction-btn" onclick="sendReaction('🔥')">🔥</button>
+                        <button class="reaction-btn" onclick="sendReaction('👀')">👀</button>
+                        <button class="reaction-btn" onclick="sendReaction('👑')">👑</button>
+                        <button class="reaction-btn" onclick="sendReaction('💀')">💀</button>
+                        <button class="reaction-btn" onclick="sendReaction('🎉')">🎉</button>
+                        <button class="reaction-btn" onclick="sendReaction('😱')">😱</button>
+                        <button class="reaction-btn" onclick="sendReaction('👏')">👏</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -382,7 +489,7 @@
             }
         }
 
-        async function playerSubmitWord() {
+        async function playerSubmitWord(skipCategoryCheck = false) {
             const name = document.getElementById('playerName').value.trim();
             const word = document.getElementById('playerWord').value.trim();
             const msgEl = document.getElementById('playerSubmitMsg');
@@ -393,6 +500,9 @@
                 return;
             }
 
+            // Hide any previous category warning
+            document.getElementById('categoryWarningBox').style.display = 'none';
+
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner"></span>Checking...';
 
@@ -400,11 +510,21 @@
                 const res = await fetch('/api/submit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ player: name, word })
+                    body: JSON.stringify({ player: name, word, skipCategoryCheck })
                 });
                 const data = await res.json();
                 if (!res.ok) {
                     showMsg(msgEl, data.error, 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Submit Word';
+                    return;
+                }
+                // Handle category warning (soft, not an error)
+                if (data.categoryWarning) {
+                    msgEl.classList.remove('show');
+                    document.getElementById('categoryWarningText').textContent = data.reason;
+                    document.getElementById('categoryWarningBox').style.display = 'block';
+                    document.getElementById('submitBtnRow').style.display = 'none';
                     btn.disabled = false;
                     btn.textContent = 'Submit Word';
                     return;
@@ -428,7 +548,20 @@
             document.getElementById('playerName').value = '';
             document.getElementById('playerWord').value = '';
             document.getElementById('playerSubmitMsg').classList.remove('show');
+            document.getElementById('categoryWarningBox').style.display = 'none';
             document.getElementById('playerName').focus();
+        }
+
+        function submitAnyway() {
+            document.getElementById('categoryWarningBox').style.display = 'none';
+            document.getElementById('submitBtnRow').style.display = '';
+            playerSubmitWord(true);
+        }
+
+        function dismissCategoryWarning() {
+            document.getElementById('categoryWarningBox').style.display = 'none';
+            document.getElementById('submitBtnRow').style.display = '';
+            document.getElementById('playerWord').focus();
         }
 
         function toggleMyWord() {
@@ -507,6 +640,47 @@
         function showMsg(el, text, type) {
             el.className = `msg ${type} show`;
             el.textContent = text;
+        }
+
+        // ─── Reactions ──────────────────────────────────────
+        let reactionCooldown = false;
+
+        function toggleReactionPicker() {
+            const picker = document.getElementById('reactionPicker');
+            const toggle = document.getElementById('reactionToggle');
+            picker.classList.toggle('show');
+            toggle.classList.toggle('active');
+        }
+
+        // Close picker when tapping outside
+        document.addEventListener('click', (e) => {
+            const picker = document.getElementById('reactionPicker');
+            const toggle = document.getElementById('reactionToggle');
+            if (!picker || !toggle) return;
+            if (!picker.contains(e.target) && e.target !== toggle) {
+                picker.classList.remove('show');
+                toggle.classList.remove('active');
+            }
+        });
+
+        async function sendReaction(emoji) {
+            if (reactionCooldown) return;
+            reactionCooldown = true;
+            document.querySelectorAll('.reaction-btn').forEach(b => b.classList.add('cooldown'));
+            setTimeout(() => {
+                reactionCooldown = false;
+                document.querySelectorAll('.reaction-btn').forEach(b => b.classList.remove('cooldown'));
+            }, 1000);
+            // Close picker after sending
+            document.getElementById('reactionPicker').classList.remove('show');
+            document.getElementById('reactionToggle').classList.remove('active');
+            try {
+                await fetch('/api/react', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ emoji })
+                });
+            } catch (e) { /* ignore */ }
         }
 
         document.addEventListener('keypress', (e) => {

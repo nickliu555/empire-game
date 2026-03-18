@@ -224,6 +224,30 @@
             transition: opacity 0.4s;
         }
         .spinner-dismiss-hint.visible { opacity: 1; }
+
+        /* ─── Floating Reactions ─── */
+        .reaction-float {
+            position: fixed;
+            font-size: 48px;
+            pointer-events: none;
+            z-index: 200;
+            animation: floatUp 2.5s ease-out forwards;
+            will-change: transform, opacity;
+        }
+        @keyframes floatUp {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1) rotate(0deg);
+            }
+            20% {
+                opacity: 1;
+                transform: translateY(-80px) scale(1.15);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-400px) scale(0.6) rotate(15deg);
+            }
+        }
     </style>
 </head>
 <body>
@@ -491,9 +515,27 @@
                     console.error('SSE parse error:', e);
                 }
             };
+            es.addEventListener('reaction', (evt) => {
+                try {
+                    const { emoji } = JSON.parse(evt.data);
+                    spawnReaction(emoji);
+                } catch (e) {}
+            });
             es.onerror = () => {
                 console.warn('SSE connection lost, reconnecting...');
             };
+        }
+
+        function spawnReaction(emoji) {
+            const el = document.createElement('div');
+            el.className = 'reaction-float';
+            el.textContent = emoji;
+            // Random horizontal position across the screen
+            const x = 10 + Math.random() * 80; // 10-90% from left
+            el.style.left = x + 'vw';
+            el.style.bottom = '40px';
+            document.body.appendChild(el);
+            el.addEventListener('animationend', () => el.remove());
         }
 
         async function fetchState() {

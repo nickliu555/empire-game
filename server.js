@@ -228,10 +228,10 @@ app.post('/api/category', (req, res) => {
 });
 
 // Send a reaction (players)
-const ALLOWED_REACTIONS = ['😂', '🔥', '👀', '👑', '💀', '🎉', '😱', '👏'];
+const ALLOWED_REACTIONS = ['😂', '🔥', '👀', '👑', '💀', '🎉', '😱', '🤬'];
 app.post('/api/react', reactLimiter, (req, res) => {
-    if (gameState.phase !== 'playing') {
-        return res.status(400).json({ error: 'Reactions only during gameplay.' });
+    if (gameState.phase !== 'playing' && gameState.phase !== 'submission') {
+        return res.status(400).json({ error: 'Reactions not available right now.' });
     }
     const { emoji } = req.body;
     if (!emoji || !ALLOWED_REACTIONS.includes(emoji)) {

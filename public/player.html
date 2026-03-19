@@ -273,6 +273,19 @@
                 <div id="myWordDisplayDone" style="display:none; margin-top:14px; padding:12px 18px; background:rgba(255,255,255,0.08); border-radius:10px; border:1px solid rgba(255,255,255,0.15); font-size:1.2em; font-weight:600; letter-spacing:0.5px;"></div>
                 <button class="btn-secondary" id="btnChangeWord" onclick="withdrawSubmission()" style="margin-top:12px; max-width:240px; margin-left:auto; margin-right:auto;">↩️ Go Back & Resubmit</button>
                 <div id="withdrawMsg" class="msg"></div>
+                <div class="reaction-wrapper">
+                    <button class="reaction-toggle" id="reactionToggleDone" onclick="toggleReactionPicker('Done')">🫥 React <span class="chevron">▲</span></button>
+                    <div class="reaction-picker" id="reactionPickerDone">
+                        <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
+                        <button class="reaction-btn" onclick="sendReaction('🔥')">🔥</button>
+                        <button class="reaction-btn" onclick="sendReaction('👀')">👀</button>
+                        <button class="reaction-btn" onclick="sendReaction('👑')">👑</button>
+                        <button class="reaction-btn" onclick="sendReaction('💀')">💀</button>
+                        <button class="reaction-btn" onclick="sendReaction('🎉')">🎉</button>
+                        <button class="reaction-btn" onclick="sendReaction('😱')">😱</button>
+                        <button class="reaction-btn" onclick="sendReaction('🤬')">🤬</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -290,8 +303,8 @@
                 <button class="btn-secondary" id="btnToggleWord" onclick="toggleMyWord()" style="margin-top:20px; max-width:240px; margin-left:auto; margin-right:auto;">👁️ Show My Word</button>
                 <div id="myWordDisplay" style="display:none; margin-top:14px; padding:12px 18px; background:rgba(255,255,255,0.08); border-radius:10px; border:1px solid rgba(255,255,255,0.15); font-size:1.2em; font-weight:600; letter-spacing:0.5px;"></div>
                 <div class="reaction-wrapper">
-                    <button class="reaction-toggle" id="reactionToggle" onclick="toggleReactionPicker()">🫥 React <span class="chevron">▲</span></button>
-                    <div class="reaction-picker" id="reactionPicker">
+                    <button class="reaction-toggle" id="reactionToggleGame" onclick="toggleReactionPicker('Game')">🫥 React <span class="chevron">▲</span></button>
+                    <div class="reaction-picker" id="reactionPickerGame">
                         <button class="reaction-btn" onclick="sendReaction('😂')">😂</button>
                         <button class="reaction-btn" onclick="sendReaction('🔥')">🔥</button>
                         <button class="reaction-btn" onclick="sendReaction('👀')">👀</button>
@@ -299,7 +312,7 @@
                         <button class="reaction-btn" onclick="sendReaction('💀')">💀</button>
                         <button class="reaction-btn" onclick="sendReaction('🎉')">🎉</button>
                         <button class="reaction-btn" onclick="sendReaction('😱')">😱</button>
-                        <button class="reaction-btn" onclick="sendReaction('👏')">👏</button>
+                        <button class="reaction-btn" onclick="sendReaction('🤬')">🤬</button>
                     </div>
                 </div>
             </div>
@@ -645,22 +658,22 @@
         // ─── Reactions ──────────────────────────────────────
         let reactionCooldown = false;
 
-        function toggleReactionPicker() {
-            const picker = document.getElementById('reactionPicker');
-            const toggle = document.getElementById('reactionToggle');
+        function toggleReactionPicker(suffix) {
+            const picker = document.getElementById('reactionPicker' + suffix);
+            const toggle = document.getElementById('reactionToggle' + suffix);
             picker.classList.toggle('show');
             toggle.classList.toggle('active');
         }
 
         // Close picker when tapping outside
         document.addEventListener('click', (e) => {
-            const picker = document.getElementById('reactionPicker');
-            const toggle = document.getElementById('reactionToggle');
-            if (!picker || !toggle) return;
-            if (!picker.contains(e.target) && e.target !== toggle) {
-                picker.classList.remove('show');
-                toggle.classList.remove('active');
-            }
+            document.querySelectorAll('.reaction-picker').forEach(picker => {
+                const toggle = picker.previousElementSibling;
+                if (!picker.contains(e.target) && e.target !== toggle && !toggle.contains(e.target)) {
+                    picker.classList.remove('show');
+                    toggle.classList.remove('active');
+                }
+            });
         });
 
         async function sendReaction(emoji) {
@@ -671,9 +684,9 @@
                 reactionCooldown = false;
                 document.querySelectorAll('.reaction-btn').forEach(b => b.classList.remove('cooldown'));
             }, 1000);
-            // Close picker after sending
-            document.getElementById('reactionPicker').classList.remove('show');
-            document.getElementById('reactionToggle').classList.remove('active');
+            // Close all pickers after sending
+            document.querySelectorAll('.reaction-picker').forEach(p => p.classList.remove('show'));
+            document.querySelectorAll('.reaction-toggle').forEach(t => t.classList.remove('active'));
             try {
                 await fetch('/api/react', {
                     method: 'POST',

@@ -7,6 +7,46 @@
     <link rel="stylesheet" href="shared.css">
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
+        .player-tracker-header {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .player-tracker-header .chevron {
+            font-size: 10px;
+            color: #888;
+            transition: transform 0.2s;
+        }
+        .player-tracker-header.expanded .chevron {
+            transform: rotate(180deg);
+        }
+        .player-names-list {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .player-names-list.show {
+            max-height: 400px;
+        }
+        .player-names-list-inner {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding-top: 12px;
+            justify-content: center;
+        }
+        .player-name-chip {
+            background: #1c1c1c;
+            color: #ccc;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            border: 1px solid #3a2a2a;
+        }
+
         .toggle-button {
             background: #2a2a2a;
             color: #ccc;
@@ -280,8 +320,12 @@
             <div class="host-badge"><span>👑 HOST</span></div>
 
             <div class="player-tracker">
-                <div class="player-tracker-header">
-                    <span class="player-count" id="hostPlayerCount">0</span> players joined
+                <div class="player-tracker-header" id="playerTrackerHeader" onclick="togglePlayerNames()">
+                    <span><span class="player-count" id="hostPlayerCount">0</span> players joined</span>
+                    <span class="chevron">▼</span>
+                </div>
+                <div class="player-names-list" id="playerNamesList">
+                    <div class="player-names-list-inner" id="playerNamesInner"></div>
                 </div>
             </div>
 
@@ -568,6 +612,9 @@
             document.getElementById('hearDisplay').classList.remove('show');
             document.querySelectorAll('.toggle-button').forEach(b => b.classList.remove('active'));
             document.getElementById('qrCode').innerHTML = '';
+            // Collapse player names toggle
+            document.getElementById('playerTrackerHeader').classList.remove('expanded');
+            document.getElementById('playerNamesList').classList.remove('show');
             // Clear spinner overlay
             document.getElementById('spinnerOverlay').classList.remove('show');
             document.getElementById('spinnerName').style.color = '';
@@ -599,6 +646,17 @@
                 }
                 lastPlayerCount = state.playerCount;
                 document.getElementById('hostPlayerCount').textContent = state.playerCount;
+                // Update player names list
+                const namesInner = document.getElementById('playerNamesInner');
+                namesInner.innerHTML = '';
+                if (state.playerNames && state.playerNames.length > 0) {
+                    state.playerNames.forEach(name => {
+                        const chip = document.createElement('span');
+                        chip.className = 'player-name-chip';
+                        chip.textContent = name;
+                        namesInner.appendChild(chip);
+                    });
+                }
                 const url = state.playerUrl || location.origin;
                 document.getElementById('playerUrl').textContent = url;
                 const qrContainer = document.getElementById('qrCode');
@@ -653,6 +711,13 @@
 
         function show(id) {
             document.getElementById(id).style.display = 'block';
+        }
+
+        function togglePlayerNames() {
+            const header = document.getElementById('playerTrackerHeader');
+            const list = document.getElementById('playerNamesList');
+            header.classList.toggle('expanded');
+            list.classList.toggle('show');
         }
 
         // ─── Host Actions ───────────────────────────────────

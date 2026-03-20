@@ -95,6 +95,7 @@ function getPublicState() {
     return {
         phase: gameState.phase,
         playerCount: gameState.submissions.length,
+        playerNames: gameState.submissions.map(s => s.player),
         hasApiKey: !!gameState.groqApiKey,
         playerUrl,
         round: gameState.round,

@@ -165,14 +165,13 @@
             border-radius: 14px;
             padding: 10px 12px;
             gap: 6px;
-            flex-wrap: wrap;
+            grid-template-columns: repeat(4, auto);
             justify-content: center;
             width: fit-content;
-            max-width: 200px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.5);
             z-index: 50;
         }
-        .reaction-picker.show { display: flex; }
+        .reaction-picker.show { display: grid; }
         .reaction-btn {
             background: transparent;
             border: none;

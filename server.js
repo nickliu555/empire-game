@@ -347,18 +347,41 @@ async function generateAiBotWord(existingWords, category, apiKey) {
     }
 
     const prompt = `You are generating decoy word candidates for a party game called "Empire".
-Players have each submitted a secret word. You need to generate a list of 10 candidate words — one will be randomly selected and mixed in to throw off the other players.
+Players have each submitted a secret word. You need to generate a list of 10 candidate words — one will be randomly selected and mixed in to throw off the other players. The decoy must BLEND IN with the real player words so nobody can tell which one is fake.
 
 ${categoryInstruction}
 
-Existing player words (every candidate MUST be DIFFERENT from all of these): ${existingList}
+Real player words already submitted: ${existingList}
+
+STEP 1 — STUDY THE VIBE:
+Look at the player words above. What sub-genre, era, style, or theme are they clustering around?
+- If category is "Musicians" and players picked rappers → your picks must be rappers too
+- If category is "Animals" and players picked house pets → your picks must be house pets too
+- If category is "Movies" and players picked 90s comedies → your picks must be 90s comedies too
+Match the ENERGY. If players are picking mainstream hits, don't go obscure. If players are picking niche deep cuts, don't go mainstream.
+
+STEP 2 — MAKE SURE EACH CANDIDATE IS TRULY UNIQUE:
+This is CRITICAL. Every candidate you generate must be a COMPLETELY DIFFERENT entity from every player word. This means:
+- NOT the same person by a different name (e.g., if "Drake" exists, do NOT pick "Drizzy", "Aubrey Graham", or "Champagne Papi")
+- NOT a spelling variation (e.g., if "Kanye" exists, do NOT pick "Ye" or "Kanye West")
+- NOT the same thing rephrased (e.g., if "golden retriever" exists, do NOT pick "goldie" or "retriever")
+- NOT an abbreviation or acronym of an existing word
+- NOT a nickname, alias, or stage name that refers to the same entity as any player word
+Each candidate must refer to a GENUINELY DIFFERENT entity/concept that happens to fit the same vibe.
+
+STEP 3 — TYPE IT LIKE A HUMAN WOULD:
+Use the most common, casual way real people refer to things — the way you'd type it in a group chat, not a Wikipedia article.
+- "Chris Hemsworth" NOT "Christopher Hemsworth"
+- "Scarlett Johansson" NOT "Scarlett Ingrid Johansson"
+- "LeBron" or "LeBron James" NOT "LeBron Raymone James"
+- "The Godfather" NOT "The Godfather (1972 film)"
+- "golden retriever" NOT "Golden Retriever dog breed"
+Match how the PLAYERS are typing — look at their words for cues on formality level. If they wrote "Bron" you can be casual. If they wrote "LeBron James" match that level.
 
 Rules:
-- Each candidate must be COMPLETELY DIFFERENT from every existing word and from each other (not synonyms, not the same concept, not variations)
-- They should be believable — something a real player might submit
-- Keep each to 1-3 words maximum
-- Include a wide variety — mix well-known and lesser-known picks, mainstream and niche
-- Do NOT cluster around similar sub-topics. Spread across different areas within the category.
+- Each candidate must pass ALL THREE tests: blends in with the vibe, is a completely different entity from every player word, and is typed the way a human would
+- Keep each to 1-4 words maximum
+- Include variety — different picks within the same energy
 
 Respond ONLY with valid JSON (no markdown, no extra text):
 {"words": ["word1", "word2", "word3", "word4", "word5", "word6", "word7", "word8", "word9", "word10"]}`;

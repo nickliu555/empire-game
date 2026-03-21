@@ -111,6 +111,13 @@
             font-size: 16px;
             margin-top: 4px;
         }
+        .attribution-item.ai-bot {
+            border-left: 4px solid #d4a844;
+            background: #2a2218;
+        }
+        .attribution-item.ai-bot .attribution-player {
+            color: #d4a844;
+        }
 
         .api-key-box {
             background: #2a2a2a;
@@ -218,6 +225,74 @@
         }
         .category-game .category-label { color: #888; font-size: 12px; margin-bottom: 4px; }
         .category-game .category-value { color: #d4a844; font-size: 20px; font-weight: 700; }
+
+        /* AI Bot Toggle */
+        .ai-bot-toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 15px;
+            padding: 14px 16px;
+            background: #1c1c1c;
+            border: 2px solid #3a2a2a;
+            border-radius: 6px;
+            transition: border-color 0.3s;
+        }
+        .ai-bot-toggle-row.active {
+            border-color: #5a3a3a;
+        }
+        .ai-bot-toggle-label {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .ai-bot-toggle-label .title {
+            color: #ccc;
+            font-size: 15px;
+            font-weight: 600;
+        }
+        .ai-bot-toggle-label .subtitle {
+            color: #666;
+            font-size: 11px;
+        }
+        .ai-bot-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            flex-shrink: 0;
+        }
+        .ai-bot-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .ai-bot-switch .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: #3a2a2a;
+            border-radius: 26px;
+            transition: background 0.3s;
+        }
+        .ai-bot-switch .slider::before {
+            content: '';
+            position: absolute;
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background: #888;
+            border-radius: 50%;
+            transition: transform 0.3s, background 0.3s;
+        }
+        .ai-bot-switch input:checked + .slider {
+            background: #8b1a1a;
+        }
+        .ai-bot-switch input:checked + .slider::before {
+            transform: translateX(22px);
+            background: #d4a844;
+        }
 
         .spinner-overlay {
             position: fixed;
@@ -343,6 +418,17 @@
                 <div style="color:#888; font-size:12px; margin-bottom:6px;">📂 Category</div>
                 <input type="text" class="category-input" id="categoryInput" placeholder="e.g. Animals, Movies, Celebrities..." maxlength="100">
                 <div style="color:#666; font-size:11px; margin-top:6px;">Press Enter or click away to save</div>
+            </div>
+
+            <div class="ai-bot-toggle-row" id="aiBotToggleRow">
+                <div class="ai-bot-toggle-label">
+                    <span class="title">🤖 AI Bot</span>
+                    <span class="subtitle">Adds a decoy word to throw off players</span>
+                </div>
+                <label class="ai-bot-switch">
+                    <input type="checkbox" id="aiBotToggle" onchange="toggleAiBot(this.checked)">
+                    <span class="slider"></span>
+                </label>
             </div>
 
             <div style="margin-top:20px;">
@@ -674,6 +760,11 @@
                 if (!editingCategory) {
                     updateCategoryDisplay();
                 }
+                // Sync AI Bot toggle
+                const aiBotToggle = document.getElementById('aiBotToggle');
+                const aiBotRow = document.getElementById('aiBotToggleRow');
+                aiBotToggle.checked = !!state.aiBotEnabled;
+                aiBotRow.classList.toggle('active', !!state.aiBotEnabled);
                 return;
             }
             if (state.phase === 'playing') {
@@ -908,12 +999,15 @@
                     const res = await fetch('/api/attribution');
                     const data = await res.json();
                     document.getElementById('attributionContainer').innerHTML =
-                        data.attribution.map(s => `
-                            <div class="attribution-item">
+                        data.attribution.map(s => {
+                            const isAiBot = s.player === 'AI Bot 🤖';
+                            return `
+                            <div class="attribution-item${isAiBot ? ' ai-bot' : ''}">
                                 <div class="attribution-player">${escapeHtml(s.player)}</div>
                                 <div class="attribution-word">${escapeHtml(s.word)}</div>
                             </div>
-                        `).join('');
+                        `;
+                        }).join('');
                     attributionLoaded = true;
                 }
             }
@@ -928,7 +1022,7 @@
                 try {
                     const res = await fetch('/api/attribution');
                     const data = await res.json();
-                    spinnerPlayers = data.attribution.map(s => s.player);
+                    spinnerPlayers = data.attribution.map(s => s.player).filter(p => p !== 'AI Bot 🤖');
                 } catch (e) { return; }
             }
             if (spinnerPlayers.length < 2) return;
@@ -1050,6 +1144,21 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ category: newCategory })
             }).catch(() => {});
+        }
+
+        async function toggleAiBot(enabled) {
+            document.getElementById('aiBotToggleRow').classList.toggle('active', enabled);
+            try {
+                await fetch('/api/ai-bot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+            } catch (e) {
+                // Revert on failure
+                document.getElementById('aiBotToggle').checked = !enabled;
+                document.getElementById('aiBotToggleRow').classList.toggle('active', !enabled);
+            }
         }
 
         document.addEventListener('DOMContentLoaded', () => {

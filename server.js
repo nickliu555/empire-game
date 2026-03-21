@@ -50,6 +50,7 @@ function createFreshState() {
         shuffledWords: [],     // randomized once on game start
         round: 1,              // increments on each reset so clients detect it
         category: '',          // optional category set by host
+        aiBotEnabled: false,   // toggle for AI decoy word
         gameId: SERVER_GAME_ID, // stable for entire server lifetime
     };
 }
@@ -100,6 +101,7 @@ function getPublicState() {
         playerUrl,
         round: gameState.round,
         category: gameState.category,
+        aiBotEnabled: gameState.aiBotEnabled,
         gameId: gameState.gameId,
     };
 }
@@ -228,6 +230,18 @@ app.post('/api/category', (req, res) => {
     res.json({ ok: true });
 });
 
+// Toggle AI Bot (host only)
+app.post('/api/ai-bot', (req, res) => {
+    touchActivity();
+    if (gameState.phase !== 'submission') {
+        return res.status(400).json({ error: 'Can only toggle AI Bot during submission phase.' });
+    }
+    const { enabled } = req.body;
+    gameState.aiBotEnabled = !!enabled;
+    broadcast();
+    res.json({ ok: true });
+});
+
 // Send a reaction (players)
 const ALLOWED_REACTIONS = ['😂', '🔥', '👀', '👑', '💀', '🎉', '😱', '🤬'];
 app.post('/api/react', reactLimiter, (req, res) => {
@@ -243,11 +257,31 @@ app.post('/api/react', reactLimiter, (req, res) => {
 });
 
 // Start game (host only)
-app.post('/api/start', (req, res) => {
+app.post('/api/start', async (req, res) => {
     touchActivity();
     if (gameState.submissions.length < 2) {
         return res.status(400).json({ error: 'Need at least 2 players.' });
     }
+
+    // Generate AI Bot word if enabled (before shuffling)
+    if (gameState.aiBotEnabled) {
+        try {
+            const aiWord = await generateAiBotWord(
+                gameState.submissions.map(s => s.word),
+                gameState.category,
+                gameState.groqApiKey
+            );
+            if (aiWord) {
+                gameState.submissions.push({ player: 'AI Bot 🤖', word: aiWord });
+                console.log(`AI Bot word generated: "${aiWord}"`);
+            } else {
+                console.warn('AI Bot word generation returned null, proceeding without it.');
+            }
+        } catch (e) {
+            console.error('AI Bot word generation failed, proceeding without it:', e.message);
+        }
+    }
+
     gameState.phase = 'playing';
     // Fisher-Yates shuffle for uniform randomness
     const arr = gameState.submissions.map(s => s.word);
@@ -300,6 +334,75 @@ app.post('/api/full-reset', (req, res) => {
 });
 
 // ─── Groq API helpers ───────────────────────────────────────
+
+async function generateAiBotWord(existingWords, category, apiKey) {
+    if (!apiKey) return null;
+
+    const existingList = existingWords.map(w => `"${w}"`).join(', ');
+    let categoryInstruction;
+    if (category) {
+        categoryInstruction = `The category for this round is: "${category}". Generate 10 words or short phrases that fit this category.`;
+    } else {
+        categoryInstruction = `There is no category set. Generate 10 random interesting words or short phrases that would be fun for a party game.`;
+    }
+
+    const prompt = `You are generating decoy word candidates for a party game called "Empire".
+Players have each submitted a secret word. You need to generate a list of 10 candidate words — one will be randomly selected and mixed in to throw off the other players.
+
+${categoryInstruction}
+
+Existing player words (every candidate MUST be DIFFERENT from all of these): ${existingList}
+
+Rules:
+- Each candidate must be COMPLETELY DIFFERENT from every existing word and from each other (not synonyms, not the same concept, not variations)
+- They should be believable — something a real player might submit
+- Keep each to 1-3 words maximum
+- Include a wide variety — mix well-known and lesser-known picks, mainstream and niche
+- Do NOT cluster around similar sub-topics. Spread across different areas within the category.
+
+Respond ONLY with valid JSON (no markdown, no extra text):
+{"words": ["word1", "word2", "word3", "word4", "word5", "word6", "word7", "word8", "word9", "word10"]}`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+        const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages: [{ role: 'user', content: prompt }],
+                temperature: 1.5,
+                max_tokens: 300,
+                seed: Math.floor(Math.random() * 2147483647)
+            }),
+            signal: controller.signal,
+        });
+
+        if (!resp.ok) return null;
+
+        const data = await resp.json();
+        const text = data.choices[0].message.content.trim();
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) return null;
+        const parsed = JSON.parse(jsonMatch[0]);
+        const candidates = (parsed.words || [])
+            .map(w => (w || '').trim().toLowerCase())
+            .filter(w => w && !existingWords.some(e => e.toLowerCase() === w));
+        if (!candidates.length) return null;
+        // Randomly pick one candidate server-side
+        const pick = candidates[Math.floor(Math.random() * candidates.length)];
+        return pick;
+    } catch (e) {
+        console.error('AI Bot word generation error:', e);
+        return null;
+    } finally {
+        clearTimeout(timeout);
+    }
+}
 
 async function validateApiKey(key) {
     const controller = new AbortController();

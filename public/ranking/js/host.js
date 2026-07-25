@@ -30,6 +30,9 @@
   function show(name) {
     var incoming = views[name];
     if (!incoming) return;
+    // Leaving the reveal: kill any pending pill zoom-out so its timer can't
+    // toggle a now-hidden view.
+    if (name !== 'reveal') clearRevealZoom();
     if (showTimer) { clearTimeout(showTimer); showTimer = null; }
     var currentName = Object.keys(views).find(function (k) { return views[k].classList.contains('active'); });
     if (currentName === name) { forceSingle(name); return; }
@@ -293,7 +296,34 @@
     playSuspense();
   }
 
+  // Pill zoom-in lead-in: show the +Group/+Game pills alone & enlarged for a
+  // beat, then zoom out to the full board. `revealZoomTimer` holds the pending
+  // zoom-out; clearRevealZoom() cancels it and strips the focus classes.
+  var revealZoomTimer = null;
+  function clearRevealZoom() {
+    if (revealZoomTimer) { clearTimeout(revealZoomTimer); revealZoomTimer = null; }
+    var rv = views.reveal && views.reveal.querySelector('.reveal-view');
+    if (rv) rv.classList.remove('reveal-focus', 'reveal-instant');
+  }
+  function startRevealZoom() {
+    var rv = views.reveal && views.reveal.querySelector('.reveal-view');
+    if (!rv) return;
+    // Snap into the focused (pills-only) state without an entry animation…
+    rv.classList.add('reveal-focus', 'reveal-instant');
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        rv.classList.remove('reveal-instant');
+        // …hold the zoomed-in pills, then zoom out to the full board.
+        revealZoomTimer = setTimeout(function () {
+          revealZoomTimer = null;
+          rv.classList.remove('reveal-focus');
+        }, 2000);
+      });
+    });
+  }
+
   function renderReveal(r) {
+    clearRevealZoom();
     syncClock(r);
     show('reveal');
     document.getElementById('rvRound').textContent = r.round;
@@ -327,6 +357,7 @@
     nextBtn.disabled = false;
 
     if (r.groupPts > r.gamePts) playChime();
+    startRevealZoom();
   }
 
   document.getElementById('nextBtn').addEventListener('click', function () {

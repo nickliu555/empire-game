@@ -1,0 +1,164 @@
+:root {
+  /* Pac-Man Royale palette: deep arcade midnight-blue maze, neon-yellow
+     accent, vivid ghost colours. */
+  --bg: #12123a;
+  --bg-deep: #08081f;
+  --surface: #FFFFFF;
+  --ink: #14142b;
+  --ink-soft: #4a4a6a;
+  --muted: #8a8aa8;
+
+  --accent: #FFE100;         /* Pac-Man yellow */
+  --accent-deep: #C9A812;
+  --warn: #FF3B30;
+  --good: #3DDC84;
+
+  --maze: #2323c8;
+  --maze-lite: #4d4dff;
+
+  --radius: 14px;
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  --shadow-strong: 0 12px 40px rgba(0, 0, 0, 0.45);
+
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+
+  /* Shared topbar theme (host page). */
+  --gtb-bg: rgba(0, 0, 0, 0.28);
+  --gtb-btn-bg: rgba(255, 255, 255, 0.14);
+  --gtb-btn-fg: #ffffff;
+  --gtb-btn-hover-bg: rgba(255, 255, 255, 0.26);
+  --gtb-accent: var(--accent);
+  --gtb-danger: #FF3B30;
+  --gtb-panel-bg: #16163f;
+  --gtb-panel-fg: #ffffff;
+
+  /* Shared modal theme. */
+  --gm-overlay-bg: rgba(0, 0, 0, 0.62);
+  --gm-surface: var(--surface);
+  --gm-text: var(--ink);
+  --gm-border: rgba(0, 0, 0, 0.08);
+  --gm-radius: var(--radius);
+  --gm-btn-secondary-bg: #eaeaf4;
+  --gm-btn-secondary-fg: var(--ink-soft);
+  --gm-btn-secondary-border: rgba(0, 0, 0, 0.08);
+  --gm-btn-secondary-hover-border: rgba(0, 0, 0, 0.18);
+  --gm-btn-secondary-hover-fg: var(--ink);
+  --gm-btn-primary-bg: var(--accent);
+  --gm-btn-primary-fg: #14142b;
+  --gm-btn-primary-border: var(--accent);
+  --gm-btn-primary-hover: var(--accent-deep);
+  --gm-btn-danger-bg: var(--warn);
+  --gm-btn-danger-fg: #fff;
+  --gm-btn-danger-hover: #c22;
+  --gm-toast-bg: var(--ink);
+  --gm-toast-fg: #fff;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: contain;
+}
+
+h1, h2, h3 { font-family: var(--font-sans); font-weight: 800; letter-spacing: -0.01em; }
+
+.brand-bg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #14142b;
+  font-weight: 900;
+  border-radius: 8px;
+  padding: 2px 8px;
+  letter-spacing: 0.02em;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: var(--ink);
+  color: white;
+  padding: 14px 22px;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-block;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 0.08s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+button:active:not(:disabled) { transform: translateY(0); }
+button:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+@media (hover: hover) {
+  button:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow); }
+}
+.btn-primary { background: var(--accent); color: #14142b; }
+
+/* ---------------- Host-absent / lock overlays (join + player) ---------------- */
+.host-absent-overlay {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(160deg, var(--bg) 0%, var(--bg-deep) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+.host-absent-overlay[hidden] { display: none; }
+.host-absent-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 34px 30px;
+  text-align: center;
+  max-width: 360px;
+  color: #fff;
+}
+.host-absent-card .icon { font-size: 54px; margin-bottom: 12px; }
+.host-absent-card .title { font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+.host-absent-card .sub { font-size: 15px; color: rgba(255, 255, 255, 0.78); line-height: 1.5; }
+.pulse-dot {
+  display: inline-block;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-right: 7px;
+  animation: pulse-dot 1.2s ease-in-out infinite;
+  vertical-align: middle;
+}
+@keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.7); } }
+
+.player-attribution {
+  position: fixed;
+  left: 0; right: 0; bottom: 8px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  pointer-events: none;
+}
+
+/* Confetti (host final). */
+.confetti {
+  position: fixed;
+  top: -12px;
+  width: 10px; height: 14px;
+  border-radius: 2px;
+  z-index: 2000;
+  pointer-events: none;
+  animation: confetti-fall 3s linear forwards;
+}
+@keyframes confetti-fall {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(105vh) rotate(720deg); opacity: 0.9; }
+}

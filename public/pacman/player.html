@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pac-Man Royale · Play</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#12123a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/pacman/css/base.css" />
+  <link rel="stylesheet" href="/pacman/css/player.css" />
+</head>
+<body class="player">
+  <div class="player-shell">
+
+    <!-- Lobby waiting -->
+    <div class="view-wait" id="view-lobby">
+      <div class="pulse">👻</div>
+      <div class="wait-title" id="lobbyName">You're in!</div>
+      <div class="wait-sub">Waiting for the host to start the game…</div>
+    </div>
+
+    <!-- Controller (during a round) -->
+    <div id="view-controller" style="display:none;">
+      <!-- HUD: name + score + game-point pips -->
+      <div class="hud">
+        <div class="hud-name" id="hudName">You</div>
+        <div class="hud-score-wrap">
+          <span class="hud-score" id="hudScore">0</span>
+          <span class="hud-pts">pts</span>
+        </div>
+        <div class="hud-pips" id="hudPips"></div>
+      </div>
+      <div class="powered-badge" id="poweredBadge" hidden>⚡ POWERED</div>
+
+      <!-- Swipe pad: the whole area is the control. A big arrow points the way
+           you're currently heading. -->
+      <div class="pad" id="pad">
+        <div class="swipe-dir" id="swipeDir">
+          <span class="swipe-arrow" id="swipeArrow">➤</span>
+        </div>
+        <div class="swipe-hint">Swipe anywhere to move</div>
+      </div>
+
+      <!-- Pre-play / round overlay -->
+      <div class="ctrl-overlay" id="ctrlOverlay" hidden>
+        <div class="co-count" id="coCount">3</div>
+        <div class="co-text" id="coText">Get ready…</div>
+      </div>
+
+      <!-- Round result flash -->
+      <div class="flash" id="flash" hidden><span id="flashText">Round over</span></div>
+
+      <!-- Paused: covers + blocks the pad while the host has paused -->
+      <div class="pause-cover" id="pauseCover" hidden>
+        <div class="pc-icon">⏸</div>
+        <div class="pc-title">Paused</div>
+        <div class="pc-sub">The host paused the game. Hang tight…</div>
+      </div>
+    </div>
+
+    <!-- Eliminated (locked out until next round) -->
+    <div class="view-wait" id="view-eliminated" style="display:none;">
+      <div class="elim-icon">💀</div>
+      <h1 class="wait-title">You're out!</h1>
+      <div class="wait-sub">Sit tight — you're back in next round.</div>
+    </div>
+    <!-- Final result -->
+    <div class="view-wait" id="view-final" style="display:none;">
+      <div class="final-emoji" id="finalEmoji">🏆</div>
+      <h1 class="final-title" id="finalTitle">You win!</h1>
+      <div class="wait-sub" id="finalSub">Look up at the host screen for the results.</div>
+    </div>
+
+    <!-- Removed by host -->
+    <div class="view-wait" id="view-kicked" style="display:none;">
+      <div class="kick-icon" aria-hidden="true">🚪</div>
+      <div class="wait-title">You were removed by the host.</div>
+      <div class="wait-sub">You can rejoin if the game is still open.</div>
+      <button type="button" class="btn-primary" id="kickRejoinBtn" style="margin-top:18px;">Rejoin</button>
+    </div>
+  </div>
+
+  <div class="player-attribution" id="playerAttribution">Developed by Nick Liu (with help from Claude)</div>
+
+  <!-- Host absent overlay -->
+  <div class="host-absent-overlay" id="hostAbsentOverlay" hidden>
+    <div class="host-absent-card">
+      <div class="icon">👻</div>
+      <div class="title">No game in progress</div>
+      <div class="sub">
+        <span class="pulse-dot"></span>
+        The host isn't here right now. This page will unlock automatically when they return.
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/pacman/js/player.js"></script>
+</body>
+</html>

@@ -268,6 +268,20 @@ body.host {
 
 /* ---- Ranked board (discuss + reveal) ---- */
 .discuss-view, .reveal-view { color: white; display: flex; flex-direction: column; align-items: center; }
+
+/* The reveal ("big reveal") can get tall with 5 rows + result + scoreboard +
+   button. Let it fill the stage and scroll when it doesn't fit, staying
+   vertically centred (via `safe center`) whenever the content already fits — so
+   screens with room see no change. */
+#view-reveal { align-self: stretch; min-height: 0; }
+.reveal-view {
+  height: 100%; min-height: 0; max-height: 100%;
+  justify-content: safe center;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.reveal-view::-webkit-scrollbar { width: 8px; }
+.reveal-view::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.35); border-radius: 999px; }
 .discuss-head, .reveal-head { text-align: center; margin-bottom: 6px; }
 .discuss-title { font-size: clamp(26px, 3.4vw, 44px); margin: 4px 0; }
 .discuss-title .who { color: var(--gold); }
@@ -335,6 +349,7 @@ body.host {
 }
 .reveal-row.match .rr-cell { border-color: var(--group); background: #e8f7ef; }
 .reveal-row.match .rr-cell::after { content: '✓'; margin-left: auto; color: var(--group); font-weight: 900; }
+.reveal-row:not(.match) .rr-cell::after { content: '✗'; margin-left: auto; color: var(--game); font-weight: 900; }
 .reveal-row .rr-cell.ranker { background: #fff6e2; }
 .reveal-row.match .rr-cell.ranker { background: #e8f7ef; }
 
@@ -350,6 +365,27 @@ body.host {
 
 .reveal-actions { margin-top: 22px; text-align: center; }
 .reveal-actions .btn-primary { font-size: 20px; padding: 15px 40px; }
+
+/* ---- Reveal pill zoom-in lead-in ----
+   On entering the reveal, the +Group/+Game pills are shown alone, zoomed and
+   lifted toward centre for a beat, then everything zooms out to the full board
+   (mirrors Trivia's read-the-question lead-in). `.reveal-instant` snaps the
+   focused state on the first frame so there's no entry flicker. */
+.reveal-view > * {
+  transition:
+    opacity 0.6s ease,
+    transform 0.8s cubic-bezier(.2, .9, .25, 1);
+  transform-origin: center;
+}
+.reveal-view.reveal-focus > *:not(.reveal-result) {
+  opacity: 0;
+  transform: translateY(24px);
+  pointer-events: none;
+}
+.reveal-view.reveal-focus .reveal-result {
+  transform: translateY(-16vh) scale(1.7);
+}
+.reveal-view.reveal-instant > * { transition: none !important; }
 
 /* ---- Final ---- */
 #view-final { align-self: stretch; min-height: 0; }
@@ -425,4 +461,6 @@ body.host {
   .lobby-grid { grid-template-columns: 1fr; max-height: none; gap: 20px; }
   .qr-panel img { width: min(100%, 70vh); }
   .reveal-colhead, .reveal-row { grid-template-columns: 40px 1fr 1fr; gap: 8px; }
+  /* Body scrolls here, so don't cap the reveal view's height. */
+  .reveal-view { height: auto; max-height: none; overflow-y: visible; }
 }

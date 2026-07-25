@@ -172,10 +172,79 @@
     o.connect(g); g.connect(c.destination);
     o.start(t); o.stop(t + dur + 0.02);
   }
-  function playWhistle() {
+  // Kickoff whistle. Decoded into a Web Audio buffer so it fires with near-zero
+  // latency exactly on "GO" (an <audio> element's play() has a noticeable start
+  // delay + a currentTime seek). Any leading silence in the file is skipped so
+  // the blow is heard right on 0. Falls back to the <audio> element, then a
+  // synthetic blow, if the buffer isn't ready.
+  const WHISTLE_URL = '/soccerhead/assets/sounds/whistle.mp3';
+  const whistleEl = document.getElementById('sfx-whistle');
+  if (whistleEl) whistleEl.volume = 0.7;
+  let whistleBuf = null;      // decoded AudioBuffer
+  let whistleOffset = 0;      // seconds of leading silence to skip
+  let whistleLoading = false;
+  function loadWhistleBuffer() {
+    if (whistleBuf || whistleLoading) return;
+    const c = getAudioCtx(); if (!c) return;
+    whistleLoading = true;
+    fetch(WHISTLE_URL).then(function (r) { return r.arrayBuffer(); })
+      .then(function (ab) { return c.decodeAudioData(ab); })
+      .then(function (buf) {
+        whistleBuf = buf;
+        // Skip any silent lead-in so the whistle is audible right on 0.
+        try {
+          const d = buf.getChannelData(0);
+          const step = Math.max(1, Math.floor(buf.sampleRate / 2000));
+          for (let i = 0; i < d.length; i += step) {
+            if (Math.abs(d[i]) > 0.02) { whistleOffset = Math.max(0, i / buf.sampleRate - 0.005); break; }
+          }
+        } catch (_) {}
+      })
+      .catch(function () {})
+      .then(function () { whistleLoading = false; });
+  }
+  let whistlePrimed = false;
+  // Called inside the Start-click gesture: begin decoding the buffer and unlock
+  // the <audio> fallback on iOS so either can fire at kickoff a few seconds on.
+  function primeWhistle() {
+    loadWhistleBuffer();
+    if (whistlePrimed || !whistleEl) return;
+    whistlePrimed = true;
+    try {
+      whistleEl.volume = 0;
+      const p = whistleEl.play();
+      const reset = function () { try { whistleEl.pause(); whistleEl.currentTime = 0; } catch (_) {} whistleEl.volume = 0.7; };
+      if (p && typeof p.then === 'function') p.then(reset).catch(function () { whistleEl.volume = 0.7; });
+      else reset();
+    } catch (_) { whistleEl.volume = 0.7; }
+  }
+  function playWhistleSynth() {
     const c = getAudioCtx(); if (!c) return;
     blip(1650, 0.16, 'square', 0.12);
     blip(2100, 0.16, 'square', 0.1, c.currentTime + 0.05);
+  }
+  function playWhistle() {
+    const c = getAudioCtx();
+    // Preferred: sample-accurate Web Audio playback, zero start latency.
+    if (c && whistleBuf && c.state === 'running') {
+      try {
+        const src = c.createBufferSource(); src.buffer = whistleBuf;
+        const g = c.createGain(); g.gain.value = 0.7;
+        src.connect(g); g.connect(c.destination);
+        src.start(0, whistleOffset);
+        return;
+      } catch (_) {}
+    }
+    // Fallback: the <audio> element.
+    if (whistleEl) {
+      try {
+        whistleEl.currentTime = 0;
+        const p = whistleEl.play();
+        if (p && typeof p.catch === 'function') p.catch(function () { playWhistleSynth(); });
+        return;
+      } catch (_) {}
+    }
+    playWhistleSynth();
   }
   function playKick() { blip(150, 0.09, 'triangle', 0.22); }
   function playGoal() {
@@ -504,6 +573,7 @@
 
   startBtn.addEventListener('click', function () {
     unlockAudio();
+    primeWhistle();
     socket.emit('host:start', {}, function (res) {
       if (!res || !res.ok) { showToast('Can\'t start yet — teams must be full and even.'); return; }
       startMatch(res.roster, res.durationSec, res.mode, null);

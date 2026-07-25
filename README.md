@@ -79,6 +79,20 @@ A co-op guessing game — one player secretly ranks a list, and the group has to
 
 By default, **Custom Words** mode is on: before the first round everyone secretly submits five words of their own to build the pool (each used once). Turn it off to play from the built-in phrase bank instead.
 
+### 👻 Pac-Man Royale
+A multiplayer Pac-Man showdown played out on the Host screen — 2–4 players each steer their own Pac-Man from their phone.
+
+1. Players scan the QR code to join (2–4 players); the host can **Add CPU** Pac-Men to fill in
+2. The host sets the **round length** and how many **round wins** take the game, then hits **Start**
+3. Each phone is a **D-pad** — up / down / left / right steer your Pac-Man; the maze edges **wrap** to the other side
+4. **Gobble pellets** (and the occasional **cherry**) for points while dodging the four ghosts
+5. A ghost eats you if you're not powered — **die and you're out for the rest of the round**
+6. Grab a **power pellet** to turn big and fast for 8 seconds: ghosts flee (eat them for bonus points) and you can **eat smaller players**; two equal-size Pac-Men just bounce off each other
+7. When the round ends, the **highest score among the survivors** wins the round
+8. **First to the target number of round wins takes the game!**
+
+The host can **Pause** at any time. Each round rotates to a different maze.
+
 ## How It Works
 
 1. **The host** opens Game Hub on a laptop or TV screen and picks a game

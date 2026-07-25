@@ -71,6 +71,38 @@ list scrolls and nothing is clipped top or bottom.
 
 ---
 
+## ✅ Dynamic UI — any player/game-driven text MUST handle long & numerous content
+
+Whenever a UI component's contents come from **player input or game state** (names, chat,
+answers, guesses, award/tie lists, category labels, scores, joined lists like `A & B & C`,
+counts, etc.) — i.e. the value isn't a fixed string you control — you **cannot assume it is
+short or singular.** Always design for the worst case: a **maximally long value** (names are
+capped but can hit the limit; answers/questions can be long), **many values at once** (every
+player tying, a big roster), and **the two combined** (many long values joined together).
+
+Rules:
+- **Never let it overflow its container or the screen, and never silently clip/cut off**
+  meaningful text. Pick an intentional strategy and apply it every time:
+  - **Wrap** long words so they break instead of spilling out — `overflow-wrap: anywhere`
+    (or `word-break: break-word`) on the text element, plus `min-width: 0` on the flex/grid
+    **item** (flex/grid children default to `min-width: auto`, which refuses to shrink below
+    their longest word and forces horizontal overflow).
+  - **Scroll** when a region can hold many items — cap its height and `overflow-y: auto`
+    (see the scalable-lists section above); vertical growth from wrapped text is then
+    absorbed instead of pushing content off-screen.
+  - **Ellipsis** only where a single line is truly intended and the full value is available
+    elsewhere — `overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0`.
+    Don't ellipsis-away information the player needs to read.
+  - For huge enumerations, prefer a summarised form (`A, B & 4 more`) over an unbounded list.
+- This applies to **both host and player screens**, and to inline values (a name inside a
+  sentence/heading) as much as to lists.
+- **Verify with adversarial data before calling it done:** fill the value(s) to the max
+  length, force the largest count (full roster / everyone tied), and confirm nothing
+  overflows horizontally, nothing is clipped, and the layout doesn't break — at both small
+  (phone) and wide (TV/laptop) viewports.
+
+---
+
 ## ✅ Host-screen audio cues on state changes
 
 The Host screen is across the room; people need an **audible cue when the game state
@@ -86,6 +118,7 @@ Use the existing Web Audio pattern (see any host.js): `getAudioCtx()` + `unlockA
 (`playDing`, a rising arpeggio for new rounds, `playChime`, `playApplause`, `playSad`).
 Call them from the host's render/transition functions. Confetti or similar visual flourish
 on a big win is a plus.
+Please reference the existing games as examples.
 
 ---
 
@@ -168,5 +201,8 @@ code inspection alone.
 
 - Match the other games for consistency: toggles as segmented **On/Off**-style controls,
   reactions, topbar/settings, attribution footer, colour-variable theming per game.
+- **Attribution footer** ("Developed by Nick Liu …") only shows on the **join and lobby**
+  screens — never during gameplay. Keep it out of the Host match/final views and the player
+  controller/eliminated/final views (hide it whenever the active view isn't the lobby/waiting one).
 - Only implement what's asked; don't add unrequested features, comments, or docs.
 - **Do not create markdown files to document changes** unless explicitly requested.

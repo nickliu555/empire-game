@@ -1,0 +1,161 @@
+/* Pac-Man Royale · player controller — a fullscreen, no-scroll D-pad. */
+html, body {
+  height: 100%;
+  /* Lock the whole page against pan / pinch-zoom (this is a fixed gamepad, not
+     a scrolling page). touch-action must be on html + body too, not just the
+     children, or a pinch that starts on the background still zooms on iOS. */
+  touch-action: none;
+  overscroll-behavior: none;
+  -ms-touch-action: none;
+}
+body.player {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  touch-action: none;
+  background: linear-gradient(160deg, var(--bg) 0%, var(--bg-deep) 100%);
+  color: #fff;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+body.player * { touch-action: none; }
+body.player.powered { background: linear-gradient(160deg, #3a3a12 0%, #1a1a05 100%); }
+
+.player-shell { position: fixed; inset: 0; }
+
+/* ---------------- Waiting / lobby / final / eliminated ---------------- */
+.view-wait {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 28px; gap: 8px;
+}
+.view-wait .pulse { font-size: 62px; animation: bob 1.6s ease-in-out infinite; }
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.wait-title { font-size: 26px; font-weight: 800; }
+.wait-sub { color: rgba(255,255,255,0.75); font-size: 15px; max-width: 320px; line-height: 1.5; }
+.elim-icon { font-size: 72px; margin-bottom: 4px; }
+.kick-icon { font-size: 60px; margin-bottom: 6px; }
+.final-emoji { font-size: 78px; }
+.final-title { font-size: 32px; margin: 6px 0; }
+
+/* ---------------- Controller ---------------- */
+#view-controller { position: absolute; inset: 0; display: flex; flex-direction: column; }
+
+.hud {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: max(12px, env(safe-area-inset-top)) 18px 8px;
+}
+.hud-name { font-weight: 900; font-size: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hud-score-wrap { display: flex; align-items: baseline; gap: 4px; justify-content: center; }
+.hud-score { font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums; color: var(--accent); }
+.hud-pts { font-size: 13px; color: rgba(255,255,255,0.6); }
+.hud-pips { display: flex; gap: 5px; justify-content: flex-end; }
+.hud-pips .pip { width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,0.2); }
+.hud-pips .pip.on { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+.powered-badge {
+  flex: 0 0 auto;
+  align-self: center;
+  background: var(--accent);
+  color: #14142b;
+  font-weight: 900;
+  font-size: 15px;
+  padding: 5px 16px;
+  border-radius: 999px;
+  margin: 2px 0;
+  animation: powpulse 0.6s ease-in-out infinite;
+}
+.powered-badge[hidden] { display: none; }
+@keyframes powpulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+
+/* Swipe pad — the whole area is the control surface */
+.pad {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  padding: 12px;
+}
+.swipe-dir {
+  --sz: min(64vw, 44vh);
+  width: var(--sz);
+  height: var(--sz);
+  border-radius: 50%;
+  border: 3px dashed rgba(255,255,255,0.14);
+  background: radial-gradient(circle at center, rgba(255,255,255,0.06), rgba(255,255,255,0));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.swipe-arrow {
+  font-size: min(30vw, 22vh);
+  line-height: 1;
+  color: var(--accent);
+  opacity: 0.25;
+  transform: rotate(-90deg);           /* '➤' points right at 0°; default show UP */
+  transition: transform 0.12s ease, opacity 0.12s ease;
+  text-shadow: 0 0 24px rgba(255,225,0,0.5);
+}
+body.player.powered .swipe-arrow { color: #fff; }
+
+/* Swipe hint under the pad. */
+.swipe-hint {
+  flex: 0 0 auto;
+  text-align: center;
+  color: rgba(255,255,255,0.6);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 6px 12px max(10px, env(safe-area-inset-bottom));
+}
+
+/* Reactions */
+.emote-bar { flex: 0 0 auto; padding: 8px 12px max(10px, env(safe-area-inset-bottom)); }
+.emote-grid { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.emote-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-size: 22px;
+  line-height: 1;
+}
+.emote-btn:active { background: rgba(255,255,255,0.24); }
+
+/* Overlays */
+.ctrl-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(5,5,30,0.72); gap: 8px;
+}
+.ctrl-overlay[hidden] { display: none; }
+.co-count { font-size: 96px; font-weight: 900; color: var(--accent); animation: pop 0.4s ease; }
+@keyframes pop { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+.co-text { font-size: 22px; font-weight: 800; color: rgba(255,255,255,0.9); }
+
+.flash {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+}
+.flash[hidden] { display: none; }
+.flash span { font-size: 44px; font-weight: 900; animation: pop 0.4s ease; text-shadow: 0 4px 20px rgba(0,0,0,0.6); }
+
+/* Paused cover */
+.pause-cover {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(5,5,30,0.9); gap: 8px; z-index: 5;
+}
+.pause-cover[hidden] { display: none; }
+.pc-icon { font-size: 60px; }
+.pc-title { font-size: 30px; font-weight: 900; color: var(--accent); }
+.pc-sub { font-size: 15px; color: rgba(255,255,255,0.78); max-width: 280px; text-align: center; line-height: 1.5; }

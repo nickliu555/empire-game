@@ -219,7 +219,7 @@
       }
       // Unmistakable POWER aura (glow + smooth rings + orbiting sparkles).
       ctx.globalAlpha = alpha;
-      if (p.powered) this._drawPowerAura(ctx, cx, cy, r, ts, ac, ending);
+      if (p.powered) this._drawPowerAura(ctx, cx, cy, r, ts, ac, ending, p.color);
       ctx.fillStyle = p.color;
       ctx.beginPath();
       ctx.moveTo(cx, cy);
@@ -277,27 +277,23 @@
 
   // A loud but SMOOTH "I have the power pellet" aura: soft glow + gold ring +
   // a gently-pulsing outer ring + sparkles orbiting smoothly around the body.
-  Renderer.prototype._drawPowerAura = function (ctx, cx, cy, r, ts, now, ending) {
+  Renderer.prototype._drawPowerAura = function (ctx, cx, cy, r, ts, now, ending, color) {
+    const col = color || '#FFE100';
     const pulse = 0.5 + 0.5 * Math.sin(now * 4);       // smooth, unhurried
     const baseAlpha = ctx.globalAlpha;                  // respect the blink
     ctx.save();
-    ctx.shadowColor = ending ? '#FFFFFF' : '#FFE100';
+    ctx.shadowColor = ending ? '#FFFFFF' : col;
     ctx.shadowBlur = ts * (0.9 + 0.4 * pulse);
-    // Soft radial glow.
+    // Soft radial glow tinted with the player's colour.
     const grd = ctx.createRadialGradient(cx, cy, r * 0.5, cx, cy, r * 1.95);
-    grd.addColorStop(0, 'rgba(255,225,0,0.30)');
-    grd.addColorStop(1, 'rgba(255,225,0,0)');
+    grd.addColorStop(0, col + '4D');
+    grd.addColorStop(1, col + '00');
     ctx.fillStyle = grd;
     ctx.beginPath(); ctx.arc(cx, cy, r * 1.95, 0, Math.PI * 2); ctx.fill();
-    // Bold gold ring hugging the body.
-    ctx.strokeStyle = '#FFE100';
+    // Bold ring in the player's colour hugging the body.
+    ctx.strokeStyle = col;
     ctx.lineWidth = Math.max(2, ts * 0.09);
     ctx.beginPath(); ctx.arc(cx, cy, r * 1.2, 0, Math.PI * 2); ctx.stroke();
-    // Gently-pulsing outer ring.
-    ctx.globalAlpha = baseAlpha * (0.4 + 0.4 * pulse);
-    ctx.strokeStyle = ending ? '#FFFFFF' : 'rgba(255,255,255,0.9)';
-    ctx.lineWidth = Math.max(1.5, ts * 0.05);
-    ctx.beginPath(); ctx.arc(cx, cy, r * (1.42 + 0.16 * pulse), 0, Math.PI * 2); ctx.stroke();
     // Orbiting sparkles (smooth circular motion).
     ctx.globalAlpha = baseAlpha;
     ctx.fillStyle = '#FFFFFF';
@@ -313,11 +309,11 @@
 
   Renderer.prototype._nameTag = function (ctx, p, cx, cy, ts) {
     const powered = !!p.powered;
-    const label = (powered ? '⚡ ' : '') + p.name + (p.connected === false ? ' 💤' : '');
+    const label = p.name + (p.connected === false ? ' 💤' : '');
     ctx.font = '700 ' + Math.max(9, Math.floor(ts * 0.5)) + 'px Inter, sans-serif';
     const tw = ctx.measureText(label).width;
     const padX = ts * 0.24, h = ts * 0.7;
-    ctx.fillStyle = powered ? 'rgba(201,168,18,0.95)' : 'rgba(0,0,0,0.55)';
+    ctx.fillStyle = powered ? p.color : 'rgba(0,0,0,0.55)';
     roundRect(ctx, cx - tw / 2 - padX, cy - h, tw + padX * 2, h, h / 2);
     ctx.fill();
     ctx.fillStyle = powered ? '#14142b' : p.color;

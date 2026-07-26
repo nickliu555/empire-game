@@ -236,7 +236,7 @@ body.host {
 .sc-card.dead { opacity: 0.4; filter: grayscale(0.7); }
 .sc-crown { font-size: 15px; line-height: 1; margin-bottom: 1px; visibility: hidden; }
 .sc-card.leader .sc-crown { visibility: visible; }
-.sc-card.leader { border-color: #ffd54a; box-shadow: 0 0 16px rgba(255, 213, 74, 0.7); }
+.sc-card.leader { box-shadow: 0 0 16px var(--pc); }
 .sc-top { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .sc-dot { width: 12px; height: 12px; border-radius: 50%; }
 .sc-name { font-weight: 800; font-size: 16px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -265,6 +265,18 @@ body.host {
 .co-note { font-size: 26px; font-weight: 800; color: var(--accent); }
 .co-num { font-size: 120px; font-weight: 900; color: #fff; animation: pop 0.4s ease; }
 @keyframes pop { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+
+.reason-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; pointer-events: none;
+}
+.reason-overlay[hidden] { display: none; }
+.reason-text {
+  font-size: 54px; font-weight: 900; color: #fff; text-align: center;
+  text-shadow: 0 3px 18px rgba(0,0,0,0.75);
+  animation: pop 0.4s ease;
+}
 
 .round-overlay {
   position: absolute; inset: 0;

@@ -10,6 +10,7 @@
   const COUNTDOWN_STEP_MS = 800;
   const CLOCK_EMIT_MS = 250;
   const ROUNDOVER_MS = 7000;
+  const ROUND_END_HOLD_MS = 2000;   // freeze the board this long before the scoreboard
   const EMOTE_MS = 3000;
   const POWER_FLASH_SEC = (window.Pacman && window.Pacman.POWER_FLASH_SEC) || 3;
 
@@ -44,6 +45,8 @@
   const countOverlay = document.getElementById('countOverlay');
   const coNum = document.getElementById('coNum');
   const coNote = document.getElementById('coNote');
+  const reasonOverlay = document.getElementById('reasonOverlay');
+  const reasonText = document.getElementById('reasonText');
   const roundOverlay = document.getElementById('roundOverlay');
   const roTitle = document.getElementById('roTitle');
   const roList = document.getElementById('roList');
@@ -344,6 +347,7 @@
   let round = 1, mazeIndex = 0, mazeOrder = [];
   let clockMs = 0, lastClockEmit = 0;
   let gamePoints = {}; // id -> rounds won
+  let roundEndAt = null; // performance.now() when the round was decided (start of the freeze)
   let countdownTimer = null, roundOverTimer = null;
   let botIds = [];
   let prevPowered = {}; // id -> bool
@@ -459,6 +463,8 @@
     prevPowered = {};
     roster.forEach(function (rr) { prevPowered[rr.id] = false; });
     clockMs = roundLengthSec * 1000;
+    roundEndAt = null;
+    if (reasonOverlay) reasonOverlay.hidden = true;
     inputQueue.length = 0;
     paused = false; pClearAll();
     if (pauseOverlay) pauseOverlay.hidden = true;
@@ -562,13 +568,17 @@
         });
         if (surv && (sc[surv.id] || 0) > maxDead) clinched = true;
       }
-      if (clockMs <= 0 || world.aliveCount() === 0 || clinched) {
-        if (world.anyDying()) {
-          // Let the final death animation finish before scoring the round.
-          world.settleFreeze = true;
-        } else {
-          endRound();
-        }
+      if ((clockMs <= 0 || world.aliveCount() === 0 || clinched) && roundEndAt === null) {
+        // Freeze the board the instant the round is decided, however it ended
+        // (clock out, everyone dead, or a clinch) — a short beat so players can
+        // read the final board before the scoreboard slides in.
+        roundEndAt = now;
+        world.settleFreeze = true;
+        showEndReason(world.aliveCount() === 0 ? 'down' : (clinched ? 'clinch' : 'time'));
+      }
+      if (roundEndAt !== null && (now - roundEndAt) >= ROUND_END_HOLD_MS && !world.anyDying()) {
+        // Held long enough AND any final death animation has finished.
+        endRound();
       }
     }
 
@@ -603,10 +613,22 @@
     }
   }
 
+  // Brief banner shown during the round-end freeze, naming how the round ended.
+  function showEndReason(kind) {
+    if (!reasonOverlay || !reasonText) return;
+    const label = kind === 'down' ? "Everyone's down!"
+      : kind === 'clinch' ? 'Last one leading!'
+      : "Time's up!";
+    reasonText.textContent = label;
+    reasonOverlay.hidden = false;
+    reasonText.style.animation = 'none'; void reasonText.offsetWidth; reasonText.style.animation = '';
+  }
+
   function endRound() {
     if (matchState !== 'play') return;
     matchState = 'roundover';
     updatePauseBtn();
+    if (reasonOverlay) reasonOverlay.hidden = true;
     if (world) world.frozen = true;
     const scores = world.scores();
     // Accumulate award stats for this round (total points + rounds survived).

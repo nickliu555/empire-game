@@ -61,7 +61,11 @@
   const hostAbsentOverlay = document.getElementById('hostAbsentOverlay');
   const pauseCover = document.getElementById('pauseCover');
   const playerAttribution = document.getElementById('playerAttribution');
+  const elimIcon = document.getElementById('elimIcon');
+  const elimTitle = document.getElementById('elimTitle');
+  const elimSub = document.getElementById('elimSub');
   const swipeArrow = document.getElementById('swipeArrow');
+  const gamepadBadge = document.getElementById('gamepadBadge');
 
   // ---------------- State ----------------
   let currentPhase = 'LOBBY';
@@ -182,8 +186,16 @@
     setControls(false);
     if (d && d.gamePoints) { myGamePoints = d.gamePoints[playerId] || 0; updateHud(d.scores ? d.scores[playerId] : undefined); }
     const won = d && d.winnerIds && d.winnerIds.indexOf(playerId) >= 0;
-    // Persist the result until the next round begins (cleared on m:roundStart).
-    showFlash(won ? 'Round won!' : 'Round over', !!won, true);
+    if (eliminated) {
+      // Dead players can still WIN the round on score — surface it on the out
+      // screen (they never see the controller flash).
+      if (elimIcon) elimIcon.textContent = won ? '🏆' : '💀';
+      if (elimTitle) { elimTitle.textContent = won ? 'Round won!' : 'Round over'; elimTitle.style.color = won ? 'var(--good)' : ''; }
+      if (elimSub) elimSub.textContent = won ? 'Top score even after going out!' : 'Back in the next round.';
+    } else {
+      // Persist the result until the next round begins (cleared on m:roundStart).
+      showFlash(won ? 'Round won!' : 'Round over', !!won, true);
+    }
   });
   socket.on('m:pause', function () {
     setControls(false);
@@ -234,6 +246,10 @@
 
   function showEliminated() {
     hideOverlay();
+    // Reset to the default "out" message (m:roundOver may later flip it to a win).
+    if (elimIcon) elimIcon.textContent = '💀';
+    if (elimTitle) { elimTitle.textContent = "You're out!"; elimTitle.style.color = ''; }
+    if (elimSub) elimSub.textContent = "Sit tight — you're back in next round.";
     showView('eliminated');
   }
 
@@ -309,6 +325,67 @@
     else if (e.key === 'ArrowRight' || e.key === 'd') dir = RIGHT;
     if (dir >= 0 && controlsEnabled && !eliminated) { e.preventDefault(); setDir(dir); }
   });
+
+  // ---------------- Gamepad (Bluetooth controller) support ----------------
+  // Any controller paired to the phone — Xbox, PlayStation, or Switch Pro —
+  // drives Pac-Man via the standard Gamepad API layout, so the same left-stick
+  // and D-pad indices work across all brands (no per-brand code). Steering is
+  // discrete like the swipe pad: pushing a direction just calls setDir(), which
+  // is gated + de-duped + re-send-safe; letting go keeps the last heading
+  // (classic Pac-Man). Runs alongside touch — either input works at any time.
+  const GP_DEADZONE = 0.35;          // ignore analog-stick drift near centre
+  let gpIndex = null;                // index of the active gamepad, or null
+
+  function anyGamepad() {
+    const pads = (navigator.getGamepads && navigator.getGamepads()) || [];
+    for (let i = 0; i < pads.length; i++) { if (pads[i]) return true; }
+    return false;
+  }
+  function activeGamepad() {
+    const pads = (navigator.getGamepads && navigator.getGamepads()) || [];
+    if (gpIndex !== null && pads[gpIndex]) return pads[gpIndex];
+    for (let i = 0; i < pads.length; i++) { if (pads[i]) { gpIndex = i; return pads[i]; } }
+    return null;
+  }
+  function gpDown(gp, i) { const b = gp.buttons && gp.buttons[i]; return !!(b && (b.pressed || b.value > 0.5)); }
+  // Translate a gamepad's stick/D-pad into a single direction, or -1 for none.
+  function mapGamepad(gp) {
+    const a = gp.axes || [];
+    const ax = a.length > 0 ? (a[0] || 0) : 0;   // left stick X (− left, + right)
+    const ay = a.length > 1 ? (a[1] || 0) : 0;   // left stick Y (− up,   + down)
+    if (Math.abs(ax) > GP_DEADZONE || Math.abs(ay) > GP_DEADZONE) {
+      return Math.abs(ax) > Math.abs(ay) ? (ax < 0 ? LEFT : RIGHT) : (ay < 0 ? UP : DOWN);
+    }
+    if (gpDown(gp, 12)) return UP;      // D-pad up
+    if (gpDown(gp, 13)) return DOWN;    // D-pad down
+    if (gpDown(gp, 14)) return LEFT;    // D-pad left
+    if (gpDown(gp, 15)) return RIGHT;   // D-pad right
+    return -1;
+  }
+  function pollGamepad() {
+    requestAnimationFrame(pollGamepad);
+    if (!controlsEnabled || eliminated) return;
+    const gp = activeGamepad();
+    if (!gp) return;
+    const dir = mapGamepad(gp);
+    if (dir >= 0) setDir(dir);   // setDir de-dupes; neutral (-1) keeps last heading
+  }
+  function setGamepadBadge(on) {
+    if (gamepadBadge) gamepadBadge.hidden = !on;
+    body.classList.toggle('has-gamepad', !!on);
+  }
+  window.addEventListener('gamepadconnected', function (e) {
+    gpIndex = e.gamepad.index;
+    setGamepadBadge(true);
+  });
+  window.addEventListener('gamepaddisconnected', function (e) {
+    if (gpIndex === e.gamepad.index) gpIndex = null;
+    setGamepadBadge(anyGamepad());
+  });
+  // A controller paired before the page loaded won't fire 'gamepadconnected'
+  // until its first input, so reflect current state on boot too.
+  if (anyGamepad()) setGamepadBadge(true);
+  pollGamepad();
 
   kickRejoinBtn && kickRejoinBtn.addEventListener('click', function () {
     localStorage.setItem('pacman.rejoinName', playerName);

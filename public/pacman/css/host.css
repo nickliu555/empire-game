@@ -234,7 +234,9 @@ body.host {
   text-align: center;
 }
 .sc-card.dead { opacity: 0.4; filter: grayscale(0.7); }
-.sc-card.powered { box-shadow: 0 0 16px var(--pc); }
+.sc-crown { font-size: 15px; line-height: 1; margin-bottom: 1px; visibility: hidden; }
+.sc-card.leader .sc-crown { visibility: visible; }
+.sc-card.leader { border-color: #ffd54a; box-shadow: 0 0 16px rgba(255, 213, 74, 0.7); }
 .sc-top { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .sc-dot { width: 12px; height: 12px; border-radius: 50%; }
 .sc-name { font-weight: 800; font-size: 16px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -86,10 +86,11 @@ A multiplayer Pac-Man showdown played out on the Host screen — 2–4 players e
 2. The host sets the **round length** and how many **round wins** take the game, then hits **Start**
 3. Each phone is a **D-pad** — up / down / left / right steer your Pac-Man; the maze edges **wrap** to the other side
 4. **Gobble pellets** (and the occasional **cherry**) for points while dodging the four ghosts
-5. A ghost eats you if you're not powered — **die and you're out for the rest of the round**
-6. Grab a **power pellet** to turn big and fast for 8 seconds: ghosts flee (eat them for bonus points) and you can **eat smaller players**; two equal-size Pac-Men just bounce off each other
-7. When the round ends, the **highest score among the survivors** wins the round
-8. **First to the target number of round wins takes the game!**
+5. A **normal ghost eats you** the moment it touches you — **even while powered** (a power pellet is *not* a shield). Die and you're out for the rest of the round
+6. Grab a **power pellet** to turn big and fast: the ghosts already loose turn blue and flee — **eat them for big points** — and you can **eat smaller players**; two equal-size Pac-Men just bounce off each other. Beware: freshly-spawned ghosts come back **normal** and can still catch you
+7. **Highest score wins the round — not the last one standing.** Staying alive matters because you keep scoring, but even a player who died can win if their score holds up
+8. A lone survivor keeps playing for points until the timer runs out or they die — the round ends early once their win is locked in
+9. **First to the target number of round wins takes the game!**
 
 The host can **Pause** at any time. Each round rotates to a different maze.
 

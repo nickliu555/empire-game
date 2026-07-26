@@ -255,6 +255,49 @@ section('Eyes return home');
   ok(home, 'eyes reach the pen from the farthest tile (never stuck)');
 }
 
+// ---- Dual pen doors (top + bottom) ----
+section('Dual pen doors');
+{
+  // Every maze now has a TOP and a BOTTOM pen entrance.
+  Mazes.forEach((def) => {
+    const p = Mazes.parse(def);
+    ok(p.doors && p.doors.length === 2, def.name + ' has two pen doors (top + bottom)');
+  });
+
+  const w = makeWorld(4); // four ghosts
+  const meta = w.board.doorMeta;
+  ok(meta.length === 2 && meta.filter((m) => m.isTop).length === 1 && meta.filter((m) => !m.isTop).length === 1,
+    'door metadata classifies one top and one bottom door');
+
+  // Ghosts split their exit door by home row → 2 use the top, 2 the bottom.
+  let top = 0, bot = 0;
+  for (const g of w.ghosts) { if (w._exitDoor(g).isTop) top++; else bot++; }
+  ok(top === 2 && bot === 2, 'pen splits evenly: 2 ghosts exit the top door, 2 the bottom');
+
+  // A bottom-assigned ghost actually travels DOWN through the bottom door.
+  let botGhost = null;
+  for (const g of w.ghosts) { if (!w._exitDoor(g).isTop) { botGhost = g; break; } }
+  const bd = w._exitDoor(botGhost);
+  botGhost.state = 'leaving'; botGhost.releaseAt = 0;
+  botGhost.x = botGhost.home[1]; botGhost.y = botGhost.home[0]; botGhost.dirIdx = 0;
+  let exitedBottom = false;
+  for (let i = 0; i < 120 * 8; i++) {
+    w.step(1 / 120);
+    if (Math.round(botGhost.y) === bd.outsideR && Math.round(botGhost.x) === bd.c) exitedBottom = true;
+    if (botGhost.state === 'active') break;
+  }
+  ok(exitedBottom, 'a bottom-door ghost leaves downward through the bottom door');
+
+  // Eyes dropped just below the bottom door return home through it.
+  const w2 = makeWorld(2);
+  const bm = w2.board.doorMeta.filter((m) => !m.isTop)[0];
+  const g2 = w2.ghosts[0];
+  g2.state = 'eyes'; g2.x = bm.c; g2.y = bm.outsideR; g2.dirIdx = 0; g2.home = w2.board.ghostSpawns[0];
+  let back = false;
+  for (let i = 0; i < 120 * 15; i++) { w2.step(1 / 120); if (g2.state === 'pen') { back = true; break; } }
+  ok(back, 'eyes return home through the bottom door');
+}
+
 // ---- Pac vs pac ----
 section('Pac vs pac');
 {

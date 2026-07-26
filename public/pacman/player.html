@@ -36,6 +36,7 @@
         <div class="hud-pips" id="hudPips"></div>
       </div>
       <div class="powered-badge" id="poweredBadge" hidden>⚡ POWERED</div>
+      <div class="gamepad-badge" id="gamepadBadge" hidden>🎮 Controller connected</div>
 
       <!-- Swipe pad: the whole area is the control. A big arrow points the way
            you're currently heading. -->
@@ -65,9 +66,9 @@
 
     <!-- Eliminated (locked out until next round) -->
     <div class="view-wait" id="view-eliminated" style="display:none;">
-      <div class="elim-icon">💀</div>
-      <h1 class="wait-title">You're out!</h1>
-      <div class="wait-sub">Sit tight — you're back in next round.</div>
+      <div class="elim-icon" id="elimIcon">💀</div>
+      <h1 class="wait-title" id="elimTitle">You're out!</h1>
+      <div class="wait-sub" id="elimSub">Sit tight — you're back in next round.</div>
     </div>
     <!-- Final result -->
     <div class="view-wait" id="view-final" style="display:none;">

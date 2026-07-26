@@ -119,8 +119,10 @@
       for (let r = 0; r < this.board.h; r++) for (let c = 0; c < this.board.w; c++) {
         if (this.board.tiles[r][c] === 1 && !this._inHouse(r, c)) this._openTiles.push(r + ',' + c);
       }
-      // Precompute a BFS flow field to the pen door so eaten ghosts (eyes) can
-      // ALWAYS path home — greedy Euclidean can get stuck in the braided mazes.
+      // Precompute door metadata (top/bottom entrances) and a BFS flow field to
+      // the pen doors so eaten ghosts (eyes) can ALWAYS path home — greedy
+      // Euclidean can get stuck in the braided mazes.
+      this._computeDoorMeta();
       this._computeEyesField();
       this.now = 0;
       this.animClock = 0;
@@ -188,17 +190,41 @@
       const dr = b.door[0], dc = b.door[1];
       return r >= dr && r <= dr + 3 && c >= dc - 2 && c <= dc + 2;
     }
-    // BFS distance field to the tile just above the pen door, over all
-    // ghost-walkable tiles (door passable, tunnels wrap). Eyes follow it home.
+    // Classify every pen door as a top or bottom entrance and precompute, for
+    // each, the tile just OUTSIDE the pen plus the directions to step in/out.
+    // `board.door` (the top door) stays the reference for pen bounds.
+    _computeDoorMeta() {
+      const b = this.board;
+      const doors = (b.doors && b.doors.length) ? b.doors : (b.door ? [b.door] : []);
+      let topRow = Infinity;
+      for (const d of doors) if (d[0] < topRow) topRow = d[0];
+      b.doorMeta = doors.map(function (d) {
+        const isTop = d[0] === topRow;
+        return {
+          r: d[0], c: d[1], isTop: isTop,
+          outsideR: isTop ? d[0] - 1 : d[0] + 1, // tile just outside the pen
+          enterDir: isTop ? 1 : 0,               // step INTO the pen (down/up)
+          exitDir: isTop ? 0 : 1,                // step OUT of the pen (up/down)
+        };
+      });
+    }
+    // BFS distance field to the tile just outside EACH pen door (multi-source),
+    // over all ghost-walkable tiles (doors passable, tunnels wrap). Eyes follow
+    // it home and naturally head for whichever door is nearest.
     _computeEyesField() {
       const b = this.board;
       const W = b.w, H = b.h;
-      const start = [b.door[0] - 1, b.door[1]];
       const dist = [];
       for (let r = 0; r < H; r++) dist.push(new Array(W).fill(Infinity));
-      dist[start[0]][start[1]] = 0;
-      const q = [start];
+      const q = [];
       let head = 0;
+      const metas = (b.doorMeta && b.doorMeta.length) ? b.doorMeta : [{ outsideR: b.door[0] - 1, c: b.door[1] }];
+      for (const dm of metas) {
+        const sr = dm.outsideR, sc = dm.c;
+        if (sr >= 0 && sr < H && sc >= 0 && sc < W && dist[sr][sc] === Infinity) {
+          dist[sr][sc] = 0; q.push([sr, sc]);
+        }
+      }
       while (head < q.length) {
         const [r, c] = q[head++]; const d = dist[r][c];
         for (const dv of DIRS) {
@@ -225,6 +251,25 @@
         if (d < bestD) { bestD = d; best = idx; }
       }
       g.dirIdx = best >= 0 ? best : REVERSE[g.dirIdx];
+    }
+    // The pen door a ghost LEAVES through — the one nearest its home row, so the
+    // 2×2 pen splits evenly (top-row ghosts take the top door, bottom-row the
+    // bottom door). Keeps ghost pressure balanced across the map's halves.
+    _exitDoor(g) {
+      const metas = this.board.doorMeta;
+      if (!metas || !metas.length) return { r: this.board.door[0], c: this.board.door[1], isTop: true, outsideR: this.board.door[0] - 1, enterDir: 1, exitDir: 0 };
+      let best = metas[0], bd = Infinity;
+      for (const dm of metas) { const d = Math.abs(g.home[0] - dm.r); if (d < bd) { bd = d; best = dm; } }
+      return best;
+    }
+    // The pen door a returning ghost (eyes) heads for — the one nearest its
+    // current row, so it re-enters from whichever side is closer.
+    _nearestDoorMeta(r) {
+      const metas = this.board.doorMeta;
+      if (!metas || !metas.length) return { r: this.board.door[0], c: this.board.door[1], isTop: true, outsideR: this.board.door[0] - 1, enterDir: 1, exitDir: 0 };
+      let best = metas[0], bd = Infinity;
+      for (const dm of metas) { const d = Math.abs(r - dm.outsideR); if (d < bd) { bd = d; best = dm; } }
+      return best;
     }
     // Spawn one power pellet at a random remaining pellet tile (fallback: any
     // open tile outside the house).
@@ -377,25 +422,30 @@
       const cx = g.x, cy = g.y;
       const b = this.board;
       if (g.state === 'leaving') {
-        const door = b.door; // [r,c]
-        if (cx !== door[1]) { g.dirIdx = cx < door[1] ? 3 : 2; return; }
-        if (cy > door[0] - 1) { g.dirIdx = 0; return; } // move up through the door
-        // Now above the door → roam. A ghost ALWAYS comes out in its normal
+        const dm = this._exitDoor(g);
+        if (cx !== dm.c) { g.dirIdx = cx < dm.c ? 3 : 2; return; }
+        // Head out through the door: up for a top door, down for a bottom one.
+        const outside = dm.isTop ? (cy <= dm.outsideR) : (cy >= dm.outsideR);
+        if (!outside) { g.dirIdx = dm.exitDir; return; }
+        // Now clear of the pen → roam. A ghost ALWAYS comes out in its normal
         // (non-frightened) state, even if a power window is still live: it wasn't
         // on the maze when the pellet was eaten, so it isn't vulnerable — it can
         // hunt (and kill) the powered player (classic Battle-Royale rule).
         g.state = 'active';
       }
       if (g.state === 'eyes') {
-        const door = b.door;
-        const above = [door[0] - 1, door[1]];
-        // Head for the tile above the door, then descend into the pen.
-        if (cx === door[1] && cy >= above[0]) {
-          if (cy < g.home[0]) { g.dirIdx = 1; return; } // descend through door
+        const dm = this._nearestDoorMeta(cy);
+        // Aligned with a door column and level with (or past) its outer tile →
+        // step into the pen toward the home row, then respawn there.
+        const atCol = (cx === dm.c);
+        const pastOutside = dm.isTop ? (cy >= dm.outsideR) : (cy <= dm.outsideR);
+        if (atCol && pastOutside) {
+          const reachedHome = dm.isTop ? (cy >= g.home[0]) : (cy <= g.home[0]);
+          if (!reachedHome) { g.dirIdx = dm.enterDir; return; } // through the door
           // Arrived home → respawn.
           g.state = 'pen'; g.releaseAt = this.now + EYES_RESPAWN_SEC; g.dirIdx = 0; return;
         }
-        // Follow the precomputed flow field home (always reaches the door).
+        // Follow the precomputed flow field home (always reaches a door).
         this._eyesDir(g);
         return;
       }

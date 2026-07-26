@@ -544,12 +544,27 @@
         lastClockEmit = now;
         socket.emit('host:clock', { ms: Math.max(0, clockMs), scores: world.scores() });
       }
-      // Round-end conditions: the clock runs out, or only one player is left.
+      // Round-end conditions: the clock runs out, EVERYONE is dead, or a lone
+      // survivor has already CLINCHED the round (see below). A lone survivor
+      // otherwise keeps playing (racking up points) until the timer or their own
+      // death — the round is won on SCORE, not on being the last one standing.
       // (The board auto-refills when cleared, so it never ends on empty pellets.)
-      if (clockMs <= 0 || world.aliveCount() <= 1) {
+      let clinched = false;
+      if (world.aliveCount() === 1) {
+        // The one survivor's score can only rise and every dead player's score is
+        // frozen — so once the survivor is strictly on top, the win is guaranteed.
+        // End now instead of a pointless victory lap.
+        const sc = world.scores();
+        let surv = null, maxDead = -1;
+        world.players.forEach(function (p) {
+          if (p.alive) surv = p;
+          else maxDead = Math.max(maxDead, sc[p.id] || 0);
+        });
+        if (surv && (sc[surv.id] || 0) > maxDead) clinched = true;
+      }
+      if (clockMs <= 0 || world.aliveCount() === 0 || clinched) {
         if (world.anyDying()) {
-          // Freeze the whole board while the final death animation plays so the
-          // last Pac-Man can't also die — guarantees the round has a winner.
+          // Let the final death animation finish before scoring the round.
           world.settleFreeze = true;
         } else {
           endRound();
@@ -598,12 +613,15 @@
     world.players.forEach(function (p) {
       if (stats[p.id]) { stats[p.id].total += (scores[p.id] || 0); if (p.alive) stats[p.id].survived++; }
     });
-    // Round winners: highest score among ALIVE players; if none alive, among all.
-    let pool = world.players.filter(function (p) { return p.alive; });
-    if (!pool.length) pool = world.players.slice();
+    // Round winner: highest SCORE among ALL players (alive or dead) — scoring is
+    // what wins the round, but staying alive lets you keep scoring. On a score
+    // tie, a player still ALIVE beats a dead one (earned it under pressure); if
+    // every tied leader is dead, they share the round.
     let max = -1;
-    pool.forEach(function (p) { if ((scores[p.id] || 0) > max) max = scores[p.id] || 0; });
-    const winnerIds = pool.filter(function (p) { return (scores[p.id] || 0) === max; }).map(function (p) { return p.id; });
+    world.players.forEach(function (p) { if ((scores[p.id] || 0) > max) max = scores[p.id] || 0; });
+    const tied = world.players.filter(function (p) { return (scores[p.id] || 0) === max; });
+    const aliveTied = tied.filter(function (p) { return p.alive; });
+    const winnerIds = (aliveTied.length ? aliveTied : tied).map(function (p) { return p.id; });
     winnerIds.forEach(function (id) { gamePoints[id] = (gamePoints[id] || 0) + 1; });
 
     // Did anyone reach the target?
@@ -688,13 +706,14 @@
     roster.forEach(function (r) {
       const card = document.createElement('div'); card.className = 'sc-card'; card.dataset.pid = r.id;
       card.style.setProperty('--pc', r.color);
+      const crown = document.createElement('div'); crown.className = 'sc-crown'; crown.textContent = '👑';
       const top = document.createElement('div'); top.className = 'sc-top';
       const dot = document.createElement('span'); dot.className = 'sc-dot'; dot.style.background = r.color;
       const name = document.createElement('span'); name.className = 'sc-name'; name.textContent = r.name;
       top.appendChild(dot); top.appendChild(name);
       const score = document.createElement('div'); score.className = 'sc-score'; score.textContent = '0';
       const pips = document.createElement('div'); pips.className = 'sc-pips';
-      card.appendChild(top); card.appendChild(score); card.appendChild(pips);
+      card.appendChild(crown); card.appendChild(top); card.appendChild(score); card.appendChild(pips);
       scoreStrip.appendChild(card);
     });
   }
@@ -703,12 +722,16 @@
     if (sbClock) { sbClock.textContent = fmtClock(clockMs); sbClock.classList.toggle('urgent', clockMs <= 10000); }
     const scores = world ? world.scores() : {};
     const cards = scoreStrip.children;
+    // Leader = the player(s) with the strictly-highest round score, but only once
+    // someone is actually on the board (max > 0), so nobody is crowned at 0-0.
+    let maxScore = 0;
+    for (let i = 0; i < cards.length; i++) { maxScore = Math.max(maxScore, scores[cards[i].dataset.pid] || 0); }
     for (let i = 0; i < cards.length; i++) {
       const card = cards[i]; const pid = card.dataset.pid;
       const p = world ? world.byId.get(pid) : null;
       card.querySelector('.sc-score').textContent = scores[pid] || 0;
       card.classList.toggle('dead', !!(p && !p.alive));
-      card.classList.toggle('powered', !!(p && p.powered));
+      card.classList.toggle('leader', maxScore > 0 && (scores[pid] || 0) === maxScore);
       // Game-point pips.
       const pipsEl = card.querySelector('.sc-pips');
       const want = roundsToWin, have = gamePoints[pid] || 0;

@@ -57,7 +57,7 @@
   }
 
   // ---------------- Session state ----------------
-  let selectedSize = 4;
+  let selectedSize = 5;
   let board = null;          // 2D array of tile strings
   let boardSize = 4;
   let minWordLen = 3;
@@ -111,6 +111,7 @@
   document.addEventListener('visibilitychange', function () {
     pageVisible = !document.hidden;
     reconcileTimer();
+    if (document.hidden) saveSession();
   });
 
   // ---------------- Views ----------------
@@ -120,7 +121,62 @@
     setViewActive(name === 'play');
   }
 
-  // ---------------- Setup: size picker ----------------
+  // ---------------- Persistence (survive page refresh) ----------------
+  const STORAGE_KEY = 'noggle.practice.session';
+
+  function saveSession() {
+    if (!board) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        board: board,
+        boardSize: boardSize,
+        minWordLen: minWordLen,
+        validWords: validWords,
+        totalWords: totalWords,
+        maxScore: maxScore,
+        foundWords: Array.from(foundWords),
+        score: score,
+        elapsedMs: currentElapsedMs(),
+        selectedSize: selectedSize
+      }));
+    } catch (_) {}
+  }
+  function clearSession() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+  }
+  function restoreSession() {
+    let data;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      data = JSON.parse(raw);
+    } catch (_) { return false; }
+    if (!data || !Array.isArray(data.board)) return false;
+    selectedSize = data.selectedSize || data.boardSize || 5;
+    boardSize = data.boardSize;
+    minWordLen = data.minWordLen;
+    validWords = data.validWords || {};
+    totalWords = data.totalWords || 0;
+    maxScore = data.maxScore || 0;
+    foundWords = new Set(data.foundWords || []);
+    score = data.score || 0;
+    foundList.innerHTML = '';
+    clearPath();
+    setFeedback('', '');
+    renderBoard(data.board, boardSize);
+    foundWords.forEach(function (w) { addFoundChip(w, validWords[w] || 0, false); });
+    paintStats();
+    paintSizeChip();
+    accumulatedMs = data.elapsedMs || 0;
+    segmentStart = 0;
+    showView('play');
+    startTimer();
+    return true;
+  }
+
+  window.addEventListener('pagehide', saveSession);
+  window.addEventListener('beforeunload', saveSession);
+
   sizePicker.addEventListener('click', function (e) {
     const btn = e.target.closest('.size-card');
     if (!btn) return;
@@ -174,6 +230,7 @@
     showView('play');
     resetTimer();
     startTimer();
+    saveSession();
   }
 
   function paintStats() {
@@ -352,6 +409,7 @@
     paintStats();
     setFeedback('good', '+' + pts + ' ' + displayWord(w));
     playChime();
+    saveSession();
   }
   function reject(msg) {
     setFeedback('bad', msg);
@@ -445,6 +503,7 @@
 
   // ---------------- Back ----------------
   backBtn.addEventListener('click', function () {
+    clearSession();
     window.location.href = getBackTarget();
   });
 
@@ -495,4 +554,7 @@
       lastTap = now;
     }, { passive: false });
   })();
+
+  // ---------------- Init: resume an in-progress board after a refresh ----------------
+  restoreSession();
 })();

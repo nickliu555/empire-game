@@ -66,6 +66,11 @@
   const elimSub = document.getElementById('elimSub');
   const swipeArrow = document.getElementById('swipeArrow');
   const gamepadBadge = document.getElementById('gamepadBadge');
+  const gearBtn = document.getElementById('gearBtn');
+  const ctrlPopover = document.getElementById('ctrlPopover');
+  const modeToggle = document.getElementById('modeToggle');
+  const dpad = document.getElementById('dpad');
+  const swipeHint = document.getElementById('swipeHint');
 
   // ---------------- State ----------------
   let currentPhase = 'LOBBY';
@@ -263,20 +268,30 @@
   }
 
   // ---------------- Controls ----------------
-  // Swipe-only control: the WHOLE screen is the pad. Players watch the host
-  // screen, not their phone, so there are no buttons to miss — just flick a
-  // direction anywhere and the Pac-Man turns that way and keeps going until the
-  // next flick (classic Pac-Man). A tiny haptic buzz confirms each turn, and a
-  // big central arrow points the way you're currently heading.
+  // Two control schemes the player can switch between via the ⚙️ gear:
+  //   • Swipe (default): the WHOLE screen is a pad — flick a direction anywhere
+  //     and the Pac-Man turns that way and keeps going until the next flick.
+  //   • Tap zones: the screen splits along its diagonals into 4 triangles
+  //     (top=up, bottom=down, left=left, right=right); tap a zone to steer.
+  // A tiny haptic buzz confirms each turn; a big central arrow (swipe) or the
+  // lit-up zone (tap) shows the way you're currently heading.
   const SWIPE_THRESHOLD = 22;      // px of drag before a direction registers
   const ARROW_DEG = { 0: 0, 1: 180, 2: 270, 3: 90 }; // base arrow points UP; rotate to dir
   let currentDir = -1;
   let touch = null;                // active gesture: { id, x, y }
   const controllerView = views.controller;
 
+  // Persisted control scheme: 'swipe' (default) or 'tap'.
+  let controlMode = localStorage.getItem('pacman.controlMode') === 'tap' ? 'tap' : 'swipe';
+  const dpadZones = dpad ? Array.prototype.slice.call(dpad.querySelectorAll('.dpad-zone')) : [];
+
   function send(dir) { socket.emit('in', { dir: dir }); }
   function vibrate(ms) { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (_) {} }
+  function highlightZone(dir) {
+    dpadZones.forEach(function (z) { z.classList.toggle('active', Number(z.getAttribute('data-dir')) === dir); });
+  }
   function showDir(dir) {
+    highlightZone(dir);
     if (!swipeArrow) return;
     if (dir < 0) { swipeArrow.style.opacity = '0.25'; return; }
     swipeArrow.style.opacity = '1';
@@ -293,14 +308,70 @@
     if (!controlsEnabled) { currentDir = -1; showDir(-1); touch = null; }
   }
 
+  // In Tap mode, the direction is the triangle the touch lands in: measured from
+  // the pad's centre, a mostly-horizontal offset is left/right, otherwise up/down
+  // — which is exactly the diagonal split the visible zones draw.
+  function zoneDirFromPoint(x, y) {
+    const r = (pad || controllerView).getBoundingClientRect();
+    const dx = x - (r.left + r.width / 2);
+    const dy = y - (r.top + r.height / 2);
+    if (dx === 0 && dy === 0) return -1;
+    return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? RIGHT : LEFT) : (dy > 0 ? DOWN : UP);
+  }
+
+  function applyControlMode(mode) {
+    controlMode = mode === 'tap' ? 'tap' : 'swipe';
+    localStorage.setItem('pacman.controlMode', controlMode);
+    body.classList.toggle('mode-tap', controlMode === 'tap');
+    body.classList.toggle('mode-swipe', controlMode === 'swipe');
+    if (swipeHint) swipeHint.textContent = controlMode === 'tap' ? 'Tap a zone to move' : 'Swipe anywhere to move';
+    if (modeToggle) {
+      modeToggle.querySelectorAll('.mode-opt').forEach(function (b) {
+        b.classList.toggle('active', b.getAttribute('data-mode') === controlMode);
+      });
+    }
+    touch = null;
+  }
+  applyControlMode(controlMode);
+
+  // Gear button toggles a small popover holding the Swipe/Tap picker. Its taps
+  // must never steer the Pac-Man, so they stop propagation before the pad sees
+  // them and don't count as a control gesture.
+  function stopControl(e) { e.stopPropagation(); }
+  if (gearBtn && ctrlPopover) {
+    gearBtn.addEventListener('pointerdown', stopControl);
+    gearBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      const open = ctrlPopover.hidden;
+      ctrlPopover.hidden = !open;
+      gearBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    ctrlPopover.addEventListener('pointerdown', stopControl);
+  }
+  if (modeToggle) {
+    modeToggle.addEventListener('pointerdown', stopControl);
+    modeToggle.addEventListener('click', function (e) {
+      const btn = e.target.closest('.mode-opt');
+      if (!btn) return;
+      e.stopPropagation();
+      applyControlMode(btn.getAttribute('data-mode'));
+    });
+  }
+  // Tapping anywhere else closes the popover.
+  document.addEventListener('pointerdown', function () {
+    if (ctrlPopover && !ctrlPopover.hidden) { ctrlPopover.hidden = true; if (gearBtn) gearBtn.setAttribute('aria-expanded', 'false'); }
+  });
+
   if (controllerView) {
     controllerView.addEventListener('pointerdown', function (e) {
       if (!controlsEnabled || eliminated) return;
       e.preventDefault();
+      if (controlMode === 'tap') { setDir(zoneDirFromPoint(e.clientX, e.clientY)); return; }
       try { controllerView.setPointerCapture(e.pointerId); } catch (_) {}
       touch = { id: e.pointerId, x: e.clientX, y: e.clientY };
     });
     controllerView.addEventListener('pointermove', function (e) {
+      if (controlMode === 'tap') return;   // discrete taps only — sliding does nothing
       if (!touch || e.pointerId !== touch.id) return;
       const dx = e.clientX - touch.x, dy = e.clientY - touch.y;
       const adx = Math.abs(dx), ady = Math.abs(dy);

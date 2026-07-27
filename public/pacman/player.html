@@ -38,13 +38,32 @@
       <div class="powered-badge" id="poweredBadge" hidden>⚡ POWERED</div>
       <div class="gamepad-badge" id="gamepadBadge" hidden>🎮 Controller connected</div>
 
-      <!-- Swipe pad: the whole area is the control. A big arrow points the way
-           you're currently heading. -->
+      <!-- Settings: control-scheme picker (Swipe vs Tap zones). -->
+      <div class="ctrl-settings">
+        <button type="button" class="gear-btn" id="gearBtn" aria-label="Controls settings" aria-haspopup="true" aria-expanded="false">⚙️</button>
+        <div class="ctrl-popover" id="ctrlPopover" hidden>
+          <div class="cp-title">Controls</div>
+          <div class="mode-toggle" id="modeToggle" role="tablist" aria-label="Control mode">
+            <button type="button" class="mode-opt" data-mode="swipe" role="tab">Swipe</button>
+            <button type="button" class="mode-opt" data-mode="tap" role="tab">Tap zones</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Control pad: the whole area is the control. In Swipe mode a big arrow
+           points the way you're heading; in Tap mode the screen splits into 4
+           triangular zones (top=up, bottom=down, left=left, right=right). -->
       <div class="pad" id="pad">
         <div class="swipe-dir" id="swipeDir">
           <span class="swipe-arrow" id="swipeArrow">➤</span>
         </div>
-        <div class="swipe-hint">Swipe anywhere to move</div>
+        <div class="dpad" id="dpad" aria-hidden="true">
+          <div class="dpad-zone dz-up"    data-dir="0"><span class="dz-arrow">▲</span></div>
+          <div class="dpad-zone dz-down"  data-dir="1"><span class="dz-arrow">▼</span></div>
+          <div class="dpad-zone dz-left"  data-dir="2"><span class="dz-arrow">◀</span></div>
+          <div class="dpad-zone dz-right" data-dir="3"><span class="dz-arrow">▶</span></div>
+        </div>
+        <div class="swipe-hint" id="swipeHint">Swipe anywhere to move</div>
       </div>
 
       <!-- Pre-play / round overlay -->

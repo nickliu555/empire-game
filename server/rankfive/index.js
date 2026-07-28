@@ -5,7 +5,6 @@ const { Server } = require('socket.io');
 const QRCode = require('qrcode');
 
 const { Game, PHASES, MIN_PLAYERS, WORDS_PER_PLAYER, MAX_WORD_LEN } = require('./game');
-const { isBlocked } = require('./profanity');
 const words = require('./words');
 
 const HOST_ROOM = 'hosts';
@@ -16,14 +15,14 @@ const INACTIVITY_RESET_MS = 60 * 60 * 1000;
 const HOST_GRACE_MS = 15000;
 
 /**
- * Mount the Ranking game onto the hub's Express app and HTTP server.
+ * Mount the Rank Five game onto the hub's Express app and HTTP server.
  *
  * @param {import('express').Application} app
  * @param {import('http').Server} httpServer
  * @param {Object} opts
  * @param {() => string} opts.getPublicBaseUrl
  */
-function mountRanking(app, httpServer, opts) {
+function mountRankFive(app, httpServer, opts) {
   const getPublicBaseUrl = (opts && opts.getPublicBaseUrl) || (() => '');
 
   // ---------------- Game state ----------------
@@ -55,18 +54,18 @@ function mountRanking(app, httpServer, opts) {
   }, 60 * 1000).unref();
 
   // ---------------- Page routes ----------------
-  const pub = (f) => path.join(__dirname, '..', '..', 'public', 'ranking', f);
-  app.get('/ranking/host', (_req, res) => res.sendFile(pub('host.html')));
-  app.get('/ranking/join', (_req, res) => res.sendFile(pub('join.html')));
-  app.get('/ranking/play', (_req, res) => res.sendFile(pub('player.html')));
+  const pub = (f) => path.join(__dirname, '..', '..', 'public', 'rankfive', f);
+  app.get('/rankfive/host', (_req, res) => res.sendFile(pub('host.html')));
+  app.get('/rankfive/join', (_req, res) => res.sendFile(pub('join.html')));
+  app.get('/rankfive/play', (_req, res) => res.sendFile(pub('player.html')));
 
   // ---------------- REST endpoints ----------------
-  app.get('/api/ranking/config', (_req, res) => {
+  app.get('/api/rankfive/config', (_req, res) => {
     const base = getPublicBaseUrl();
-    res.json({ joinUrl: `${base}/ranking/join`, wordsTotal: words.count() });
+    res.json({ joinUrl: `${base}/rankfive/join`, wordsTotal: words.count() });
   });
 
-  app.get('/api/ranking/qr', async (req, res) => {
+  app.get('/api/rankfive/qr', async (req, res) => {
     const url = String(req.query.url || '');
     if (!url || url.length > 500) return res.status(400).send('bad url');
     try {
@@ -89,7 +88,7 @@ function mountRanking(app, httpServer, opts) {
     httpServer._triviaIo = new Server(httpServer, { cors: { origin: '*' } });
   }
   const io = httpServer._triviaIo;
-  const ns = io.of('/ranking');
+  const ns = io.of('/rankfive');
 
   // ---------------- Broadcast helpers ----------------
   function broadcastLobby() {
@@ -152,7 +151,6 @@ function mountRanking(app, httpServer, opts) {
       touchActivity();
       if (!pid || typeof pid !== 'string') return ack && ack({ ok: false, reason: 'bad-player-id' });
       if (!isHostPresent()) return ack && ack({ ok: false, reason: 'host-absent' });
-      if (isBlocked(name)) return ack && ack({ ok: false, reason: 'name-blocked' });
       const res = game.addPlayer({ playerId: pid, name, socketId: socket.id });
       if (!res.ok) return ack && ack(res);
       role = 'player';
@@ -394,4 +392,4 @@ function mountRanking(app, httpServer, opts) {
   });
 }
 
-module.exports = mountRanking;
+module.exports = mountRankFive;

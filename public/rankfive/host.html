@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Ranking · Host</title>
+  <title>Rank Five · Host</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="/shared/iris-preload.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,8 +11,8 @@
   <link rel="stylesheet" href="/shared/topbar.css" />
   <link rel="stylesheet" href="/shared/modal.css" />
   <link rel="stylesheet" href="/shared/iris.css" />
-  <link rel="stylesheet" href="/ranking/css/base.css" />
-  <link rel="stylesheet" href="/ranking/css/host.css" />
+  <link rel="stylesheet" href="/rankfive/css/base.css" />
+  <link rel="stylesheet" href="/rankfive/css/host.css" />
   <script src="/shared/topbar.js" defer></script>
   <script src="/shared/modal.js" defer></script>
   <script src="/shared/iris.js" defer></script>
@@ -20,7 +20,7 @@
 <body class="host">
   <div class="host-shell">
     <div class="game-topbar">
-      <span class="gtb-brand">🥇 Ranking</span>
+      <span class="gtb-brand">🥇 Rank Five</span>
       <div class="gtb-controls">
         <a href="/" id="hubBtn" class="gtb-btn" title="Back to hub (resets game)">← Hub</a>
         <button class="gtb-btn" type="button" data-gtb-help-open="helpOverlay" title="How to play">? Help</button>
@@ -48,7 +48,7 @@
           </div>
           <div class="players-panel">
             <div class="header">
-              <h3>🥇 Ranking</h3>
+              <h3>🥇 Rank Five</h3>
               <div class="count"><span id="playerCount">0</span> players</div>
             </div>
             <div class="player-list" id="playerList"></div>
@@ -88,7 +88,7 @@
             <div class="collect-list" id="collectList"></div>
           </div>
           <div class="collect-actions" id="collectActions" hidden>
-            <button class="btn-accent" id="collectStartBtn">Start Ranking!</button>
+            <button class="btn-accent" id="collectStartBtn">Start Rank Five!</button>
           </div>
           <p class="collect-hint" id="collectHint">Players can still edit their words until you start. Stuck waiting on someone? Reset the game from Settings to start over.</p>
         </div>
@@ -98,7 +98,7 @@
       <section class="view" id="view-intro">
         <div class="intro-view">
           <div class="intro-hint">Get your phones ready…</div>
-          <h1 class="intro-title">Ranking!</h1>
+          <h1 class="intro-title">Rank Five!</h1>
           <div class="intro-countdown" id="introCountdown">5</div>
           <p class="intro-sub">First ranker coming up</p>
         </div>
@@ -173,16 +173,16 @@
   <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
 
   <!-- Applause on a group win (same recording as Trivia) -->
-  <audio id="sfx-applause" src="/ranking/assets/sounds/applause.mp3" preload="auto"></audio>
+  <audio id="sfx-applause" src="/rankfive/assets/sounds/applause.mp3" preload="auto"></audio>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/ranking/js/host.js"></script>
+  <script src="/rankfive/js/host.js"></script>
 
   <!-- Help modal -->
   <div class="gtb-help-overlay" id="helpOverlay">
     <div class="gtb-help-modal">
       <button class="gtb-help-modal-close" type="button" data-gtb-help-close aria-label="Close help">&times;</button>
-      <h2>🥇 Ranking</h2>
+      <h2>🥇 Rank Five</h2>
       <p>A co-operative "read the ranker's mind" game — the whole group plays together against the game.</p>
       <ol>
         <li><strong>Players join</strong> by scanning the QR code — no app needed</li>

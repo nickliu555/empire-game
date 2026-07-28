@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Load the curated word/phrase bank. This JSON is seeded ONCE (offline) by
-// scripts/gen-ranking-words.js and then hand-edited by the maintainer. At
+// scripts/gen-rankfive-words.js and then hand-edited by the maintainer. At
 // runtime we only read + shuffle it — no LLM calls needed.
 //
 // Shape: ["Pizza", "Getting a tattoo", "Mondays", ...]  (flat array of strings)

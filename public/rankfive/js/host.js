@@ -1,8 +1,8 @@
-/* ===== Ranking · Host ===== */
+/* ===== Rank Five · Host ===== */
 (function () {
   'use strict';
 
-  var socket = io('/ranking', { transports: ['polling', 'websocket'] });
+  var socket = io('/rankfive', { transports: ['polling', 'websocket'] });
 
   // ---- Clock sync ----
   var clockOffset = 0;
@@ -135,14 +135,14 @@
 
   // ---- QR ----
   function renderQR() {
-    fetch('/api/ranking/config').then(function (r) { return r.json(); }).then(function (cfg) {
-      var url = (cfg && cfg.joinUrl) || (window.location.origin + '/ranking/join');
+    fetch('/api/rankfive/config').then(function (r) { return r.json(); }).then(function (cfg) {
+      var url = (cfg && cfg.joinUrl) || (window.location.origin + '/rankfive/join');
       joinUrlEl.textContent = url.replace(/^https?:\/\//, '');
-      qrImg.src = '/api/ranking/qr?url=' + encodeURIComponent(url);
+      qrImg.src = '/api/rankfive/qr?url=' + encodeURIComponent(url);
     }).catch(function () {
-      var url = window.location.origin + '/ranking/join';
+      var url = window.location.origin + '/rankfive/join';
       joinUrlEl.textContent = url.replace(/^https?:\/\//, '');
-      qrImg.src = '/api/ranking/qr?url=' + encodeURIComponent(url);
+      qrImg.src = '/api/rankfive/qr?url=' + encodeURIComponent(url);
     });
   }
 

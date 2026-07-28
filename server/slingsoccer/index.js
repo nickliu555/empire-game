@@ -5,7 +5,6 @@ const { Server } = require('socket.io');
 const QRCode = require('qrcode');
 
 const { Game, PHASES, MIN_GOAL_TARGET, MAX_GOAL_TARGET, DEFAULT_GOAL_TARGET } = require('./game');
-const { isBlocked } = require('./profanity');
 
 const HOST_ROOM = 'hosts';
 const PLAYER_ROOM = 'players';
@@ -130,7 +129,6 @@ function mountSlingSoccer(app, httpServer, opts) {
       touchActivity();
       if (!pid || typeof pid !== 'string') return ack && ack({ ok: false, reason: 'bad-player-id' });
       if (!isHostPresent()) return ack && ack({ ok: false, reason: 'host-absent' });
-      if (isBlocked(name)) return ack && ack({ ok: false, reason: 'name-blocked' });
       const res = game.addPlayer({ playerId: pid, name, socketId: socket.id });
       if (!res.ok) return ack && ack(res);
       role = 'player';

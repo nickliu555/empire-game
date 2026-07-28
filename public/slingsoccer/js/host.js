@@ -346,7 +346,7 @@
   // ---- Smooth pointer-drag for lobby chips ---------------------------------
   // Lift the grabbed chip so it flies with the pointer while a placeholder holds
   // its drop slot; displaced teammates slide via FLIP. Handles reordering within
-  // a team AND moving a chip to the other team (like Ranking, but two columns).
+  // a team AND moving a chip to the other team (like Rank Five, but two columns).
   (function setupLobbyDrag() {
     let reduceMotion = false;
     try { reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) {}

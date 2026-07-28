@@ -7,8 +7,8 @@ being asked.
 
 Games live in two mirrored places:
 - **Server:** `server/<game>/` — `index.js` (Socket.IO namespace mounter + REST + page
-  routes), `game.js` (state-machine class with a `PHASES` object), plus `profanity.js`
-  and any data/logic files. Mounted in `server.js`; metadata in `games.js`.
+  routes), `game.js` (state-machine class with a `PHASES` object), plus any data/logic
+  files. Mounted in `server.js`; metadata in `games.js`.
 - **Client:** `public/<game>/` — `host.html`, `join.html`, `player.html`, `js/{host,join,
   player}.js`, `css/{base,host,player}.css`. Shared UI in `public/shared/` (topbar, modal,
   iris transitions).

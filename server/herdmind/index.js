@@ -5,7 +5,6 @@ const { Server } = require('socket.io');
 const QRCode = require('qrcode');
 
 const { Game, PHASES } = require('./game');
-const { isBlocked } = require('./profanity');
 const { buildGroups } = require('./grouping');
 const questions = require('./questions');
 
@@ -168,7 +167,6 @@ function mountHerdMind(app, httpServer, opts) {
       touchActivity();
       if (!pid || typeof pid !== 'string') return ack && ack({ ok: false, reason: 'bad-player-id' });
       if (!isHostPresent()) return ack && ack({ ok: false, reason: 'host-absent' });
-      if (isBlocked(name)) return ack && ack({ ok: false, reason: 'name-blocked' });
       const res = game.addPlayer({ playerId: pid, name, socketId: socket.id });
       if (!res.ok) return ack && ack(res);
       role = 'player';

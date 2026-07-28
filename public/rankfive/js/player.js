@@ -1,11 +1,11 @@
-/* ===== Ranking · Player ===== */
+/* ===== Rank Five · Player ===== */
 (function () {
   'use strict';
 
-  var playerId = localStorage.getItem('ranking.playerId');
-  if (!playerId) { window.location.replace('/ranking/join'); return; }
+  var playerId = localStorage.getItem('rankfive.playerId');
+  if (!playerId) { window.location.replace('/rankfive/join'); return; }
 
-  var socket = io('/ranking', { transports: ['polling', 'websocket'] });
+  var socket = io('/rankfive', { transports: ['polling', 'websocket'] });
   var rejected = false;
 
   var elName = document.getElementById('playerName');
@@ -358,7 +358,7 @@
     elView.innerHTML =
       '<div class="state-card intro-card">' +
         '<div class="intro-hint">Get ready…</div>' +
-        '<h2 class="intro-title">Ranking!</h2>' +
+        '<h2 class="intro-title">Rank Five!</h2>' +
         '<div class="intro-countdown" id="pIntro">5</div>' +
         '<p>First round coming up.</p>' +
       '</div>';
@@ -624,10 +624,10 @@
     updateReactionState();
     if (was && !hostPresent) {
       stopIntroTimer();
-      localStorage.removeItem('ranking.playerId');
-      localStorage.removeItem('ranking.playerName');
+      localStorage.removeItem('rankfive.playerId');
+      localStorage.removeItem('rankfive.playerName');
     } else if (!was && hostPresent) {
-      window.location.replace('/ranking/join');
+      window.location.replace('/rankfive/join');
     }
   }
   socket.on('state:hostPresence', function (p) { updateHostPresence(!(p && p.present === false)); });
@@ -638,9 +638,9 @@
     socket.emit('player:reconnect', { playerId: playerId }, function (res) {
       if (rejected) return;
       if (!res || !res.ok) {
-        localStorage.removeItem('ranking.playerId');
-        localStorage.removeItem('ranking.playerName');
-        window.location.replace('/ranking/join');
+        localStorage.removeItem('rankfive.playerId');
+        localStorage.removeItem('rankfive.playerName');
+        window.location.replace('/rankfive/join');
         return;
       }
       cachedName = res.player.name;
@@ -700,23 +700,23 @@
   socket.on('state:revealTransition', function (p) { renderRevealTransition(p); });
   socket.on('state:final', function (f) { renderFinal(f); });
   socket.on('state:reset', function () {
-    var name = localStorage.getItem('ranking.playerName') || '';
-    if (name) localStorage.setItem('ranking.rejoinName', name);
-    localStorage.removeItem('ranking.playerId');
-    localStorage.removeItem('ranking.playerName');
-    window.location.replace('/ranking/join');
+    var name = localStorage.getItem('rankfive.playerName') || '';
+    if (name) localStorage.setItem('rankfive.rejoinName', name);
+    localStorage.removeItem('rankfive.playerId');
+    localStorage.removeItem('rankfive.playerName');
+    window.location.replace('/rankfive/join');
   });
 
   socket.on('player:rejected', function (payload) {
     rejected = true;
     setReactionsAllowed(false);
     var reason = payload && payload.reason;
-    var savedName = localStorage.getItem('ranking.playerName') || '';
+    var savedName = localStorage.getItem('rankfive.playerName') || '';
     if (reason === 'kicked' || reason === 'reset') {
-      if (savedName) localStorage.setItem('ranking.rejoinName', savedName);
+      if (savedName) localStorage.setItem('rankfive.rejoinName', savedName);
     }
-    localStorage.removeItem('ranking.playerId');
-    localStorage.removeItem('ranking.playerName');
+    localStorage.removeItem('rankfive.playerId');
+    localStorage.removeItem('rankfive.playerName');
     var msg = {
       'kicked': 'You were removed by the host.',
       'reset': 'The host has reset the game.',
@@ -725,7 +725,7 @@
     elView.innerHTML =
       '<div class="state-card">' +
         '<h2>' + msg + '</h2>' +
-        '<button class="btn-accent" onclick="window.location.replace(\'/ranking/join\')">Rejoin</button>' +
+        '<button class="btn-accent" onclick="window.location.replace(\'/rankfive/join\')">Rejoin</button>' +
       '</div>';
   });
 
@@ -733,7 +733,7 @@
 
   // ---- Reaction bar ----
   var REACTION_COOLDOWN_MS = 10 * 1000;
-  var REACTION_LS_KEY = 'ranking.lastReactionAt';
+  var REACTION_LS_KEY = 'rankfive.lastReactionAt';
   var reactionCooldown = document.getElementById('reactionCooldown');
   var reactionUntil = 0, cooldownRaf = null;
   var reactionBtns = Array.prototype.slice.call(reactionBar.querySelectorAll('.reaction-btn'));

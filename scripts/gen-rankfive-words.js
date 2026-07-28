@@ -1,14 +1,14 @@
 'use strict';
 
 // ─────────────────────────────────────────────────────────────────────────
-// ONE-TIME word/phrase bank generator for Ranking.
+// ONE-TIME word/phrase bank generator for Rank Five.
 //
 // Run this ONCE (with a GROQ_API_KEY) to seed a large bank of interesting,
 // opinion-worthy things to rank, then hand-edit the JSON to taste. It is NOT
 // part of the runtime server.
 //
-//   GROQ_API_KEY=sk-... node scripts/gen-ranking-words.js
-//   GROQ_API_KEY=sk-... TARGET=400 node scripts/gen-ranking-words.js
+//   GROQ_API_KEY=sk-... node scripts/gen-rankfive-words.js
+//   GROQ_API_KEY=sk-... TARGET=400 node scripts/gen-rankfive-words.js
 //
 // By default it MERGES new items into the existing bank (deduped), so your
 // hand-edits and the seed set are preserved. Pass FRESH=1 to overwrite.
@@ -18,7 +18,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 
-const OUT_FILE = path.join(__dirname, '..', 'server', 'ranking', 'words.json');
+const OUT_FILE = path.join(__dirname, '..', 'server', 'rankfive', 'words.json');
 const API_KEY = process.env.GROQ_API_KEY;
 const TARGET = parseInt(process.env.TARGET || '400', 10);
 const FRESH = /^(1|true|yes)$/i.test(process.env.FRESH || '');
@@ -26,7 +26,7 @@ const BATCH = 50;
 
 if (!API_KEY) {
   console.error('✗ GROQ_API_KEY is not set. Export it and re-run:');
-  console.error('    GROQ_API_KEY=sk-... node scripts/gen-ranking-words.js');
+  console.error('    GROQ_API_KEY=sk-... node scripts/gen-rankfive-words.js');
   process.exit(1);
 }
 
@@ -41,7 +41,7 @@ function loadExisting() {
 }
 
 const PROMPT =
-`You are writing content for a party game called "Ranking". Each round a player
+`You are writing content for a party game called "Rank Five". Each round a player
 is secretly given 5 of these items and ranks them 1-5 by their own personal
 opinion, while the rest of the group tries to guess that person's order. There
 is NO fixed category — items are drawn at random and mixed together.

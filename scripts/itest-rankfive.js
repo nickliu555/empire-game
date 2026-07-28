@@ -1,22 +1,22 @@
 'use strict';
 
-// Headless end-to-end integration test for Ranking. Spins up an in-process
+// Headless end-to-end integration test for Rank Five. Spins up an in-process
 // server, connects a host + 3 player sockets, and drives a full co-op game,
 // asserting role assignment (each player ranker once + submitter once, never
 // both in a round), the live scoring (matches → group, misses → game), and the
 // final win/lose tally.
 //
-//   node scripts/itest-ranking.js   (or: npm run itest:ranking)
+//   node scripts/itest-rankfive.js   (or: npm run itest:rankfive)
 
 const assert = require('assert');
 const http = require('http');
 const express = require('express');
 const { io: Client } = require('socket.io-client');
-const mountRanking = require('../server/ranking');
+const mountRankFive = require('../server/rankfive');
 
 const app = express();
 const server = http.createServer(app);
-mountRanking(app, server, { getPublicBaseUrl: () => 'http://localhost' });
+mountRankFive(app, server, { getPublicBaseUrl: () => 'http://localhost' });
 
 let failed = false;
 function check(cond, msg) {
@@ -26,7 +26,7 @@ function check(cond, msg) {
 
 function connect() {
   return new Promise((resolve) => {
-    const url = 'http://localhost:' + server.address().port + '/ranking';
+    const url = 'http://localhost:' + server.address().port + '/rankfive';
     const s = Client(url, { transports: ['websocket'], forceNew: true });
     s.on('connect', () => resolve(s));
   });
@@ -46,7 +46,7 @@ function emitAck(socket, event, payload) {
 
 (async () => {
   await new Promise((r) => server.listen(0, r));
-  console.log('Ranking itest on port', server.address().port);
+  console.log('Rank Five itest on port', server.address().port);
 
   const host = await connect();
   await emitAck(host, 'host:auth', {});

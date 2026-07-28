@@ -158,7 +158,6 @@
         const reason = res && res.reason;
         const friendly = {
           'lobby-closed': 'The quiz has already started — sorry, you cannot join now.',
-          'name-blocked': 'Please choose a different name.',
           'name-too-short': 'Please enter a valid name.',
           'name-taken': (res && res.name ? '"' + res.name + '"' : 'That name') + ' is already another player\'s name.',
           'host-absent': 'The host isn\'t here right now. Wait for them to return and try again.',

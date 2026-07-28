@@ -80,7 +80,7 @@ A fast, physics-y arcade soccer showdown played on the shared screen, with each 
 
 The host can **pause** mid-match from the button under the top bar (the whole game freezes and controllers are locked, then everything resumes exactly where it left off). If the ball goes untouched for **10 seconds**, the point automatically resets from a fresh centre kickoff.
 
-### 🥇 Ranking
+### 🥇 Rank Five
 A co-op guessing game — one player secretly ranks a list, and the group has to rebuild that order without them.
 
 1. Each round shows a list of **5 words or phrases**

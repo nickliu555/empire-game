@@ -14,7 +14,6 @@ const {
   MAX_ROUNDS_TO_WIN,
   DEFAULT_ROUNDS_TO_WIN,
 } = require('./game');
-const { isBlocked } = require('./profanity');
 
 const HOST_ROOM = 'hosts';
 const PLAYER_ROOM = 'players';
@@ -140,7 +139,6 @@ function mountPacman(app, httpServer, opts) {
       touchActivity();
       if (!pid || typeof pid !== 'string') return ack && ack({ ok: false, reason: 'bad-player-id' });
       if (!isHostPresent()) return ack && ack({ ok: false, reason: 'host-absent' });
-      if (isBlocked(name)) return ack && ack({ ok: false, reason: 'name-blocked' });
       const res = game.addPlayer({ playerId: pid, name, socketId: socket.id });
       if (!res.ok) return ack && ack(res);
       role = 'player';

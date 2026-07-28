@@ -5,7 +5,6 @@ const { Server } = require('socket.io');
 const QRCode = require('qrcode');
 
 const { Game, PHASES } = require('./game');
-const { isBlocked } = require('./profanity');
 const { solveBoardWords } = require('./dictionary');
 const { VALID_SIZES, DEFAULT_TIME_SEC, MIN_TIME_SEC, MAX_TIME_SEC, MIN_WORD_LEN, generateBoard } = require('./dice');
 
@@ -189,7 +188,6 @@ function mountBoggle(app, httpServer, opts) {
       touchActivity();
       if (!pid || typeof pid !== 'string') return ack && ack({ ok: false, reason: 'bad-player-id' });
       if (!isHostPresent()) return ack && ack({ ok: false, reason: 'host-absent' });
-      if (isBlocked(name)) return ack && ack({ ok: false, reason: 'name-blocked' });
       const res = game.addPlayer({ playerId: pid, name, socketId: socket.id });
       if (!res.ok) return ack && ack(res);
       role = 'player';

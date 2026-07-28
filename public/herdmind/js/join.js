@@ -98,7 +98,6 @@
         var reason = res && res.reason;
         var friendly = {
           'lobby-closed': 'The game has already started — sorry, you can\'t join now.',
-          'name-blocked': 'Please choose a different name.',
           'name-too-short': 'Please enter a valid name.',
           'name-taken': (res && res.name ? '"' + res.name + '"' : 'That name') + ' is already taken.',
           'host-absent': 'The host isn\'t here right now. Wait for them to return and try again.',

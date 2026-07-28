@@ -1,4 +1,4 @@
-/* ===== Ranking · Join (mobile) ===== */
+/* ===== Rank Five · Join (mobile) ===== */
 (function () {
   'use strict';
 
@@ -8,14 +8,14 @@
   var submitBtn = form.querySelector('button[type="submit"]');
 
   // Already joined on this device → go straight to the player controller.
-  if (localStorage.getItem('ranking.playerId')) {
-    window.location.replace('/ranking/play');
+  if (localStorage.getItem('rankfive.playerId')) {
+    window.location.replace('/rankfive/play');
     return;
   }
 
   // Pre-fill the name after a host reset.
-  var rejoinName = localStorage.getItem('ranking.rejoinName');
-  if (rejoinName) { nameInput.value = rejoinName; localStorage.removeItem('ranking.rejoinName'); }
+  var rejoinName = localStorage.getItem('rankfive.rejoinName');
+  if (rejoinName) { nameInput.value = rejoinName; localStorage.removeItem('rankfive.rejoinName'); }
 
   function uuid() {
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -29,7 +29,7 @@
     submitBtn.disabled = false;
   }
 
-  var socket = io('/ranking', { transports: ['polling', 'websocket'] });
+  var socket = io('/rankfive', { transports: ['polling', 'websocket'] });
   var socketReady = false;
 
   function ensureOverlay(id, title, sub) {
@@ -97,7 +97,6 @@
         var reason = res && res.reason;
         var friendly = {
           'lobby-closed': 'The game has already started — sorry, you can\'t join now.',
-          'name-blocked': 'Please choose a different name.',
           'name-too-short': 'Please enter a valid name.',
           'name-taken': (res && res.name ? '"' + res.name + '"' : 'That name') + ' is already taken.',
           'host-absent': 'The host isn\'t here right now. Wait for them to return and try again.',
@@ -105,9 +104,9 @@
         }[reason] || 'Could not join. Please try again.';
         return showError(friendly);
       }
-      localStorage.setItem('ranking.playerId', pid);
-      localStorage.setItem('ranking.playerName', res.player.name);
-      window.location.replace('/ranking/play');
+      localStorage.setItem('rankfive.playerId', pid);
+      localStorage.setItem('rankfive.playerName', res.player.name);
+      window.location.replace('/rankfive/play');
     });
   });
 })();

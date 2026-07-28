@@ -195,8 +195,8 @@ const games = [
         playPath: '/slingsoccer/play',
     },
     {
-        id: 'ranking',
-        name: 'Ranking',
+        id: 'rankfive',
+        name: 'Rank Five',
         tagline: 'Read the ranker\u2019s mind \u2014 you vs the game',
         emoji: '\uD83E\uDD47',
         color: '#7A5200',
@@ -214,8 +214,8 @@ const games = [
             'Each position that matches the Ranker scores the GROUP a point; each miss scores the GAME',
             'Everyone is Ranker once and Submitter once \u2014 beat the game\u2019s score to win together!'
         ],
-        hostPath: '/ranking/host',
-        playPath: '/ranking/play',
+        hostPath: '/rankfive/host',
+        playPath: '/rankfive/play',
     },
     {
         id: 'pacman',

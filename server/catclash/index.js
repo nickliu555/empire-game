@@ -5,7 +5,6 @@ const { Server } = require('socket.io');
 const QRCode = require('qrcode');
 
 const { Game, PHASES, CATEGORIES_PER_ROUND } = require('./game');
-const { isBlocked } = require('./profanity');
 const { buildCategoryReview } = require('./grouping');
 const categories = require('./categories');
 
@@ -175,7 +174,6 @@ function mountCatClash(app, httpServer, opts) {
       touchActivity();
       if (!pid || typeof pid !== 'string') return ack && ack({ ok: false, reason: 'bad-player-id' });
       if (!isHostPresent()) return ack && ack({ ok: false, reason: 'host-absent' });
-      if (isBlocked(name)) return ack && ack({ ok: false, reason: 'name-blocked' });
       const res = game.addPlayer({ playerId: pid, name, socketId: socket.id });
       if (!res.ok) return ack && ack(res);
       role = 'player';

@@ -104,7 +104,6 @@
       if (!res || !res.ok) {
         const reason = res && res.reason;
         const friendly = {
-          'name-blocked': 'Please choose a different name.',
           'name-too-short': 'Please enter a valid name.',
           'name-taken': (res && res.name ? '"' + res.name + '"' : 'That name') + ' is already taken.',
           'host-absent': 'The host isn\'t here right now. Wait for them to return and try again.',

@@ -12,7 +12,7 @@ const mountCatClash = require('./server/catclash');
 const mountBoggle = require('./server/noggle');
 const mountSoccerHead = require('./server/soccerhead');
 const mountSlingSoccer = require('./server/slingsoccer');
-const mountRanking = require('./server/ranking');
+const mountRankFive = require('./server/rankfive');
 const mountPacman = require('./server/pacman');
 const app = express();
 
@@ -771,8 +771,8 @@ mountSoccerHead(app, httpServer, { getPublicBaseUrl });
 // Mount the Sling Soccer turn-based flick-soccer game (Socket.IO namespace + REST + page routes).
 mountSlingSoccer(app, httpServer, { getPublicBaseUrl });
 
-// Mount the Ranking co-op guessing game (Socket.IO namespace + REST + page routes).
-mountRanking(app, httpServer, { getPublicBaseUrl });
+// Mount the Rank Five co-op guessing game (Socket.IO namespace + REST + page routes).
+mountRankFive(app, httpServer, { getPublicBaseUrl });
 
 // Mount the Pac-Man Royale arcade game (Socket.IO namespace + REST + page routes).
 mountPacman(app, httpServer, { getPublicBaseUrl });

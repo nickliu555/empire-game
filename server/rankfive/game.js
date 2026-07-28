@@ -1,7 +1,7 @@
 'use strict';
 
 // ─────────────────────────────────────────────────────────────────────────
-// Ranking — single-room, co-operative "read the ranker's mind" game.
+// Rank Five — single-room, co-operative "read the ranker's mind" game.
 //
 // Flow:  LOBBY → [COLLECT] → INTRO → RANK → DISCUSS → REVEAL → (loop) → FINAL
 //

@@ -403,11 +403,14 @@
   var REASON_TEXT = { letter: 'letter', category: 'AI', host: 'you' };
   function chipHtml(m, groupId, extra) {
     var sel = (selectedChip && selectedChip.playerId === m.playerId) ? ' selected' : '';
+    var raw = m.raw || '(blank)';
     var word = m.raw
       ? '<span class="chip-word">' + escapeHtml(m.raw) + '</span>'
       : '<span class="chip-word">(blank)</span>';
+    // Long answers are ellipsised inside a bucket card, so hovering reveals the
+    // whole thing.
     return '<div class="chip' + sel + '" draggable="true" data-pid="' + escapeHtml(m.playerId) + '" ' +
-             'data-gid="' + escapeHtml(groupId) + '">' +
+             'data-gid="' + escapeHtml(groupId) + '" title="' + escapeHtml(m.name + ' — ' + raw) + '">' +
              '<span class="chip-name">' + escapeHtml(m.name) + '</span>' + word + (extra || '') +
            '</div>';
   }
@@ -421,7 +424,7 @@
       var cls = 'bucket-card' + (g.members.length === 1 ? ' scoring' : ' dupe');
       return '<div class="' + cls + '" draggable="true" data-gid="' + escapeHtml(g.id) + '">' +
                '<div class="bucket-head">' +
-                 '<span class="bucket-label" data-gid="' + escapeHtml(g.id) + '" title="Double-click to rename">' + escapeHtml(g.label) + '</span>' +
+                 '<span class="bucket-label" data-gid="' + escapeHtml(g.id) + '" title="' + escapeHtml(g.label + ' — double-click to rename') + '">' + escapeHtml(g.label) + '</span>' +
                  badge +
                  '<span class="bucket-count">' + g.members.length + '</span>' +
                '</div>' +

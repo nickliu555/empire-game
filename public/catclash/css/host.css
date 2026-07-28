@@ -324,7 +324,7 @@ body.host {
 
 .review-body {
   flex: 1 1 auto; min-height: 0;
-  display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px;
+  display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 16px;
 }
 .review-grid {
   min-height: 0; overflow-y: auto;
@@ -413,6 +413,14 @@ body.host {
   color: rgba(255,255,255,0.4); font-size: 13px; text-align: center; padding: 14px 6px;
 }
 .invalid-list .chip { background: rgba(255,255,255,0.9); border-color: rgba(0,0,0,0.1); }
+/* The pile is narrower than a bucket card, so let its chips wrap onto more
+   lines instead of ellipsising — the answers stay the same size as the ones in
+   the buckets and are always readable in full. */
+.invalid-list .chip { flex-wrap: wrap; row-gap: 2px; }
+.invalid-list .chip .chip-name { max-width: 100%; }
+.invalid-list .chip .chip-word {
+  white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere;
+}
 .invalid-list .chip .reason {
   flex: 0 0 auto; font-size: 10px; font-weight: 800; text-transform: uppercase;
   letter-spacing: 0.05em; color: var(--warn);
@@ -556,7 +564,7 @@ body.host {
 
 /* ---- Responsive ---- */
 @media (max-width: 1200px) {
-  .review-body { grid-template-columns: minmax(0, 1fr) 250px; }
+  .review-body { grid-template-columns: minmax(0, 1fr) 330px; }
 }
 @media (max-width: 900px) {
   /* Narrow/portrait host window: stack the lobby panels and let the lobby view

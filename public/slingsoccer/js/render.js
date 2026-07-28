@@ -26,6 +26,12 @@
     aim: '#f4c430',
   };
 
+  // The surround behind each goal is washed in the defending team's colour so
+  // it's obvious whose end is whose (red keeps the left goal, blue the right).
+  // ZONE_W is reserved in the world box so the wash is visible even when there
+  // is no letterbox slack; it spreads into any extra space beyond that.
+  const ZONE_W = 132;
+
   function lerp(a, b, t) { return a + (b - a) * t; }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -113,8 +119,9 @@
       this.world = world;
       this.f = world.field;
       this.dpr = Math.min(window.devicePixelRatio || 1, 2);
-      // Extra world margin so the goal pockets (x<0, x>W) are on-screen.
-      this.padX = this.f.GOAL_DEPTH + 26;
+      // Extra world margin so the goal pockets (x<0, x>W) and the team-coloured
+      // end zones behind them are on-screen.
+      this.padX = this.f.GOAL_DEPTH + ZONE_W;
       this.padY = 26;
       this.scale = 1; this.offX = 0; this.offY = 0;
       this.particles = [];
@@ -155,6 +162,7 @@
       ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
       this._applyTransform();
+      this._drawEndZones();
       this._drawPitch();
       this._drawBoundary();
       this._drawGoals();
@@ -164,6 +172,34 @@
       this._drawTokens(opts.active);
       this._updateParticles(opts.dt || 0.016);
       this._drawParticles();
+    }
+
+    // Team end zones: the stadium floor behind each goal glows in the colour of
+    // the team defending it. It's an unclipped ellipse centred just outside the
+    // back of the net, so the colour falls off smoothly in every direction —
+    // there is no edge to it anywhere. Drawn before the pitch, so the grass
+    // covers everything from the goal line inwards.
+    _drawEndZones() {
+      const ctx = this.ctx, f = this.f;
+      const cy = f.H / 2;
+      const zones = [
+        { cx: -f.GOAL_DEPTH - 24, rgb: '255,92,78' },
+        { cx: f.W + f.GOAL_DEPTH + 24, rgb: '86,160,255' },
+      ];
+      const rx = ZONE_W * 1.5, ry = f.H * 0.62;
+      for (const z of zones) {
+        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+        g.addColorStop(0, 'rgba(' + z.rgb + ',0.88)');
+        g.addColorStop(0.35, 'rgba(' + z.rgb + ',0.62)');
+        g.addColorStop(0.7, 'rgba(' + z.rgb + ',0.24)');
+        g.addColorStop(1, 'rgba(' + z.rgb + ',0)');
+        ctx.save();
+        ctx.translate(z.cx, cy);
+        ctx.scale(1, ry / rx);
+        ctx.fillStyle = g;
+        ctx.fillRect(-rx, -rx, rx * 2, rx * 2);
+        ctx.restore();
+      }
     }
 
     _drawPitch() {
@@ -264,57 +300,61 @@
 
     _drawGoals() {
       const ctx = this.ctx, f = this.f;
-      // Nets in the pockets.
-      for (const side of ['left', 'right']) {
-        const x0 = side === 'left' ? -f.GOAL_DEPTH : f.W;
+      // Neutral white goals — team identity lives in the stands behind each end.
+      const sides = [
+        { x0: -f.GOAL_DEPTH, outer: -f.GOAL_DEPTH, line: 0 },
+        { x0: f.W, outer: f.W + f.GOAL_DEPTH, line: f.W },
+      ];
+      const RAIL = '#f4f9f5';
+      for (const s of sides) {
+        // Netting inside the pocket.
         ctx.save();
         ctx.beginPath();
-        ctx.rect(x0, f.GOAL_TOP, f.GOAL_DEPTH, f.GOAL_H);
+        ctx.rect(s.x0, f.GOAL_TOP, f.GOAL_DEPTH, f.GOAL_H);
         ctx.clip();
-        ctx.fillStyle = 'rgba(255,255,255,0.10)';
-        ctx.fillRect(x0, f.GOAL_TOP, f.GOAL_DEPTH, f.GOAL_H);
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        ctx.fillRect(s.x0, f.GOAL_TOP, f.GOAL_DEPTH, f.GOAL_H);
         ctx.strokeStyle = COL.net;
         ctx.lineWidth = 1.5;
-        for (let gx = x0; gx <= x0 + f.GOAL_DEPTH; gx += 14) {
+        for (let gx = s.x0; gx <= s.x0 + f.GOAL_DEPTH; gx += 14) {
           ctx.beginPath(); ctx.moveTo(gx, f.GOAL_TOP); ctx.lineTo(gx, f.GOAL_TOP + f.GOAL_H); ctx.stroke();
         }
         for (let gy = f.GOAL_TOP; gy <= f.GOAL_TOP + f.GOAL_H; gy += 14) {
-          ctx.beginPath(); ctx.moveTo(x0, gy); ctx.lineTo(x0 + f.GOAL_DEPTH, gy); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(s.x0, gy); ctx.lineTo(s.x0 + f.GOAL_DEPTH, gy); ctx.stroke();
         }
         ctx.restore();
-      }
-      // Goal line (the scoring line) + posts.
-      ctx.strokeStyle = COL.post;
-      ctx.lineWidth = 7;
-      ctx.beginPath();
-      ctx.moveTo(0, f.GOAL_TOP); ctx.lineTo(0, f.GOAL_BOT);
-      ctx.moveTo(f.W, f.GOAL_TOP); ctx.lineTo(f.W, f.GOAL_BOT);
-      ctx.stroke();
-      ctx.fillStyle = COL.post;
-      for (const p of f.posts) {
-        ctx.beginPath(); ctx.arc(p.x, p.y, f.POST_R, 0, Math.PI * 2); ctx.fill();
-      }
-      // Rail around the OUTER walls of each pocket (the part that juts away from
-      // the pitch), matching the field border so the goal box is clearly framed.
-      const pocket = function () {
+        // Goal line (the scoring line).
+        ctx.strokeStyle = RAIL;
+        ctx.lineWidth = 7;
         ctx.beginPath();
-        ctx.moveTo(0, f.GOAL_TOP);
-        ctx.lineTo(-f.GOAL_DEPTH, f.GOAL_TOP);
-        ctx.lineTo(-f.GOAL_DEPTH, f.GOAL_BOT);
-        ctx.lineTo(0, f.GOAL_BOT);
-        ctx.moveTo(f.W, f.GOAL_TOP);
-        ctx.lineTo(f.W + f.GOAL_DEPTH, f.GOAL_TOP);
-        ctx.lineTo(f.W + f.GOAL_DEPTH, f.GOAL_BOT);
-        ctx.lineTo(f.W, f.GOAL_BOT);
-      };
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      ctx.strokeStyle = 'rgba(0,0,0,0.38)';
-      ctx.lineWidth = 15;
-      pocket(); ctx.stroke();
-      ctx.strokeStyle = '#f4f9f5';
-      ctx.lineWidth = 8;
-      pocket(); ctx.stroke();
+        ctx.moveTo(s.line, f.GOAL_TOP); ctx.lineTo(s.line, f.GOAL_BOT);
+        ctx.stroke();
+        // Rail around the OUTER walls of the pocket (the part that juts away
+        // from the pitch), matching the field border so the goal box is framed.
+        const pocket = function () {
+          ctx.beginPath();
+          ctx.moveTo(s.line, f.GOAL_TOP);
+          ctx.lineTo(s.outer, f.GOAL_TOP);
+          ctx.lineTo(s.outer, f.GOAL_BOT);
+          ctx.lineTo(s.line, f.GOAL_BOT);
+        };
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(0,0,0,0.38)';
+        ctx.lineWidth = 15;
+        pocket(); ctx.stroke();
+        ctx.strokeStyle = RAIL;
+        ctx.lineWidth = 8;
+        pocket(); ctx.stroke();
+      }
+      // Posts — solid round colliders sitting just outside each mouth edge.
+      for (const p of f.posts) {
+        ctx.fillStyle = COL.post;
+        ctx.beginPath(); ctx.arc(p.x, p.y, f.POST_R, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = RAIL;
+        ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.arc(p.x, p.y, f.POST_R - 1, 0, Math.PI * 2); ctx.stroke();
+      }
     }
 
     _drawTokens(active) {

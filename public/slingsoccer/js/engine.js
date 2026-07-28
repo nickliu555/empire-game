@@ -66,9 +66,16 @@
       this.field = {
         W, H, GOAL_H, GOAL_DEPTH, GOAL_TOP, GOAL_BOT, POST_R,
         TOKEN_R, BALL_R, FIELD_MARGIN, PBOX_W, CORNER_CHAMFER,
-        // No goal posts: the round corner colliders deflected the ball
-        // unpredictably, so the mouth is just an open gap in the flat goal wall.
-        posts: [],
+        // Round goal posts, centred just OUTSIDE each mouth edge so the clear
+        // opening stays exactly GOAL_H: a body of radius r can pass only where
+        // its centre is >= POST_R + r from a post centre, i.e. r inside the
+        // mouth — exactly the "whole disc fits through" rule. Without them a
+        // body clipping the mouth edge was snapped inside the mouth in one step
+        // (a visible jump off the post).
+        posts: [
+          { x: 0, y: GOAL_TOP - POST_R }, { x: 0, y: GOAL_BOT + POST_R },
+          { x: W, y: GOAL_TOP - POST_R }, { x: W, y: GOAL_BOT + POST_R },
+        ],
       };
       this.posts = this.field.posts.map((p) => ({ x: p.x, y: p.y, vx: 0, vy: 0, r: POST_R, static: true }));
       this.tokens = [];   // 10 tokens (5 red, 5 blue)
@@ -176,9 +183,12 @@
         if (b.x < -GOAL_DEPTH + r) { b.x = -GOAL_DEPTH + r; b.vx = Math.abs(b.vx) * WALL_REST; }
         else if (b.x > W + GOAL_DEPTH - r) { b.x = W + GOAL_DEPTH - r; b.vx = -Math.abs(b.vx) * WALL_REST; }
       }
-      // Vertical walls. On the main pitch use the outer walls; inside a pocket
-      // (x beyond the goal line) confine to the mouth height.
-      const inPocket = (b.x < r) || (b.x > W - r);
+      // Vertical walls. On the main pitch use the outer walls; once the CENTRE
+      // is past a goal line the body is in that pocket, so confine it to the
+      // mouth height. Testing the centre (not centre ± r) matters: the posts
+      // already keep a body r inside the mouth by the time it gets here, so the
+      // clamp only trims a pixel or two instead of snapping it up to r sideways.
+      const inPocket = (b.x < 0) || (b.x > W);
       if (!inPocket) {
         if (b.y < r) { b.y = r; b.vy = Math.abs(b.vy) * WALL_REST; }
         else if (b.y > H - r) { b.y = H - r; b.vy = -Math.abs(b.vy) * WALL_REST; }

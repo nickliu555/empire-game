@@ -9,6 +9,7 @@
     "gen:herdmind": "node scripts/gen-herdmind-questions.js",
     "test:herdmind": "node scripts/test-herdmind.js",
     "itest:herdmind": "node scripts/itest-herdmind.js",
+    "itest:catclash": "node scripts/itest-catclash.js",
     "gen:ranking": "node scripts/gen-ranking-words.js",
     "itest:ranking": "node scripts/itest-ranking.js"
   },

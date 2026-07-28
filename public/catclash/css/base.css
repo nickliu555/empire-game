@@ -1,0 +1,142 @@
+:root {
+  /* Category Clash — warm paper + orange marker palette */
+  --bg: #3A1D12;             /* deep warm brown (host backdrop base) */
+  --bg-deep: #24100A;        /* darker for gradients */
+  --surface: #FFFFFF;
+  --ink: #2E1B12;
+  --ink-soft: #6b5044;
+  --muted: #9c877b;
+
+  --accent: #E4572E;         /* orange marker */
+  --accent-deep: #B33C17;
+  --warn: #D6365A;
+  --good: #3FA96B;           /* points / valid */
+  --gold: #F5B301;           /* timer ring / letter tile */
+  --invalid: #8A6F63;        /* the "Invalid" pile */
+  --dupe: #C08A2E;           /* duplicate answers */
+
+  --radius: 14px;
+  --shadow: 0 8px 30px rgba(40, 20, 10, 0.18);
+  --shadow-strong: 0 12px 40px rgba(40, 20, 10, 0.30);
+
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+
+  /* Shared modal theme (see /shared/modal.css) */
+  --gm-overlay-bg: rgba(30, 14, 8, 0.55);
+  --gm-surface: var(--surface);
+  --gm-text: var(--ink);
+  --gm-border: rgba(0, 0, 0, 0.08);
+  --gm-radius: var(--radius);
+  --gm-btn-secondary-bg: #f4ece7;
+  --gm-btn-secondary-fg: var(--ink-soft);
+  --gm-btn-secondary-border: rgba(0, 0, 0, 0.08);
+  --gm-btn-secondary-hover-border: rgba(0, 0, 0, 0.18);
+  --gm-btn-secondary-hover-fg: var(--ink);
+  --gm-btn-primary-bg: var(--accent);
+  --gm-btn-primary-fg: #fff;
+  --gm-btn-primary-border: var(--accent);
+  --gm-btn-primary-hover: var(--accent-deep);
+  --gm-btn-danger-bg: var(--warn);
+  --gm-btn-danger-fg: #fff;
+  --gm-btn-danger-hover: #b52947;
+  --gm-toast-bg: var(--ink);
+  --gm-toast-fg: #fff;
+
+  /* Topbar theme (see /shared/topbar.css) */
+  --gtb-bg: rgba(46, 27, 18, 0.82);
+  --gtb-fg: #fff;
+  --gtb-btn-bg: rgba(255, 255, 255, 0.12);
+  --gtb-btn-fg: #fff;
+  --gtb-btn-hover-bg: rgba(255, 255, 255, 0.22);
+  --gtb-accent: var(--accent);
+  --gtb-danger: var(--warn);
+
+  /* Iris page-transition backdrop */
+  --iris-bg: #3A1D12;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: contain;
+}
+
+h1, h2, h3 { font-family: var(--font-sans); font-weight: 800; letter-spacing: -0.01em; }
+
+.player-attribution {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  padding: 14px 12px 18px;
+}
+
+button, .btn-ghost {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: var(--ink);
+  color: white;
+  padding: 14px 22px;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-block;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 0.08s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+button:active:not(:disabled) { transform: translateY(0); }
+/* iOS ignores touch-action on disabled controls; make them inert so the tap
+   falls through to the touch-action: manipulation container behind them. */
+button:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+@media (hover: hover) {
+  button:hover:not(:disabled), .btn-ghost:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+}
+
+.btn-primary { background: var(--good); }
+.btn-accent  { background: var(--accent); color: #fff; }
+.btn-ghost   { background: rgba(255, 255, 255, 0.1); color: white; border: 1.5px solid rgba(255,255,255,0.4); }
+.btn-ghost.btn-muted { background: var(--warn); color: white; border-color: var(--warn); }
+
+input[type="text"], select {
+  font-family: inherit;
+  font-size: 18px;
+  padding: 14px 16px;
+  border: 1.5px solid #e4d7cf;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease;
+  width: 100%;
+}
+input[type="text"]:focus, select:focus { border-color: var(--accent); }
+
+.brand {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 28px;
+  color: white;
+  letter-spacing: -0.01em;
+}
+
+/* The round's letter, shown as a chunky tile. Used on host and player. */
+.letter-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, #FFD980 0%, var(--gold) 55%, #D99400 100%);
+  color: #45280A;
+  font-weight: 800;
+  line-height: 1;
+  border-radius: 16px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28), inset 0 -4px 0 rgba(0, 0, 0, 0.12);
+}

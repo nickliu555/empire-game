@@ -42,7 +42,20 @@ Everyone answers the same open question — score by matching the herd, and dodg
 4. You **can't win while holding the Pink Cow** — pass it on by making someone else the odd one out
 5. **First to the target score (without the cow) wins the herd!**
 
-### 🔠 Noggle
+### � Category Clash
+One random letter, twelve categories, one timer — only answers nobody else thought of score.
+
+1. The host picks the number of **rounds** and a **time limit** per round (3 rounds × 3:00 by default)
+2. A letter is drawn at random from the 20 Scattergories letters, and the **same 12 categories** appear on every phone
+3. Race the clock to write an answer for each category that **starts with that letter** — "A", "An" or "The" in front of the letter is the only allowed exception
+4. Answers save as you type, and you can tap **I'm done** early; once everyone's done the round ends
+5. Category by category, matching answers are auto-grouped on the host screen (misspellings and typos included, but **synonyms stay separate**) and anything that doesn't fit goes in the **Doesn't count** pile
+6. The host can **drag to merge, split, rename, or reject** any answer before confirming
+7. You score **1 point** for every answer that's valid, starts with the letter, and that **nobody else wrote**
+8. Every round draws a **fresh letter** — no letter is ever repeated
+9. **Most points after the final round wins!**
+
+### �🔠 Noggle
 A Boggle-style word hunt on a shared, randomly shaken letter grid.
 
 1. The host picks a board size (**4×4**, **5×5**, or **6×6**) and a time limit

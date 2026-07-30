@@ -15,7 +15,7 @@
 
   // ---- Tunables (tiles/sec, seconds, points) ----
   const PAC_SPEED = 4.2;
-  const PAC_POWER_SPEED = 5.04;   // 20% faster than normal
+  const PAC_POWER_SPEED = 5.25;   // 25% faster than normal
   const GHOST_SPEED = 4.0;
   const GHOST_FRIGHT_SPEED = 2.4;
   const GHOST_EYES_SPEED = 9;
@@ -449,7 +449,7 @@
         this._eyesDir(g);
         return;
       }
-      if (g.state === 'frightened') { this._randomDir(g); return; }
+      if (g.state === 'frightened') { this._fleeDir(g); return; }
       // Active: personality target.
       const tgt = this._ghostTarget(g);
       this._greedyDir(g, tgt.r, tgt.c, { door: false });
@@ -515,6 +515,37 @@
       }
       if (!choices.length) { const d = DIRS[rev]; g.dirIdx = this.passable(cy + d.y, cx + d.x, opts2) ? rev : -1; return; }
       g.dirIdx = choices[(this.rng() * choices.length) | 0];
+    }
+    // Frightened: actively flee. Among the non-reverse open exits, step toward the
+    // one that gets FARTHEST from the nearest powered player (the only thing that
+    // can eat a blue ghost). Column distance accounts for the wrap tunnels. Falls
+    // back to a random turn when nobody is currently powered.
+    _fleeDir(g) {
+      const powered = [];
+      for (const p of this.players) if (p.alive && p.powered) powered.push(p);
+      if (!powered.length) { this._randomDir(g); return; }
+      const W = this.board.w;
+      const cx = g.x, cy = g.y;
+      const rev = REVERSE[g.dirIdx];
+      let best = -1, bestScore = -Infinity;
+      for (const idx of [0, 1, 2, 3]) {
+        if (idx === rev) continue;
+        const d = DIRS[idx];
+        const nr = cy + d.y, nc = cx + d.x;
+        if (!this.passable(nr, nc, { door: false })) continue;
+        // Squared distance from this candidate tile to the CLOSEST powered pac.
+        let nearest = Infinity;
+        for (const p of powered) {
+          let ex = nc - p.x;
+          if (ex > W / 2) ex -= W; else if (ex < -W / 2) ex += W; // shortest way round the tunnel
+          const ey = nr - p.y;
+          const dd = ex * ex + ey * ey;
+          if (dd < nearest) nearest = dd;
+        }
+        if (nearest > bestScore) { bestScore = nearest; best = idx; }
+      }
+      if (best < 0) { const d = DIRS[rev]; best = this.passable(cy + d.y, cx + d.x, { door: false }) ? rev : -1; }
+      g.dirIdx = best;
     }
 
     // Advance a mover toward the next tile centre; returns leftover distance.

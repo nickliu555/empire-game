@@ -151,6 +151,33 @@ section('Power pellet');
   ok((p.score || 0) === Pacman.POWER_PTS, 'power pellet scores 50');
 }
 
+// ---- Frightened ghosts flee powered players ----
+section('Frightened flee');
+{
+  const w = makeWorld(2);
+  const g = w.ghosts[0];
+  const chaser = w.byId.get('p1');
+  const other = w.byId.get('p0');
+  // A tile with BOTH horizontal neighbours open, so left/right is a real choice.
+  let found = null;
+  for (let r = 1; r < w.board.h - 1 && !found; r++) for (let c = 2; c < w.board.w - 3; c++) {
+    if (openTile(w, r, c) && openTile(w, r, c - 1) && openTile(w, r, c + 1)) { found = [r, c]; break; }
+  }
+  const [gr, gc] = found;
+  g.state = 'frightened'; g.x = gc; g.y = gr; g.dirIdx = 0; // facing up → left & right both allowed
+  // Powered chaser two tiles to the RIGHT on the same row; the other pac unpowered.
+  chaser.powered = true; chaser.alive = true; chaser.x = gc + 2; chaser.y = gr;
+  other.powered = false; other.x = 1; other.y = 1;
+  w._fleeDir(g);
+  ok(g.dirIdx === 2, 'frightened ghost flees LEFT, away from a powered player on its right');
+
+  // Nobody powered → must not crash and keeps a valid heading (random fallback).
+  chaser.powered = false;
+  g.dirIdx = 0;
+  w._fleeDir(g);
+  ok(g.dirIdx >= -1 && g.dirIdx <= 3, 'no powered players → flee falls back safely');
+}
+
 // ---- Ghost eats unpowered pac ----
 section('Ghost vs pac');
 {

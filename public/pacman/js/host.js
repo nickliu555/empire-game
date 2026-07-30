@@ -849,22 +849,34 @@
     const b = world.board;
     const W = b.w, H = b.h;
     const pr = Math.round(p.y), pc = ((Math.round(p.x) % W) + W) % W;
-    // Multi-source ghost distance field (threats = normal/active ghosts only;
-    // frightened ghosts are edible, not dangerous).
-    const threats = world.ghosts.filter(function (g) { return g.state === 'active'; });
-    const ghostDist = bfsField(threats.map(function (g) { return [Math.round(g.y), ((Math.round(g.x) % W) + W) % W]; }));
-    const nearGhost = ghostDist[pr] ? ghostDist[pr][pc] : Infinity;
+    // Threat distance field (multi-source BFS). Active ghosts are always deadly.
+    // A POWERED rival Pac-Man can eat this bot too — but only while the bot is
+    // UN-powered (two powered pacs merely knock each other back), so include
+    // powered rivals as threats only then. Frightened ghosts are edible, not
+    // dangerous, so they're never threats.
+    const threatCells = [];
+    for (const g of world.ghosts) {
+      if (g.state === 'active') threatCells.push([Math.round(g.y), ((Math.round(g.x) % W) + W) % W]);
+    }
+    if (!p.powered) {
+      for (const q of world.players) {
+        if (q.alive && q.powered && q.id !== p.id) threatCells.push([Math.round(q.y), ((Math.round(q.x) % W) + W) % W]);
+      }
+    }
+    const threatDist = bfsField(threatCells);
+    const nearThreat = threatDist[pr] ? threatDist[pr][pc] : Infinity;
 
-    // Flee from a nearby NORMAL (active) ghost — deadly even while powered, since
-    // power only lets you eat the blue ghosts your pellet caught, not survive a
-    // normal one. Frightened ghosts aren't in `threats`, so they don't scare the bot.
-    if (nearGhost <= 6) {
+    // Flee a nearby threat (a normal ghost OR a powered rival) — step toward the
+    // tile that maximises distance from every threat. A normal ghost is deadly
+    // even while powered; a powered rival is only in `threatCells` when the bot
+    // is un-powered, so this same branch covers both.
+    if (nearThreat <= 6) {
       let best = -1, bestD = -1;
       for (let idx = 0; idx < 4; idx++) {
         const dv = window.Pacman.DIRS[idx];
         const nr = pr + dv.y, nc = ((pc + dv.x) % W + W) % W;
         if (!passableForPac(nr, nc)) continue;
-        const gd = ghostDist[nr] ? ghostDist[nr][nc] : Infinity;
+        const gd = threatDist[nr] ? threatDist[nr][nc] : Infinity;
         const val = gd === Infinity ? 999 : gd;
         if (val > bestD) { bestD = val; best = idx; }
       }

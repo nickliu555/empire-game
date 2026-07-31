@@ -69,6 +69,7 @@
   const gearBtn = document.getElementById('gearBtn');
   const ctrlPopover = document.getElementById('ctrlPopover');
   const modeToggle = document.getElementById('modeToggle');
+  const ctrlSettings = document.getElementById('ctrlSettings');
   const dpad = document.getElementById('dpad');
   const swipeHint = document.getElementById('swipeHint');
 
@@ -86,6 +87,16 @@
     body.classList.toggle('playing', name === 'controller');
     // Attribution only shows on the lobby (waiting) screen, never in-game.
     if (playerAttribution) playerAttribution.style.display = (name === 'lobby') ? '' : 'none';
+    // The control-scheme picker stays available while playing AND while
+    // eliminated, so a dead player can pre-pick their controls for next round.
+    if (ctrlSettings) {
+      var showSettings = (name === 'controller' || name === 'eliminated');
+      ctrlSettings.style.display = showSettings ? '' : 'none';
+      if (!showSettings && ctrlPopover) {
+        ctrlPopover.hidden = true;
+        if (gearBtn) gearBtn.setAttribute('aria-expanded', 'false');
+      }
+    }
   }
   if (lobbyName) lobbyName.textContent = playerName;
   if (hudName) hudName.textContent = playerName;

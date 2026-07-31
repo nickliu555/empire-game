@@ -329,7 +329,7 @@ body.host {
 .review-grid {
   min-height: 0; overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   grid-auto-rows: max-content;
   gap: 14px; align-content: start;
   padding: 4px;
@@ -376,16 +376,16 @@ body.host {
 }
 .bucket-chips { display: flex; flex-direction: column; gap: 5px; overflow-y: auto; min-height: 0; }
 .chip {
-  display: flex; align-items: baseline; gap: 6px;
+  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; row-gap: 2px;
   background: #faf1ea; border: 1px solid #ead9cd; border-radius: 8px;
-  padding: 6px 9px; cursor: grab; font-size: 14px; min-width: 0;
+  padding: 6px 9px; cursor: grab; font-size: 15px; min-width: 0;
   transition: background 0.12s ease;
 }
 .chip:hover { background: #ffe3d7; }
 .chip.dragging { opacity: 0.5; }
 .chip.selected { background: #ffd6c6; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(228,87,46,0.4); }
-.chip .chip-name { font-weight: 700; color: var(--accent-deep); flex: 0 0 auto; max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chip .chip-word { color: var(--ink-soft); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip .chip-name { font-weight: 700; color: var(--accent-deep); flex: 0 0 auto; max-width: 100%; overflow-wrap: anywhere; }
+.chip .chip-word { color: var(--ink-soft); min-width: 0; overflow-wrap: anywhere; }
 
 /* The special "Invalid" pile. */
 .invalid-panel {

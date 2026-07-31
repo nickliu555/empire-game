@@ -38,18 +38,6 @@
       <div class="powered-badge" id="poweredBadge" hidden>⚡ POWERED</div>
       <div class="gamepad-badge" id="gamepadBadge" hidden>🎮 Controller connected</div>
 
-      <!-- Settings: control-scheme picker (Swipe vs Tap zones). -->
-      <div class="ctrl-settings">
-        <button type="button" class="gear-btn" id="gearBtn" aria-label="Controls settings" aria-haspopup="true" aria-expanded="false">⚙️</button>
-        <div class="ctrl-popover" id="ctrlPopover" hidden>
-          <div class="cp-title">Controls</div>
-          <div class="mode-toggle" id="modeToggle" role="tablist" aria-label="Control mode">
-            <button type="button" class="mode-opt" data-mode="swipe" role="tab">Swipe</button>
-            <button type="button" class="mode-opt" data-mode="tap" role="tab">Tap zones</button>
-          </div>
-        </div>
-      </div>
-
       <!-- Control pad: the whole area is the control. In Swipe mode a big arrow
            points the way you're heading; in Tap mode the screen splits into 4
            triangular zones (top=up, bottom=down, left=left, right=right). -->
@@ -102,6 +90,20 @@
       <div class="wait-title">You were removed by the host.</div>
       <div class="wait-sub">You can rejoin if the game is still open.</div>
       <button type="button" class="btn-primary" id="kickRejoinBtn" style="margin-top:18px;">Rejoin</button>
+    </div>
+
+    <!-- Control-scheme picker (Swipe vs Tap zones). Lives at shell level so it
+         stays available both while playing AND while eliminated — a dead player
+         can pre-pick their controls for next round. -->
+    <div class="ctrl-settings" id="ctrlSettings" style="display:none;">
+      <button type="button" class="gear-btn" id="gearBtn" aria-label="Controls settings" aria-haspopup="true" aria-expanded="false">⚙️</button>
+      <div class="ctrl-popover" id="ctrlPopover" hidden>
+        <div class="cp-title">Controls</div>
+        <div class="mode-toggle" id="modeToggle" role="tablist" aria-label="Control mode">
+          <button type="button" class="mode-opt" data-mode="swipe" role="tab">Swipe</button>
+          <button type="button" class="mode-opt" data-mode="tap" role="tab">Tap zones</button>
+        </div>
+      </div>
     </div>
   </div>
 

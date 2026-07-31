@@ -299,16 +299,16 @@ body.host {
 }
 .bucket-chips { display: flex; flex-direction: column; gap: 5px; overflow-y: auto; min-height: 0; }
 .chip {
-  display: flex; align-items: baseline; gap: 6px;
+  display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; row-gap: 2px;
   background: #f7efe9; border: 1px solid #e6d8cd; border-radius: 8px;
-  padding: 6px 9px; cursor: grab; font-size: 14px;
+  padding: 6px 9px; cursor: grab; font-size: 15px;
   transition: background 0.12s ease, transform 0.08s ease;
 }
 .chip:hover { background: #ffe1ec; }
 .chip.dragging { opacity: 0.5; }
 .chip.selected { background: #ffd1e4; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(232,106,166,0.4); }
-.chip .chip-name { font-weight: 700; color: var(--accent-deep); flex: 0 0 auto; }
-.chip .chip-word { color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip .chip-name { font-weight: 700; color: var(--accent-deep); flex: 0 0 auto; max-width: 100%; overflow-wrap: anywhere; }
+.chip .chip-word { color: var(--ink-soft); min-width: 0; overflow-wrap: anywhere; }
 .chip .chip-word.blank { font-style: italic; color: var(--muted); }
 
 .review-newbucket {

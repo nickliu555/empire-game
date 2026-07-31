@@ -21,8 +21,7 @@ body.join, body.player {
    is killed even when the tap lands on a child card/button. */
 body.join *, body.player * { touch-action: manipulation; }
 /* …but a draggable rank card needs full pointer control so a drag doesn't
-   scroll. The whole editable card is the drag target; the ▲▼ arrows keep
-   `manipulation` (from the rule above) so they stay tappable and aren't dragged. */
+   scroll. The whole editable card is the drag target (reorder is drag-only). */
 body.player .rk-row:not(.readonly) { touch-action: none; cursor: grab; -webkit-user-select: none; user-select: none; }
 body.player .rk-row.dragging { cursor: grabbing; }
 
@@ -122,11 +121,6 @@ body.player .rk-row.dragging { cursor: grabbing; }
   display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 17px;
 }
 .rk-text { flex: 1; min-width: 0; font-weight: 700; font-size: 17px; text-align: left; overflow-wrap: break-word; line-height: 1.25; }
-.rk-updown { display: flex; flex-direction: column; gap: 3px; flex: 0 0 auto; }
-.rk-updown button {
-  padding: 3px 9px; font-size: 11px; line-height: 1; font-weight: 800;
-  background: #efe4c8; color: #2C2408; border-radius: 8px;
-}
 .rk-handle {
   flex: 0 0 auto; cursor: grab; font-size: 20px; color: var(--muted);
   padding: 8px 6px; letter-spacing: -2px; user-select: none;

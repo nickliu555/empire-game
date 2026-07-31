@@ -60,18 +60,12 @@
     var dragId = null;
 
     function rowHtml(id, i) {
-      var updown = editable
-        ? '<div class="rk-updown">'
-          + '<button type="button" class="rk-up" data-id="' + id + '"' + (i === 0 ? ' disabled' : '') + '>▲</button>'
-          + '<button type="button" class="rk-down" data-id="' + id + '"' + (i === order.length - 1 ? ' disabled' : '') + '>▼</button>'
-          + '</div>'
-        : '';
       var handle = editable ? '<span class="rk-handle" data-id="' + id + '">⋮⋮</span>' : '';
       var cls = 'rk-row' + (editable ? '' : ' readonly') + (dragId === id ? ' dragging' : '');
       return '<div class="' + cls + '" data-id="' + id + '">'
         + '<span class="rk-rank">' + (i + 1) + '</span>'
         + '<span class="rk-text">' + escapeHtml(opts.map[id]) + '</span>'
-        + updown + handle
+        + handle
         + '</div>';
     }
     // Record each row's current top (keyed by item id) so a rebuild can play a
@@ -111,17 +105,13 @@
       host.innerHTML = order.map(rowHtml).join('');
       flip(prevTops);
     }
-    // Refresh rank numbers + arrow disabled state after an in-place DOM reorder
-    // (used during a drag, where we move nodes instead of rebuilding the list).
+    // Refresh rank numbers after an in-place DOM reorder (used during a drag,
+    // where we move nodes instead of rebuilding the list).
     function relabel() {
       var rows = host.querySelectorAll('.rk-row');
       for (var i = 0; i < rows.length; i++) {
         var rk = rows[i].querySelector('.rk-rank');
         if (rk) rk.textContent = (i + 1);
-        var up = rows[i].querySelector('.rk-up');
-        var dn = rows[i].querySelector('.rk-down');
-        if (up) up.disabled = (i === 0);
-        if (dn) dn.disabled = (i === rows.length - 1);
       }
     }
     function emitChange() { if (opts.onChange) opts.onChange(order.slice()); }
@@ -178,9 +168,7 @@
     }
     if (editable) {
       host.addEventListener('pointerdown', function (e) {
-        // The whole card is the drag target — except the ▲▼ arrows, which are
-        // tap controls and must stay easy to tap (never start a drag).
-        if (e.target.closest('.rk-updown')) return;
+        // The whole card is the drag target — reordering is drag-only.
         var row = e.target.closest('.rk-row');
         if (!row) return;
         if (e.cancelable) e.preventDefault();
@@ -190,21 +178,6 @@
         window.addEventListener('pointermove', onMove, { passive: false });
         window.addEventListener('pointerup', onUp);
         window.addEventListener('pointercancel', onUp);
-      });
-      host.addEventListener('click', function (e) {
-        var up = e.target.closest('.rk-up');
-        var down = e.target.closest('.rk-down');
-        if (!up && !down) return;
-        var id = parseInt((up || down).getAttribute('data-id'), 10);
-        var i = order.indexOf(id);
-        if (up && i <= 0) return;
-        if (down && (i < 0 || i >= order.length - 1)) return;
-        var prev = measure();
-        if (up) { var a = order[i - 1]; order[i - 1] = order[i]; order[i] = a; }
-        else { var b = order[i + 1]; order[i + 1] = order[i]; order[i] = b; }
-        paint(prev);
-        emitChange();
-        tryVibrate(15);
       });
     }
     paint();
@@ -386,7 +359,7 @@
         '<div class="round-tag">Round ' + data.round + ' of ' + data.totalRounds + '</div>' +
         '<span class="role-pill ranker">You\'re the Ranker</span>' +
         '<h2>Rank these 1 → 5</h2>' +
-        '<p class="rk-note">Order them however you like — the group will try to read your mind. Drag a card or tap ▲▼.</p>' +
+        '<p class="rk-note">Order them however you like — the group will try to read your mind. Drag a card to reorder.</p>' +
         '<div class="rk-list" id="rkList"></div>' +
         '<div class="rk-actions"><button class="btn-primary" id="rankSubmit">Lock in my ranking</button></div>' +
       '</div>';

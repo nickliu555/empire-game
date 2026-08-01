@@ -11,7 +11,10 @@
     "itest:herdmind": "node scripts/itest-herdmind.js",
     "itest:catclash": "node scripts/itest-catclash.js",
     "gen:rankfive": "node scripts/gen-rankfive-words.js",
-    "itest:rankfive": "node scripts/itest-rankfive.js"
+    "itest:rankfive": "node scripts/itest-rankfive.js",
+    "test:bombbrawl": "node scripts/test-bombbrawl-engine.js",
+    "test:bombbrawl-bot": "node scripts/test-bombbrawl-bot.js",
+    "itest:bombbrawl": "node scripts/itest-bombbrawl.js"
   },
   "dependencies": {
     "dotenv": "^17.3.1",

@@ -164,6 +164,35 @@ universal, so it must degrade silently where unsupported.
   (not just a desktop window).
 - Kill double-tap-zoom with `touch-action: manipulation` on `body.<page> *`; disabled
   buttons need `pointer-events: none` (iOS ignores touch-action on disabled controls).
+- **Player pages must NEVER be zoomable.** A zoomed controller drifts off-screen and the
+  buttons stop lining up under the thumbs — and any two-thumb control scheme (joystick +
+  action button) is read as a pinch by the browser. CSS and the viewport meta are **not
+  enough**: iOS Safari ignores `user-scalable=no`/`maximum-scale`, so every player page
+  needs both the meta tag and the JS lock:
+  ```html
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  ```
+  ```js
+  (function lockZoom() {
+    const stop = function (e) { e.preventDefault(); };
+    document.addEventListener('gesturestart', stop, { passive: false });   // iOS pinch
+    document.addEventListener('gesturechange', stop, { passive: false });
+    document.addEventListener('gestureend', stop, { passive: false });
+    document.addEventListener('touchmove', function (e) {                   // any 2+ finger move
+      if (e.touches && e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (e) {                    // double-tap zoom
+      const now = Date.now();
+      if (now - lastTouchEnd <= 350) e.preventDefault();
+      lastTouchEnd = now;
+    }, { passive: false });
+  }());
+  ```
+  All listeners must be `{ passive: false }` or `preventDefault()` is ignored. Bind controls
+  to `pointerdown`/`touchstart` rather than `click`, so swallowing the double-tap default
+  can't eat a real input. Copy the block verbatim from `public/bombbrawl/js/player.js` or
+  `public/pacman/js/player.js`.
 - **Two-tap confirm** for destructive/final actions (arm → "Tap again to…" → confirm).
   Don't rely on a timed auto-revert to reset the arm if the user might deliberate — cancel
   the arm on a meaningful change instead, or the button feels like it "needs 3 taps".

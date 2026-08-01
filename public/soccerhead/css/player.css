@@ -47,6 +47,21 @@ body.player[data-team="blue"] { --me: var(--blue); --me-deep: var(--blue-deep); 
 @keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 .wait-title { font-size: 24px; font-weight: 800; }
 .wait-sub { color: rgba(255,255,255,0.75); font-size: 15px; max-width: 300px; line-height: 1.5; }
+/* Only worth saying while the phone is upright and there's no gamepad. */
+.wait-rotate { display: none; }
+@media (orientation: portrait) {
+  .wait-rotate {
+    display: block;
+    margin-top: 10px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.09);
+    border: 1px solid rgba(255,255,255,0.14);
+    font-size: 14px; font-weight: 800;
+    color: var(--accent);
+  }
+  body.has-gamepad .wait-rotate { display: none; }
+}
 .kick-icon { font-size: 60px; margin-bottom: 6px; }
 .final-emoji { font-size: 72px; }
 .final-title { font-size: 30px; margin: 6px 0; }

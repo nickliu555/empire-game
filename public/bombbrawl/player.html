@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bomb Brawl · Controller</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#171233">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/bombbrawl/css/base.css" />
+  <link rel="stylesheet" href="/bombbrawl/css/player.css" />
+</head>
+<body class="player">
+  <div class="p-shell">
+    <header class="p-head">
+      <span class="p-seat" id="pSeat">1</span>
+      <span class="p-name" id="pName">Player</span>
+      <span class="p-score" id="pScore"></span>
+    </header>
+
+    <!-- ============ WAITING / LOBBY ============ -->
+    <section class="p-view active" id="view-wait">
+      <div class="wait-inner">
+        <div class="wait-emoji">💣</div>
+        <div class="wait-title" id="waitTitle">You're in!</div>
+        <div class="wait-sub" id="waitSub"><span class="pulse-dot"></span>Waiting for the host to start…</div>
+        <div class="wait-rotate">Turn your phone sideways to play</div>
+      </div>
+      <div class="player-attribution">Developed by Nick Liu (with help from Claude)</div>
+    </section>
+
+    <!-- ============ CONTROLLER ============ -->
+    <section class="p-view" id="view-play">
+      <div class="power-row" id="powerRow">
+        <span class="pw" data-pw="bombs">💣 1</span>
+        <span class="pw" data-pw="fire">🔥 1</span>
+        <span class="pw off" data-pw="speed">👟 0</span>
+        <span class="pw off" data-pw="kick">🥾</span>
+      </div>
+
+      <div class="pad-area">
+        <div class="stick-zone" id="stickZone">
+          <div class="stick-base" id="stickBase">
+            <div class="stick-ring"></div>
+            <div class="stick-knob" id="stickKnob"></div>
+          </div>
+        </div>
+        <div class="bomb-zone">
+          <button type="button" class="bomb-btn" id="bombBtn" aria-label="Drop a bomb">
+            <span class="bb-icon">💣</span>
+            <span class="bb-badge" id="bombBadge">1</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="p-overlay" id="countOverlay" hidden>
+        <div class="pc-note" id="pcNote">Get ready</div>
+        <div class="pc-num" id="pcNum">3</div>
+      </div>
+      <div class="p-overlay" id="pausedOverlay" hidden>
+        <div class="pc-note">⏸ Paused</div>
+        <div class="pc-sub">The host paused the game.</div>
+      </div>
+    </section>
+
+
+    <!-- ============ ELIMINATED ============ -->
+    <section class="p-view" id="view-out">
+      <div class="out-inner">
+        <div class="out-emoji">💀</div>
+        <div class="out-title">You're out!</div>
+        <div class="out-sub">Waiting for the round to end…</div>
+      </div>
+    </section>
+
+    <!-- ============ FINAL ============ -->
+    <section class="p-view" id="view-final">
+      <div class="out-inner">
+        <div class="out-emoji" id="finalEmoji">🏆</div>
+        <div class="out-title" id="finalTitle">Game over</div>
+        <div class="out-list" id="finalList"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Rotate hint (portrait while the controller is live) -->
+  <div class="rotate-hint" id="rotateHint" hidden>
+    <div class="rot-icon">📱↻</div>
+    <div class="rot-text">Turn your phone sideways for the best controls</div>
+  </div>
+
+  <div class="gamepad-badge" id="gamepadBadge" hidden>🎮 Controller connected</div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/bombbrawl/js/player.js"></script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bomb Brawl · Host</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="/shared/iris-preload.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/topbar.css" />
+  <link rel="stylesheet" href="/shared/modal.css" />
+  <link rel="stylesheet" href="/shared/iris.css" />
+  <link rel="stylesheet" href="/bombbrawl/css/base.css" />
+  <link rel="stylesheet" href="/bombbrawl/css/host.css" />
+  <script src="/shared/topbar.js" defer></script>
+  <script src="/shared/modal.js" defer></script>
+  <script src="/shared/iris.js" defer></script>
+</head>
+<body class="host">
+  <div class="host-container">
+    <div class="game-topbar">
+      <span class="gtb-brand"><span class="brand-bg">💣</span> Bomb Brawl</span>
+      <div class="gtb-controls">
+        <a href="/" id="hubBtn" class="gtb-btn" title="Back to hub (resets game)">← Hub</a>
+        <button class="gtb-btn" type="button" data-gtb-help-open="helpOverlay" title="How to play">? Help</button>
+        <div class="gtb-settings-wrapper">
+          <button class="gtb-btn" type="button" data-gtb-settings-toggle aria-controls="settingsPanel" aria-expanded="false" title="Settings">⚙️ Settings</button>
+          <div class="gtb-settings-panel" id="settingsPanel" hidden>
+            <button id="fullscreenBtn" class="gtb-btn" type="button" title="Toggle fullscreen">⛶ Fullscreen</button>
+            <div class="gtb-divider"></div>
+            <button id="resetBtn" class="gtb-btn gtb-btn-danger" type="button" title="Reset the whole game">Reset game</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ LOBBY ============ -->
+    <section class="view active lobby" id="view-lobby">
+      <div class="lobby-grid">
+        <div class="lobby-left">
+          <div class="qr-card">
+            <div class="qr-title">Scan to join</div>
+            <div class="qr-sub">Or type the URL below on your phone</div>
+            <div id="qrSlot"><svg viewBox="0 0 1 1"></svg></div>
+            <div class="qr-url" id="joinUrl"></div>
+          </div>
+        </div>
+
+        <div class="lobby-right">
+          <div class="lobby-header">
+            <div class="brand"><span class="brand-bg">💣</span> Bomb Brawl</div>
+            <div class="player-count"><span id="playerCount">0</span> / <span id="playerCap">4</span></div>
+          </div>
+
+          <div class="config-block">
+            <div class="config-row">
+              <label for="roundsRange">Rounds to win</label>
+              <div class="dur-wrap">
+                <input type="range" id="roundsRange" min="1" max="7" step="1" value="3" />
+                <span class="dur-val" id="roundsVal">3</span>
+              </div>
+            </div>
+            <div class="config-row">
+              <label for="durRange">Round length</label>
+              <div class="dur-wrap">
+                <input type="range" id="durRange" min="60" max="180" step="15" value="120" />
+                <span class="dur-val" id="durVal">2:00</span>
+              </div>
+            </div>
+            <div class="config-row">
+              <label>Power-ups</label>
+              <div class="seg" id="powSeg" role="group" aria-label="Power-ups">
+                <button type="button" class="seg-btn" data-pow="1">On</button>
+                <button type="button" class="seg-btn" data-pow="0">Off</button>
+              </div>
+            </div>
+            <div class="config-row">
+              <label>CPU difficulty</label>
+              <div class="seg" id="diffSeg" role="group" aria-label="CPU difficulty">
+                <button type="button" class="seg-btn" data-diff="easy">Easy</button>
+                <button type="button" class="seg-btn" data-diff="normal">Normal</button>
+                <button type="button" class="seg-btn" data-diff="hard">Hard</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="players-panel">
+            <div class="players-head">Players</div>
+            <div class="slot-list" id="slotList"></div>
+          </div>
+
+          <div class="lobby-foot">
+            <button id="addBotBtn" class="btn-ghost-bot" type="button">🤖 Add CPU</button>
+            <div class="config-hint" id="configHint"></div>
+            <button id="startBtn" class="btn-start" disabled>Start!</button>
+          </div>
+        </div>
+      </div>
+      <div class="lobby-attribution">Developed by Nick Liu (with help from Claude)</div>
+    </section>
+
+    <!-- ============ MATCH ============ -->
+    <section class="view match" id="view-match">
+      <div class="match-top">
+        <div class="mt-left">
+          <span class="mt-round" id="sbRound">Round 1</span>
+          <span class="mt-target" id="sbTarget">First to 3</span>
+        </div>
+        <div class="mt-clock" id="sbClock">2:00</div>
+        <div class="mt-right">
+          <button type="button" id="pauseBtn" class="pause-btn" hidden title="Pause the game">⏸ Pause</button>
+        </div>
+      </div>
+      <div class="score-strip" id="scoreStrip"></div>
+      <div class="arena-wrap">
+        <canvas id="arena"></canvas>
+        <div class="match-overlay" id="countOverlay" hidden>
+          <div class="co-note" id="coNote">Round 1</div>
+          <div class="co-num" id="coNum">3</div>
+        </div>
+        <div class="round-overlay" id="roundOverlay" hidden>
+          <div class="ro-badge" id="roBadge">🏆</div>
+          <div class="ro-title" id="roTitle">Round over</div>
+          <div class="ro-sub" id="roSub"></div>
+          <div class="ro-list" id="roList"></div>
+        </div>
+        <div class="pause-overlay" id="pauseOverlay" hidden>
+          <div class="po-icon">⏸</div>
+          <div class="po-title">Paused</div>
+          <div class="po-sub">Press Resume to continue.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FINAL ============ -->
+    <section class="view final" id="view-final">
+      <div class="final-inner">
+        <div class="trophy" id="finalTrophy">🏆</div>
+        <h1 class="final-heading" id="finalHeading">Winner!</h1>
+        <div class="final-scroll">
+          <div class="final-section-title">Rounds won</div>
+          <div class="final-list" id="finalList"></div>
+        </div>
+        <button type="button" id="backToLobbyBtn" class="btn-start">Back to lobby</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/bombbrawl/js/engine.js"></script>
+  <script src="/bombbrawl/js/render.js"></script>
+  <script src="/bombbrawl/js/bot.js"></script>
+  <script src="/bombbrawl/js/host.js"></script>
+
+  <!-- Help modal -->
+  <div class="gtb-help-overlay" id="helpOverlay">
+    <div class="gtb-help-modal">
+      <button class="gtb-help-modal-close" type="button" data-gtb-help-close aria-label="Close help">&times;</button>
+      <h2><span class="brand-bg">💣</span> Bomb Brawl</h2>
+      <p>Classic four-way bomber battle. The arena plays out on <strong>this screen</strong> while each player drives their bomber from their phone.</p>
+      <ol>
+        <li>Players scan the QR code to join from their phone (2–4 players)</li>
+        <li>Short on players? Hit <strong>🤖 Add CPU</strong> and pick a difficulty</li>
+        <li>Drag the player list to set <strong>starting corners</strong> — 1 is top-left, 2 top-right, 3 bottom-left, 4 bottom-right</li>
+        <li>Set <strong>rounds to win</strong>, <strong>round length</strong> and whether power-ups drop, then hit <strong>Start!</strong></li>
+        <li>On their phones: the <strong>thumbstick</strong> moves, the big button <strong>drops a bomb</strong></li>
+        <li>Bombs blow up in a cross. They smash <strong>crates</strong> (not steel pillars) and kill anything caught in the flames — including you</li>
+        <li>Crates hide power-ups: <strong>💣 extra bomb</strong>, <strong>🔥 bigger blast</strong>, <strong>👟 speed</strong>, <strong>🥾 kick</strong> (walk into a bomb to punt it down the lane)</li>
+        <li><strong>Last bomber standing wins the round.</strong> If everyone goes up together, whoever fell last takes it — no draws</li>
+        <li>Run the clock down to 30 seconds and <strong>sudden death</strong> starts — steel blocks rain down in a spiral until someone dies. First to the target round wins takes the game</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>

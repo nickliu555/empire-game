@@ -242,6 +242,32 @@ const games = [
         hostPath: '/pacman/host',
         playPath: '/pacman/play',
     },
+    {
+        id: 'bombbrawl',
+        name: 'Bomb Brawl',
+        tagline: 'Blow up the maze — and everyone in it',
+        emoji: '💣',
+        color: '#171233',
+        category: 'Arcade',
+        playerCount: '1–4 (+CPU)',
+        duration: '5–12 min',
+        description: 'A four-way bomber battle played on the shared screen. Everyone starts in their own corner of a crate-filled arena and drops bombs to blast open paths, grab power-ups and catch their rivals in the blast. Blasts fire in a cross, chain off other bombs, and will happily kill you too. If nobody dies before the clock runs down, sudden death starts and the walls close in. Last bomber standing wins the round — first to the target number of round wins takes the game.',
+        rules: [
+            'The host opens the game on a shared screen (TV, laptop, etc.)',
+            'Players scan the QR code on their phones and enter a name (2–4 players; add CPU bombers to fill in)',
+            'The host drags the roster into spawn order — seat 1 starts top-left, 2 top-right, 3 bottom-left, 4 bottom-right',
+            'The host sets the round wins needed, the round length, power-ups on/off and CPU difficulty, then hits Start',
+            'Your phone is a thumbstick plus a big Bomb button — move around the arena and drop bombs',
+            'Bombs explode in a cross after a short fuse, blasting the first crate in each direction — and any bomber caught in the flames, including you',
+            'A bomb caught in another blast detonates instantly, so chain reactions can sweep the whole arena',
+            'Blown-up crates reveal power-ups: Extra Bomb, Fire (bigger blast), Speed, and Kick (walk into a bomb to shove it)',
+            'If the clock runs low, sudden death begins — indestructible blocks slam down in a spiral and crush anyone left in the open',
+            'Last bomber standing wins the round; if everyone dies in the same blast it\'s a draw and the round is replayed',
+            'First to the target number of round wins takes the game!'
+        ],
+        hostPath: '/bombbrawl/host',
+        playPath: '/bombbrawl/play',
+    },
 ];
 
 module.exports = games;

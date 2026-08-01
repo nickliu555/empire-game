@@ -80,7 +80,19 @@ A fast, physics-y arcade soccer showdown played on the shared screen, with each 
 
 The host can **pause** mid-match from the button under the top bar (the whole game freezes and controllers are locked, then everything resumes exactly where it left off). If the ball goes untouched for **10 seconds**, the point automatically resets from a fresh centre kickoff.
 
-### 🥇 Rank Five
+### � Sling Soccer
+A top-down, turn-based flick-soccer showdown — slingshot your tokens to knock the ball into the opponent's net.
+
+1. Players scan the QR code and join **Team Red** or **Team Blue** (up to **3 per team**, at least 1 each) — no opponent? the host can **Add CPU**
+2. The host sets how many **goals win the match** (1–10), then hits **Kick off**
+3. Teams **alternate turns**, and the players on a team take their turns in join order
+4. On your turn, tap one of your **five tokens**, then **pull back the slingshot** on your phone — pull further for more power, angle it to aim, release to flick
+5. **Bank shots** off the walls, posts and other tokens to drive the ball into the net
+6. A token that lands in a goal **respawns just outside**, so it can't sit there blocking shots
+7. After each goal the board **resets** and the team that conceded kicks off
+8. **First team to the goal target wins!**
+
+### �🥇 Rank Five
 A co-op guessing game — one player secretly ranks a list, and the group has to rebuild that order without them.
 
 1. Each round shows a list of **5 words or phrases**
@@ -106,6 +118,21 @@ A multiplayer Pac-Man showdown played out on the Host screen — 2–4 players e
 9. **First to the target number of round wins takes the game!**
 
 The host can **Pause** at any time. Each round rotates to a different maze.
+
+### 💣 Bomb Brawl
+A four-way bomber battle on the Host screen — blast open the arena, grab power-ups, and be the last one standing.
+
+1. Players scan the QR code to join (**2–4 players**); the host can **Add CPU** bombers to fill in
+2. The host **drags the roster into spawn order** — seat 1 starts **top-left**, 2 **top-right**, 3 **bottom-left**, 4 **bottom-right** — then sets the **round wins** needed, the **round length**, **power-ups on/off** and **CPU difficulty**, and hits **Start**
+3. Each phone is a **thumbstick + Bomb button**
+4. Bombs explode in a **cross** after a short fuse, blasting the **first crate** in each direction — and any bomber caught in the flames, **including you**
+5. A bomb caught in another blast **detonates instantly**, so chain reactions can sweep the whole arena
+6. Blown-up crates reveal power-ups: **Extra Bomb**, **Fire** (bigger blast), **Speed**, and **Kick** (walk into a bomb to shove it)
+7. If the clock runs low, **sudden death** begins — indestructible blocks slam down in a spiral and crush anyone left in the open
+8. **Last bomber standing wins the round**; if everyone dies in the same blast it's a **draw** and the round is replayed
+9. **First to the target number of round wins takes the game!**
+
+The host can **Pause** at any time. Every round generates a fresh arena.
 
 ## How It Works
 

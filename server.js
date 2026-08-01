@@ -14,6 +14,7 @@ const mountSoccerHead = require('./server/soccerhead');
 const mountSlingSoccer = require('./server/slingsoccer');
 const mountRankFive = require('./server/rankfive');
 const mountPacman = require('./server/pacman');
+const mountBombBrawl = require('./server/bombbrawl');
 const app = express();
 
 app.set('trust proxy', 1);
@@ -776,6 +777,9 @@ mountRankFive(app, httpServer, { getPublicBaseUrl });
 
 // Mount the Pac-Man Royale arcade game (Socket.IO namespace + REST + page routes).
 mountPacman(app, httpServer, { getPublicBaseUrl });
+
+// Mount the Bomb Brawl bomber battle (Socket.IO namespace + REST + page routes).
+mountBombBrawl(app, httpServer, { getPublicBaseUrl });
 
 httpServer.listen(PORT, '0.0.0.0', () => {
     console.log('');

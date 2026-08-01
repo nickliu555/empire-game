@@ -1,0 +1,324 @@
+/* === Bomb Brawl phone controller: thumbstick + bomb button. === */
+body.player {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* Plain fallback first — color-mix() is ignored by older browsers. */
+  background: linear-gradient(160deg, var(--bg) 0%, var(--bg-deep) 100%);
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb, var(--pc, #FF4D4D) 22%, transparent) 0%, transparent 60%),
+    linear-gradient(160deg, var(--bg) 0%, var(--bg-deep) 100%);
+  color: #fff;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* No double-tap zoom, no scroll-drag stealing the stick. */
+body.player * { touch-action: none; -webkit-tap-highlight-color: transparent; }
+body.player input, body.player textarea { touch-action: auto; }
+
+.p-shell {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: calc(8px + env(safe-area-inset-top)) calc(10px + env(safe-area-inset-right))
+           calc(8px + env(safe-area-inset-bottom)) calc(10px + env(safe-area-inset-left));
+}
+
+.p-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 4px 8px;
+  min-width: 0;
+}
+.p-seat {
+  flex: 0 0 auto;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 13px; font-weight: 900;
+  background: var(--pc, #FF4D4D);
+  color: #14112c;
+}
+.p-name {
+  flex: 1; min-width: 0;
+  font-weight: 800; font-size: 17px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.p-score {
+  flex: 0 0 auto;
+  font-weight: 900; font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--accent-2);
+}
+.p-score:empty { display: none; }
+
+.p-view { display: none; flex: 1; min-height: 0; position: relative; }
+.p-view.active { display: flex; flex-direction: column; }
+
+/* ---------------- Waiting ---------------- */
+.wait-inner {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; gap: 10px; padding: 20px;
+}
+.wait-emoji { font-size: 64px; animation: bob 2.6s ease-in-out infinite; }
+.wait-title { font-size: 27px; font-weight: 900; overflow-wrap: anywhere; }
+.wait-sub { font-size: 15px; color: rgba(255, 255, 255, 0.75); overflow-wrap: anywhere; }
+/* Only worth saying while the phone is actually upright. */
+.wait-rotate { display: none; }
+@media (orientation: portrait) {
+  .wait-rotate {
+    display: block;
+    margin-top: 6px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.09);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    font-size: 14px; font-weight: 800;
+    color: var(--accent);
+  }
+}
+
+/* ---------------- Controller ---------------- */
+.power-row {
+  flex: 0 0 auto;
+  display: flex; justify-content: center; flex-wrap: wrap;
+  gap: 7px;
+  padding: 2px 4px 8px;
+}
+.pw {
+  font-size: 14px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 5px 11px;
+  white-space: nowrap;
+}
+.pw.off { opacity: 0.32; }
+.pw.bump { animation: pop 0.4s ease; }
+
+/* Landscape-first gamepad: the pad splits into two halves, stick on the left
+   thumb, bomb on the right. Each control is centred in its own half so it sits
+   naturally under the thumb instead of jammed against the screen edge. */
+.pad-area {
+  flex: 1; min-height: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  padding: 6px 8px max(8px, env(safe-area-inset-bottom));
+}
+
+/* The touch zone is deliberately much bigger than the visible base — it owns
+   the whole left half so a thumb can grab the stick anywhere over there. */
+.stick-zone {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stick-base {
+  position: relative;
+  /* Sized off both axes so it stays large in landscape and never overflows. */
+  width: min(46vw, 42vh, 240px);
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03));
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  display: grid;
+  place-items: center;
+  transition: opacity 0.15s ease;
+}
+.stick-ring {
+  position: absolute;
+  inset: 14%;
+  border-radius: 50%;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+}
+.stick-knob {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 42%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  margin: 0;
+  background: var(--pc, #FF4D4D);
+  background: radial-gradient(circle at 38% 32%, color-mix(in srgb, var(--pc, #FF4D4D) 60%, #fff), var(--pc, #FF4D4D));
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  transform: translate(-50%, -50%);
+  transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.3, 1);
+  will-change: transform;
+}
+.stick-base.active .stick-knob {
+  transition: none;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.22), 0 8px 22px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--pc, #FF4D4D) 30%, transparent), 0 8px 22px rgba(0, 0, 0, 0.5);
+}
+
+.bomb-zone {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bomb-btn {
+  position: relative;
+  width: min(34vw, 32vh, 172px);
+  min-width: 96px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  padding: 0;
+  background: radial-gradient(circle at 38% 30%, #FFA75A, var(--accent) 55%, var(--accent-deep));
+  box-shadow: 0 8px 0 #8a3a00, 0 14px 26px rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+  transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.12s ease;
+}
+.bomb-btn .bb-icon { font-size: min(15vw, 14vh, 68px); line-height: 1; pointer-events: none; }
+.bomb-btn .bb-badge {
+  position: absolute;
+  top: 4%; right: 4%;
+  min-width: 28px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #14112c;
+  color: #fff;
+  font-size: 14px; font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  pointer-events: none;
+}
+.bomb-btn.pressed { transform: translateY(6px); box-shadow: 0 2px 0 #8a3a00, 0 6px 14px rgba(0, 0, 0, 0.45); filter: brightness(1.15); }
+.bomb-btn.empty { filter: grayscale(0.75) brightness(0.65); box-shadow: 0 4px 0 #4a2200; }
+/* iOS ignores touch-action on disabled controls — kill pointer events instead. */
+.bomb-btn:disabled { opacity: 1; pointer-events: none; }
+@media (hover: hover) {
+  .bomb-btn:hover:not(:disabled) { transform: none; box-shadow: 0 8px 0 #8a3a00, 0 14px 26px rgba(0, 0, 0, 0.45); }
+}
+
+/* Ripple that fires on each successful bomb drop. */
+.bb-ripple {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.75);
+  pointer-events: none;
+  animation: bbripple 0.45s ease-out forwards;
+}
+@keyframes bbripple {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.p-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px;
+  background: rgba(12, 9, 32, 0.88);
+  z-index: 4;
+  padding: 20px;
+  text-align: center;
+}
+.p-overlay[hidden] { display: none; }
+/* The countdown must not eat the touch that is already loading up the stick —
+   a thumb pushed into a direction during "3, 2, 1" moves on GO. */
+#countOverlay { pointer-events: none; }
+.pc-note { font-size: 22px; font-weight: 900; color: var(--accent); overflow-wrap: anywhere; }
+.pc-sub { font-size: 15px; color: rgba(255, 255, 255, 0.75); }
+.pc-num { font-size: 96px; font-weight: 900; animation: pop 0.4s ease; }
+
+/* ---------------- Eliminated / final ---------------- */
+.out-inner {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; gap: 10px; padding: 16px 12px;
+}
+.out-emoji { font-size: 62px; flex: 0 0 auto; }
+.out-title { font-size: 26px; font-weight: 900; flex: 0 0 auto; overflow-wrap: anywhere; }
+.out-sub { font-size: 15px; color: rgba(255, 255, 255, 0.7); flex: 0 0 auto; }
+.out-list {
+  flex: 0 1 auto; min-height: 0; overflow-y: auto;
+  width: 100%; max-width: 340px;
+  display: flex; flex-direction: column; gap: 7px;
+  margin-top: 8px;
+}
+.out-row {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 9px 13px;
+  min-width: 0;
+}
+.out-row.me { border: 1px solid rgba(255, 255, 255, 0.3); }
+.out-row.win { background: rgba(255, 210, 63, 0.16); border: 1px solid var(--accent-2); }
+.out-dot { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; }
+.out-name { flex: 1; min-width: 0; font-weight: 800; font-size: 16px; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.out-gp { flex: 0 0 auto; font-weight: 800; font-size: 15px; font-variant-numeric: tabular-nums; }
+
+/* Landscape phones: claw back the vertical space the header chrome eats so the
+   stick and bomb stay as big as possible. */
+@media (orientation: landscape) and (max-height: 480px) {
+  .p-head { padding-bottom: 4px; }
+  .power-row { padding-bottom: 4px; }
+  .wait-emoji, .out-emoji { font-size: 40px; }
+}
+
+/* Nudge both controls outboard of their half's centre so they sit where the
+   thumbs actually rest. Margins (not transforms) — the stick is repositioned
+   with left/top on grab, and margin-right is ignored once it goes absolute. */
+@media (orientation: landscape) {
+  .stick-base { margin-right: min(12vw, 104px); }
+  .bomb-btn { margin-left: min(12vw, 104px); }
+}
+
+/* ---------------- Rotate hint ---------------- */
+.rotate-hint {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 30px;
+  text-align: center;
+  background: rgba(12, 9, 32, 0.94);
+}
+.rotate-hint[hidden] { display: none; }
+/* A paired controller doesn't care which way up the phone is. */
+body.has-gamepad .rotate-hint { display: none; }
+.rot-icon { font-size: 60px; animation: rotWiggle 1.6s ease-in-out infinite; }
+.rot-text { font-size: 18px; font-weight: 800; max-width: 320px; }
+@keyframes rotWiggle { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+
+/* ---------------- Gamepad badge ---------------- */
+.gamepad-badge {
+  position: fixed;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  background: rgba(18, 14, 46, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.gamepad-badge[hidden] { display: none; }

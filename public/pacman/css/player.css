@@ -148,7 +148,7 @@ body.player.powered .swipe-arrow { color: #fff; }
 .gear-btn:active { background: rgba(255,255,255,0.24); }
 .ctrl-popover {
   position: absolute; bottom: 48px; left: 0;
-  min-width: 212px;
+  min-width: 256px;
   background: rgba(12,12,40,0.96);
   border: 1px solid rgba(255,255,255,0.16);
   border-radius: 14px;
@@ -160,12 +160,12 @@ body.player.powered .swipe-arrow { color: #fff; }
   font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
   color: rgba(255,255,255,0.55); margin: 0 2px 8px;
 }
-.mode-toggle { display: grid; grid-template-columns: 1fr 1fr; background: rgba(0,0,0,0.32); border-radius: 999px; padding: 4px; gap: 4px; }
+.mode-toggle { display: grid; grid-template-columns: repeat(3, 1fr); background: rgba(0,0,0,0.32); border-radius: 999px; padding: 4px; gap: 4px; }
 .mode-opt {
   min-width: 0;
   background: transparent; color: rgba(255,255,255,0.75);
   border: 0; border-radius: 999px;
-  padding: 9px 12px; font-weight: 800; font-size: 14px; text-align: center;
+  padding: 9px 8px; font-weight: 800; font-size: 14px; text-align: center;
   white-space: nowrap; touch-action: manipulation;
 }
 .mode-opt.active { background: var(--accent); color: #1A1A1A; }
@@ -193,10 +193,55 @@ body.player.powered .dz-arrow { color: #fff; }
 .dpad-zone.active { background: radial-gradient(circle at center, rgba(255,225,0,0.16), rgba(255,225,0,0)); }
 .dpad-zone.active .dz-arrow { opacity: 1; text-shadow: 0 0 26px rgba(255,225,0,0.8); }
 
-/* Mode visibility: swipe = center arrow, tap = triangular zones. */
+/* Mode visibility: swipe = center arrow, tap = triangular zones, stick = the
+   floating thumbstick. */
 .dpad { display: none; }
 body.player.mode-tap .dpad { display: block; }
 body.player.mode-tap .swipe-dir { display: none; }
+
+/* ---------------- Floating joystick (shown only in Joystick mode) ----------
+   The layer takes the pad's free space ABOVE the hint text (so the hint reads
+   below the stick, never under it) and is the positioning context the base is
+   moved around in. Purely visual — the pointer handling lives on the controller
+   view, so the layer must never eat touches. */
+.stick-layer {
+  position: relative;
+  flex: 1 1 auto;
+  align-self: stretch;
+  min-width: 0;
+  min-height: 0;
+  display: none;
+  align-items: center; justify-content: center;
+  pointer-events: none;
+}
+body.player.mode-stick .stick-layer { display: flex; }
+body.player.mode-stick .swipe-dir { display: none; }
+.stick-base {
+  position: relative;
+  /* Sized off both axes so it stays big in landscape and never overflows. */
+  width: min(56vw, 40vh, 260px);
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
+  border: 2px solid rgba(255,255,255,0.14);
+}
+.stick-ring { position: absolute; inset: 14%; border-radius: 50%; border: 1px dashed rgba(255,255,255,0.14); }
+.stick-knob {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 42%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #fff6a8, var(--accent));
+  box-shadow: 0 6px 18px rgba(0,0,0,0.45);
+  transform: translate(-50%, -50%);
+  transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.3, 1);
+  will-change: transform;
+}
+.stick-base.active .stick-knob {
+  transition: none;
+  box-shadow: 0 0 0 4px rgba(255,225,0,0.28), 0 8px 22px rgba(0,0,0,0.5);
+}
 
 /* Reactions */
 .emote-bar { flex: 0 0 auto; padding: 8px 12px max(10px, env(safe-area-inset-bottom)); }

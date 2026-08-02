@@ -59,6 +59,7 @@
   const finalList = el('finalList');
   const rotateHint = el('rotateHint');
   const gamepadBadge = el('gamepadBadge');
+  const playerAttribution = el('playerAttribution');
 
   const VIEWS = ['wait', 'play', 'out', 'final'];
   let currentView = 'wait';
@@ -68,6 +69,10 @@
       const v = el('view-' + VIEWS[i]);
       if (v) v.classList.toggle('active', VIEWS[i] === name);
     }
+    // Credit only belongs on the pre-game lobby wait. The 'wait' view is reused
+    // for the countdown, between-round recaps and the kick notice, so hide it by
+    // default here and let enterWaiting() turn it back on.
+    if (playerAttribution) playerAttribution.hidden = true;
     // Releasing the stick whenever the controller leaves the screen prevents a
     // "stuck walking" bomber if a round ends mid-drag.
     if (name !== 'play') releaseStick(true);
@@ -119,9 +124,25 @@
     updateScore();
   }
 
-  /** Rounds won, mirrored from the host's score cards. */
+  /** Rounds won, mirrored from the host's score cards: one pip per round needed,
+   *  lit up to the number already won — same read as the host strip. */
   function updateScore() {
-    scoreEl.textContent = me ? '🏆 ' + (gamePoints[PID] || 0) + '/' + roundsToWin : '';
+    if (!scoreEl) return;
+    if (!me) { scoreEl.innerHTML = ''; return; }
+    const want = Math.max(1, roundsToWin);
+    const have = gamePoints[PID] || 0;
+    if (scoreEl.children.length !== want) {
+      scoreEl.innerHTML = '';
+      for (let i = 0; i < want; i++) {
+        const d = document.createElement('span');
+        d.className = 'pip';
+        scoreEl.appendChild(d);
+      }
+    }
+    for (let i = 0; i < scoreEl.children.length; i++) {
+      scoreEl.children[i].classList.toggle('on', i < have);
+    }
+    scoreEl.setAttribute('aria-label', have + ' of ' + want + ' rounds won');
   }
 
   function setRoster(list) {
@@ -239,6 +260,7 @@
     waitTitle.textContent = "You're in!";
     waitSub.innerHTML = '<span class="pulse-dot"></span>Waiting for the host to start…';
     showView('wait');
+    if (playerAttribution) playerAttribution.hidden = false;
   }
 
   // ---- Match lifecycle ----
@@ -410,6 +432,7 @@
   const DEADZONE = 0.18;
   const SEND_MS = 50;           // ~20 Hz upstream
   let stickId = null;           // active pointer id
+  const zonePointers = new Map(); // every finger currently down in the stick zone
   let originX = 0, originY = 0; // where the finger first landed
   let radius = 70;              // px travel before the stick is fully deflected
   let vx = 0, vy = 0;           // current normalised vector
@@ -500,39 +523,67 @@
     queueSend();
   }
 
-  function grabStick(e) {
-    if (stickId !== null || !canSteer()) return;
-    stickId = e.pointerId;
+  /**
+   * Anchor the stick to a pointer at (x, y): the visible base jumps under the
+   * finger and the origin is pinned to it. Used both for a fresh grab and when
+   * control is handed to another finger that is still down.
+   */
+  function anchorStick(id, x, y) {
+    stickId = id;
     // Recentre the visible base under the finger so the stick always starts
     // exactly where the thumb landed. The base is kept inside its half of the
     // pad, but the ORIGIN stays on the finger — otherwise planting a thumb near
     // the edge would read as a full deflection nobody asked for.
     const zone = stickZone.getBoundingClientRect();
     const half = stickBase.getBoundingClientRect().width / 2;
-    const x = Math.min(Math.max(e.clientX, zone.left + half), zone.right - half);
-    const y = Math.min(Math.max(e.clientY, zone.top + half), zone.bottom - half);
+    const bx = Math.min(Math.max(x, zone.left + half), zone.right - half);
+    const by = Math.min(Math.max(y, zone.top + half), zone.bottom - half);
     stickBase.style.position = 'absolute';
-    stickBase.style.left = (x - zone.left - half) + 'px';
-    stickBase.style.top = (y - zone.top - half) + 'px';
-    originX = e.clientX; originY = e.clientY;
+    stickBase.style.left = (bx - zone.left - half) + 'px';
+    stickBase.style.top = (by - zone.top - half) + 'px';
+    originX = x; originY = y;
     stickBase.classList.add('active');
     measureRadius();
-    if (stickZone.setPointerCapture) {
-      try { stickZone.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-    }
-    updateVector(e.clientX, e.clientY);
+    updateVector(x, y);
+  }
+
+  function grabStick(e) {
+    if (!canSteer()) return;
+    // Remember every finger that lands in the zone, so control can be handed
+    // over if the one that happens to be steering lifts first.
+    zonePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    // The NEWEST finger takes the stick. A finger already resting in the left
+    // half (palm, spare thumb) must never lock out the thumb that arrives after
+    // it to actually play — that reads as a completely dead stick.
+    anchorStick(e.pointerId, e.clientX, e.clientY);
     e.preventDefault();
   }
 
   function moveStick(e) {
+    const tracked = zonePointers.get(e.pointerId);
+    if (tracked) { tracked.x = e.clientX; tracked.y = e.clientY; }
     if (stickId !== e.pointerId) return;
     updateVector(e.clientX, e.clientY);
     e.preventDefault();
   }
 
+  /** A pointer ended. Hand the stick to another finger still down, or let go. */
+  function endPointer(e) {
+    zonePointers.delete(e.pointerId);
+    if (stickId !== e.pointerId) return;
+    const next = zonePointers.entries().next();
+    if (!next.done && canSteer()) {
+      const [id, pos] = next.value;
+      anchorStick(id, pos.x, pos.y);   // re-anchored, so the stick can't jump
+      return;
+    }
+    releaseStick(true);
+  }
+
   function releaseStick(force, e) {
     if (!force && (!e || stickId !== e.pointerId)) return;
     stickId = null;
+    zonePointers.clear();
     stickBase.classList.remove('active');
     stickBase.style.position = '';
     stickBase.style.left = '';
@@ -544,11 +595,26 @@
     }
   }
 
+  // The move/end listeners live on WINDOW, not on the stick zone. The zone is
+  // only the left half of the pad, and a thumb at full deflection routinely
+  // travels outside it — bound to the zone, the pointerup then lands on another
+  // element and never reaches releaseStick, which leaves the bomber walking in
+  // the last direction forever AND wedges stickId so no later grab is accepted.
+  // (setPointerCapture was meant to cover this, but it fails silently on some
+  // mobile browsers, which is exactly when the stick died.)
   stickZone.addEventListener('pointerdown', grabStick);
-  stickZone.addEventListener('pointermove', moveStick);
-  stickZone.addEventListener('pointerup', function (e) { releaseStick(false, e); });
-  stickZone.addEventListener('pointercancel', function (e) { releaseStick(false, e); });
-  stickZone.addEventListener('lostpointercapture', function (e) { releaseStick(false, e); });
+  window.addEventListener('pointermove', moveStick, { passive: false });
+  window.addEventListener('pointerup', endPointer);
+  window.addEventListener('pointercancel', endPointer);
+  // Backstop for browsers that drop a pointerup entirely (iOS Safari does this
+  // under multi-touch): when the last finger leaves the glass, nothing can
+  // still be steering, so let go unconditionally.
+  window.addEventListener('touchend', function (e) {
+    if (stickId !== null && e.touches && e.touches.length === 0) releaseStick(true);
+  });
+  window.addEventListener('touchcancel', function (e) {
+    if (stickId !== null && e.touches && e.touches.length === 0) releaseStick(true);
+  });
   // Losing focus mid-drag (call, notification, tab switch) must not leave the
   // bomber walking into a blast.
   window.addEventListener('blur', function () { releaseStick(true); });

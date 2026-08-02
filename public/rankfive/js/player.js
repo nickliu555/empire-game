@@ -295,7 +295,7 @@
   function renderCollectWaiting() {
     myRole = null;
     setReactionsAllowed(false);
-    setAttribution(true);
+    setAttribution(false);
     elView.innerHTML =
       '<div class="state-card">' +
         '<div class="lobby-hero" aria-hidden="true"><span>✍️</span></div>' +
@@ -585,7 +585,7 @@
       '<div class="result-big"><span class="g">' + (f ? f.groupScore : 0) + '</span> – ' + (f ? f.gameScore : 0) + '</div>' +
       '<p class="result-sub">' + (win ? 'Great minds! Check the big screen.' : 'So close — run it back!') + '</p>'
     );
-    setAttribution(true);
+    setAttribution(false);
   }
 
   // ---- Host presence ----

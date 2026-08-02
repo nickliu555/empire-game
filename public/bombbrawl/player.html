@@ -30,7 +30,6 @@
         <div class="wait-sub" id="waitSub"><span class="pulse-dot"></span>Waiting for the host to start…</div>
         <div class="wait-rotate">Turn your phone sideways to play</div>
       </div>
-      <div class="player-attribution">Developed by Nick Liu (with help from Claude)</div>
     </section>
 
     <!-- ============ CONTROLLER ============ -->
@@ -94,6 +93,9 @@
   </div>
 
   <div class="gamepad-badge" id="gamepadBadge" hidden>🎮 Controller connected</div>
+
+  <!-- Credit: lobby wait only (see showView/enterWaiting in js/player.js). -->
+  <div class="player-attribution" id="playerAttribution" hidden>Developed by Nick Liu (with help from Claude)</div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/bombbrawl/js/player.js"></script>

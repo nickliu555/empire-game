@@ -189,4 +189,4 @@ body.player[data-team="blue"] { --me: var(--blue); --me-deep: var(--blue-deep); 
 @keyframes goalPop { 0% { transform: scale(0.2) rotate(-8deg); opacity: 0; } 60% { transform: scale(1.15) rotate(3deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
 
 .player-attribution { color: rgba(255,255,255,0.45); }
-body.player.playing .player-attribution { display: none; }
+.player-attribution[hidden] { display: none; }

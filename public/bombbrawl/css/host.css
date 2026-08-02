@@ -370,6 +370,7 @@ body.host {
 .final-inner {
   text-align: center;
   display: flex; flex-direction: column; align-items: center;
+  justify-content: center;
   gap: 12px;
   padding: 18px 20px;
   height: 100%; min-height: 0; max-height: 100%;
@@ -378,8 +379,11 @@ body.host {
 .final-inner > *:not(.final-scroll) { flex: 0 0 auto; }
 .trophy { font-size: 74px; line-height: 1; animation: bob 2.4s ease-in-out infinite; }
 .final-heading { font-size: 42px; margin: 0; color: var(--wc, var(--accent-2)); overflow-wrap: anywhere; max-width: 92vw; }
+/* Shrink-to-fit (not grow-to-fill) so the whole block stays centred and the
+   button sits right under the list instead of being pushed to the floor; it
+   still absorbs the overflow and scrolls once the roster gets tall. */
 .final-scroll {
-  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  flex: 0 1 auto; min-height: 0; overflow-y: auto;
   display: flex; flex-direction: column;
   width: min(620px, 92vw);
   padding: 4px 2px;

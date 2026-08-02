@@ -323,4 +323,4 @@ body.player[data-team="blue"] { --me: var(--blue); --me-deep: var(--blue-deep); 
 .gamepad-badge[hidden] { display: none; }
 
 .player-attribution { color: rgba(255,255,255,0.45); }
-body.player.playing .player-attribution { display: none; }
+.player-attribution[hidden] { display: none; }

@@ -177,6 +177,98 @@ section('Frightened flee');
   w._fleeDir(g);
   ok(g.dirIdx >= -1 && g.dirIdx <= 3, 'no powered players → flee falls back safely');
 }
+{
+  // Flee uses MAZE distance, not straight-line: a powered pac one tile away
+  // through a wall is 2 tiles away as the crow flies but far around the maze,
+  // so the ghost must not treat "diagonally adjacent" as safe. Sample real
+  // junctions and assert every choice increases the true maze distance.
+  const w = makeWorld(2);
+  const g = w.ghosts[0];
+  const pac = w.byId.get('p0');
+  const other = w.byId.get('p1');
+  const W = w.board.w, H = w.board.h;
+  other.alive = false; other.powered = false;
+  pac.alive = true; pac.powered = true; pac.poweredEnd = 999;
+  // BFS truth from the pac over pac-walkable tiles.
+  const truth = (sr, sc) => {
+    const d = new Map(); const q = [[sr, sc]]; d.set(sr + ',' + sc, 0);
+    for (let i = 0; i < q.length; i++) {
+      const [r, c] = q[i]; const dd = d.get(r + ',' + c);
+      for (const dv of Pacman.DIRS) {
+        const nr = r + dv.y, nc = ((c + dv.x) % W + W) % W;
+        if (nr < 0 || nr >= H || !w.passable(nr, nc, { door: false })) continue;
+        if (d.has(nr + ',' + nc)) continue;
+        d.set(nr + ',' + nc, dd + 1); q.push([nr, nc]);
+      }
+    }
+    return d;
+  };
+  const open = [];
+  for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) if (w.passable(r, c, { door: false })) open.push([r, c]);
+  let junctions = 0, awayJ = 0, all = 0, awayAll = 0;
+  for (let i = 0; i < open.length; i++) {
+    const gt = open[i];
+    for (const stride of [7, 23, 61, 113, 191]) {
+    const pt = open[(i * stride + 3) % open.length];
+    pac.y = pt[0]; pac.x = pt[1];
+    const dist = truth(pt[0], pt[1]);
+    const cur = dist.get(gt[0] + ',' + gt[1]);
+    if (cur == null || cur < 2 || cur > 12) continue;
+    for (let dir = 0; dir < 4; dir++) {
+      const rev = Pacman.REVERSE[dir];
+      if (!w.passable(gt[0] + Pacman.DIRS[rev].y, gt[1] + Pacman.DIRS[rev].x, { door: false })) continue;
+      let exits = 0;
+      for (let k = 0; k < 4; k++) {
+        if (k === rev) continue;
+        if (w.passable(gt[0] + Pacman.DIRS[k].y, gt[1] + Pacman.DIRS[k].x, { door: false })) exits++;
+      }
+      g.state = 'frightened'; g.y = gt[0]; g.x = gt[1]; g.dirIdx = dir;
+      w._fleeDir(g);
+      if (g.dirIdx < 0) continue;
+      const dv = Pacman.DIRS[g.dirIdx];
+      const nd = dist.get((gt[0] + dv.y) + ',' + (((gt[1] + dv.x) % W + W) % W));
+      all++; if (nd > cur) awayAll++;
+      if (exits >= 2) { junctions++; if (nd > cur) awayJ++; }
+    }
+    }
+  }
+  ok(junctions > 50, 'sampled plenty of flee junctions (' + junctions + ')');
+  ok(awayJ === junctions, 'at every junction the frightened ghost increases its MAZE distance from the powered pac (' + awayJ + '/' + junctions + ')');
+  // Corridors count too: a cornered ghost may U-turn, so it should almost never
+  // end up closer. Only true dead ends have no escape.
+  ok(awayAll / all > 0.95, 'frightened ghosts escape on >95% of ALL decisions, corridors included (' + (100 * awayAll / all).toFixed(1) + '%)');
+}
+{
+  // Ghosts flee ALL powered players — the field is multi-source, so a ghost runs
+  // from whichever powered pac is nearest, and ignores un-powered ones entirely.
+  const w = makeWorld(3);
+  const g = w.ghosts[0];
+  const [a, b2, c2] = w.players;
+  // A run of 5 open tiles walled above and below the ghost, so LEFT/RIGHT are
+  // the only exits and the choice is unambiguous.
+  let found = null;
+  for (let r = 2; r < w.board.h - 2 && !found; r++) for (let c = 3; c < w.board.w - 4; c++) {
+    let run = true;
+    for (let k = -2; k <= 2; k++) if (!openTile(w, r, c + k)) { run = false; break; }
+    if (run && !openTile(w, r - 1, c) && !openTile(w, r + 1, c)) { found = [r, c]; break; }
+  }
+  ok(!!found, 'found a walled corridor for the multi-powered flee test');
+  const [gr, gc] = found;
+  g.state = 'frightened'; g.y = gr; g.x = gc; g.dirIdx = 0; // facing up (a wall)
+  // Un-powered pac sitting immediately left: must NOT be fled from.
+  a.alive = true; a.powered = false; a.y = gr; a.x = gc - 1;
+  // Powered pac two tiles to the right.
+  b2.alive = true; b2.powered = true; b2.poweredEnd = 999; b2.y = gr; b2.x = gc + 2;
+  c2.alive = false; c2.powered = false;
+  w._fleeDir(g);
+  ok(g.dirIdx === 2, 'ghost flees the POWERED pac and ignores an un-powered one right next to it');
+  // Now power up the left pac too, closer than the right one → flee right.
+  a.powered = true; a.poweredEnd = 999; a.x = gc - 1;
+  b2.x = gc + 2;
+  g.dirIdx = 0;
+  w._fleeDir(g);
+  ok(g.dirIdx === 3, 'with two powered pacs the ghost runs from the NEAREST one');
+}
 
 // ---- Ghost eats unpowered pac ----
 section('Ghost vs pac');

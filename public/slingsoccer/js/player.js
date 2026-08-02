@@ -18,6 +18,7 @@
     final: document.getElementById('view-final'),
     kicked: document.getElementById('view-kicked'),
   };
+  const playerAttribution = document.getElementById('playerAttribution');
   const lobbyTeamBadge = document.getElementById('lobbyTeamBadge');
   const lobbyName = document.getElementById('lobbyName');
   const scoreRed = document.getElementById('scoreRed');
@@ -58,6 +59,8 @@
       if (views[k]) views[k].style.display = (k === name) ? '' : 'none';
     });
     body.classList.toggle('playing', name === 'controller');
+    // Credit belongs on the lobby wait only — never mid-match or on the final.
+    if (playerAttribution) playerAttribution.hidden = (name !== 'lobby');
   }
 
   function setTeam(team) {

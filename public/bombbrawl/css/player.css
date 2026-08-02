@@ -1,4 +1,14 @@
 /* === Bomb Brawl phone controller: thumbstick + bomb button. === */
+html, body {
+  height: 100%;
+  /* Lock the whole page against pan / pinch-zoom (this is a fixed gamepad, not
+     a scrolling page). touch-action must be on html + body too — `body.player *`
+     matches only DESCENDANTS, so without this a drag that the browser decides is
+     a scroll gets taken away mid-stroke and the stick dies. */
+  touch-action: none;
+  overscroll-behavior: none;
+  -ms-touch-action: none;
+}
 body.player {
   margin: 0;
   min-height: 100vh;
@@ -49,13 +59,21 @@ body.player input, body.player textarea { touch-action: auto; }
   font-weight: 800; font-size: 17px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* Round wins as pips (mirrors the host score cards): one dot per round needed,
+   lit for each round already won. Wraps rather than overflowing if the host
+   picks a long series. */
 .p-score {
   flex: 0 0 auto;
-  font-weight: 900; font-size: 15px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  color: var(--accent-2);
+  display: flex; align-items: center; gap: 5px;
+  flex-wrap: wrap; justify-content: flex-end;
+  max-width: 40%;
 }
+.p-score .pip {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  flex: 0 0 auto;
+}
+.p-score .pip.on { background: var(--accent-2); box-shadow: 0 0 6px var(--accent-2); }
 .p-score:empty { display: none; }
 
 .p-view { display: none; flex: 1; min-height: 0; position: relative; }
@@ -239,17 +257,34 @@ body.player input, body.player textarea { touch-action: auto; }
 .pc-num { font-size: 96px; font-weight: 900; animation: pop 0.4s ease; }
 
 /* ---------------- Eliminated / final ---------------- */
+/* The whole card scrolls as ONE region: on a short screen (small phone, or any
+   phone in landscape) the emoji + title + a full roster of scores is taller than
+   the view, and a centred flex column clips the overflow out of reach at BOTH
+   ends. Auto margins on the first/last child keep the card centred while it
+   fits, then collapse to 0 so everything is reachable once it has to scroll. */
 .out-inner {
   flex: 1; min-height: 0;
   display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
+  align-items: center; justify-content: flex-start;
   text-align: center; gap: 10px; padding: 16px 12px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
+.out-inner > :first-child { margin-top: auto; }
+.out-inner > :last-child { margin-bottom: auto; }
+/* The page-wide `touch-action: none` (which stops a drag from being stolen from
+   the stick) also stops a FINGER from scrolling this list — the effective value
+   is intersected down the ancestor chain, so the rows need it too, not just the
+   scroll container. Re-allow vertical panning here only; this view has no stick.
+   Both selectors must out-specify `body.player *`. */
+body.player .out-inner,
+body.player .out-inner * { touch-action: pan-y; }
 .out-emoji { font-size: 62px; flex: 0 0 auto; }
 .out-title { font-size: 26px; font-weight: 900; flex: 0 0 auto; overflow-wrap: anywhere; }
 .out-sub { font-size: 15px; color: rgba(255, 255, 255, 0.7); flex: 0 0 auto; }
 .out-list {
-  flex: 0 1 auto; min-height: 0; overflow-y: auto;
+  flex: 0 0 auto;
   width: 100%; max-width: 340px;
   display: flex; flex-direction: column; gap: 7px;
   margin-top: 8px;

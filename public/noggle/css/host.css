@@ -395,6 +395,17 @@ body.host {
 .leaderboard-row .lb-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .leaderboard-row .lb-longest { font-weight: 700; text-transform: uppercase; color: var(--accent-deep); font-size: 14px; letter-spacing: 0.02em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .leaderboard-row .lb-score { text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--ink); }
+/* The header is a label row, not data: every cell shares one uniform style.
+   Needs to out-specify the per-column rules above, which would otherwise give
+   "Longest" the accent colour/size and "#"/"Score" the heavier data weight.
+   Only type is reset — the columns keep their own text-align. */
+.leaderboard-row.leaderboard-header > * {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
 
 .recap-scroll { flex: 1; overflow-y: auto; min-height: 0; }
 .board-recap .b-board.recap { width: 100%; max-width: 260px; margin: 0 auto 14px; font-size: 20px; }

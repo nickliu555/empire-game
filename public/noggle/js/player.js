@@ -71,7 +71,8 @@
     });
     const social = (name === 'lobby' || name === 'final');
     if (reactionBar) reactionBar.hidden = !social;
-    if (playerAttribution) playerAttribution.hidden = !social;
+    // The credit is lobby-only — it must not come back on the final screen.
+    if (playerAttribution) playerAttribution.hidden = (name !== 'lobby');
   }
   function setScore(v) { myScore = v; meScore.textContent = v; }
 

@@ -72,6 +72,9 @@
   const ctrlSettings = document.getElementById('ctrlSettings');
   const dpad = document.getElementById('dpad');
   const swipeHint = document.getElementById('swipeHint');
+  const stickLayer = document.getElementById('stickLayer');
+  const stickBase = document.getElementById('stickBase');
+  const stickKnob = document.getElementById('stickKnob');
 
   // ---------------- State ----------------
   let currentPhase = 'LOBBY';
@@ -279,21 +282,25 @@
   }
 
   // ---------------- Controls ----------------
-  // Two control schemes the player can switch between via the ⚙️ gear:
-  //   • Swipe (default): the WHOLE screen is a pad — flick a direction anywhere
-  //     and the Pac-Man turns that way and keeps going until the next flick.
+  // Three control schemes the player can switch between via the ⚙️ gear:
+  //   • Joystick (default): a thumbstick appears wherever the thumb lands;
+  //     pushing it past a small deadzone steers, and the heading sticks after
+  //     letting go while the knob springs back to centre.
+  //   • Swipe: the WHOLE screen is a pad — flick a direction anywhere and the
+  //     Pac-Man turns that way and keeps going until the next flick.
   //   • Tap zones: the screen splits along its diagonals into 4 triangles
   //     (top=up, bottom=down, left=left, right=right); tap a zone to steer.
   // A tiny haptic buzz confirms each turn; a big central arrow (swipe) or the
-  // lit-up zone (tap) shows the way you're currently heading.
+  // lit-up zone (tap) shows the current heading.
   const SWIPE_THRESHOLD = 22;      // px of drag before a direction registers
   const ARROW_DEG = { 0: 0, 1: 180, 2: 270, 3: 90 }; // base arrow points UP; rotate to dir
   let currentDir = -1;
   let touch = null;                // active gesture: { id, x, y }
   const controllerView = views.controller;
 
-  // Persisted control scheme: 'swipe' (default) or 'tap'.
-  let controlMode = localStorage.getItem('pacman.controlMode') === 'tap' ? 'tap' : 'swipe';
+  // Persisted control scheme: 'stick' (default), 'swipe' or 'tap'.
+  const savedMode = localStorage.getItem('pacman.controlMode');
+  let controlMode = (savedMode === 'tap' || savedMode === 'swipe') ? savedMode : 'stick';
   const dpadZones = dpad ? Array.prototype.slice.call(dpad.querySelectorAll('.dpad-zone')) : [];
 
   function send(dir) { socket.emit('in', { dir: dir }); }
@@ -316,7 +323,7 @@
   function setControls(enabled) {
     controlsEnabled = enabled && !eliminated;
     if (pad) pad.style.opacity = controlsEnabled ? '1' : '0.5';
-    if (!controlsEnabled) { currentDir = -1; showDir(-1); touch = null; }
+    if (!controlsEnabled) { currentDir = -1; showDir(-1); touch = null; releaseStick(true); }
   }
 
   // In Tap mode, the direction is the triangle the touch lands in: measured from
@@ -330,22 +337,107 @@
     return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? RIGHT : LEFT) : (dy > 0 ? DOWN : UP);
   }
 
+  // ---------------- Joystick mode ----------------
+  // A floating thumbstick: the base jumps to wherever the thumb lands, the knob
+  // follows the drag, and the dominant axis past the deadzone is the heading.
+  // Steering stays discrete like the other schemes — the heading is latched, so
+  // letting go keeps the last direction (classic Pac-Man) while the knob springs
+  // back to centre the way a real stick does.
+  const STICK_DEADZONE = 0.34;     // fraction of the radius before a turn registers
+  let stickId = null;              // active pointer id, or null
+  let stickOriginX = 0, stickOriginY = 0;
+  let stickRadius = 70;            // px of travel to full deflection
+
+  function measureStickRadius() {
+    if (!stickBase) return;
+    const r = stickBase.getBoundingClientRect();
+    if (r.width) stickRadius = r.width * 0.42;
+  }
+  window.addEventListener('resize', measureStickRadius);
+  window.addEventListener('orientationchange', measureStickRadius);
+
+  function setKnob(px, py) {
+    if (stickKnob) stickKnob.style.transform = 'translate(-50%, -50%) translate(' + px + 'px, ' + py + 'px)';
+  }
+
+  function updateStick(clientX, clientY) {
+    let dx = clientX - stickOriginX;
+    let dy = clientY - stickOriginY;
+    const dist = Math.hypot(dx, dy);
+    if (dist > stickRadius) { dx = (dx / dist) * stickRadius; dy = (dy / dist) * stickRadius; }
+    setKnob(dx, dy);
+    if (dist < stickRadius * STICK_DEADZONE) return;  // a nudge/tap is not a turn
+    setDir(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? RIGHT : LEFT) : (dy > 0 ? DOWN : UP));
+  }
+
+  function grabStick(e) {
+    if (stickId !== null || !stickBase || !stickLayer) return;
+    stickId = e.pointerId;
+    // Recentre the visible base under the thumb, but keep it fully on-screen.
+    // The ORIGIN stays on the finger, so planting a thumb near the edge doesn't
+    // read as a deflection nobody asked for.
+    measureStickRadius();
+    const zone = stickLayer.getBoundingClientRect();
+    const half = stickBase.getBoundingClientRect().width / 2;
+    const x = Math.min(Math.max(e.clientX, zone.left + half), zone.right - half);
+    const y = Math.min(Math.max(e.clientY, zone.top + half), zone.bottom - half);
+    stickBase.style.position = 'absolute';
+    stickBase.style.left = (x - zone.left - half) + 'px';
+    stickBase.style.top = (y - zone.top - half) + 'px';
+    stickOriginX = e.clientX; stickOriginY = e.clientY;
+    stickBase.classList.add('active');
+    try { controllerView.setPointerCapture(e.pointerId); } catch (_) {}
+    updateStick(e.clientX, e.clientY);
+  }
+
+  function moveStick(e) {
+    if (stickId === null || e.pointerId !== stickId) return;
+    updateStick(e.clientX, e.clientY);
+  }
+
+  function releaseStick(force, e) {
+    if (!force && (stickId === null || !e || e.pointerId !== stickId)) return;
+    stickId = null;
+    if (!stickBase) return;
+    stickBase.classList.remove('active');
+    stickBase.style.position = '';
+    stickBase.style.left = '';
+    stickBase.style.top = '';
+    setKnob(0, 0);   // springs back to centre; the heading itself persists
+  }
+
+  // A drag interrupted by a call / notification / tab switch must not leave the
+  // stick stuck to a dead pointer.
+  window.addEventListener('blur', function () { releaseStick(true); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') releaseStick(true);
+  });
+
   function applyControlMode(mode) {
-    controlMode = mode === 'tap' ? 'tap' : 'swipe';
+    controlMode = (mode === 'tap' || mode === 'swipe') ? mode : 'stick';
     localStorage.setItem('pacman.controlMode', controlMode);
     body.classList.toggle('mode-tap', controlMode === 'tap');
     body.classList.toggle('mode-swipe', controlMode === 'swipe');
-    if (swipeHint) swipeHint.textContent = controlMode === 'tap' ? 'Tap a zone to move' : 'Swipe anywhere to move';
+    body.classList.toggle('mode-stick', controlMode === 'stick');
+    if (swipeHint) {
+      swipeHint.textContent = controlMode === 'tap' ? 'Tap a zone to move'
+        : controlMode === 'swipe' ? 'Swipe anywhere to move'
+        : 'Drag the stick to move';
+    }
     if (modeToggle) {
       modeToggle.querySelectorAll('.mode-opt').forEach(function (b) {
         b.classList.toggle('active', b.getAttribute('data-mode') === controlMode);
       });
     }
     touch = null;
+    releaseStick(true);
+    // The stick is only laid out once its mode is on, so measure after the class
+    // flip.
+    measureStickRadius();
   }
   applyControlMode(controlMode);
 
-  // Gear button toggles a small popover holding the Swipe/Tap picker. Its taps
+  // Gear button toggles a small popover holding the control-scheme picker. Its taps
   // must never steer the Pac-Man, so they stop propagation before the pad sees
   // them and don't count as a control gesture.
   function stopControl(e) { e.stopPropagation(); }
@@ -378,11 +470,13 @@
       if (!controlsEnabled || eliminated) return;
       e.preventDefault();
       if (controlMode === 'tap') { setDir(zoneDirFromPoint(e.clientX, e.clientY)); return; }
+      if (controlMode === 'stick') { grabStick(e); return; }
       try { controllerView.setPointerCapture(e.pointerId); } catch (_) {}
       touch = { id: e.pointerId, x: e.clientX, y: e.clientY };
     });
     controllerView.addEventListener('pointermove', function (e) {
       if (controlMode === 'tap') return;   // discrete taps only — sliding does nothing
+      if (controlMode === 'stick') { moveStick(e); return; }
       if (!touch || e.pointerId !== touch.id) return;
       const dx = e.clientX - touch.x, dy = e.clientY - touch.y;
       const adx = Math.abs(dx), ady = Math.abs(dy);
@@ -391,11 +485,13 @@
       touch.x = e.clientX; touch.y = e.clientY;   // re-anchor → fluid direction changes
     });
     const endTouch = function (e) {
+      releaseStick(false, e);
       if (!touch || (e && e.pointerId !== touch.id)) return;
       touch = null;
     };
     controllerView.addEventListener('pointerup', endTouch);
     controllerView.addEventListener('pointercancel', endTouch);
+    controllerView.addEventListener('lostpointercapture', endTouch);
   }
 
   // Keyboard support (arrows / WASD) for host-side desktop testing.

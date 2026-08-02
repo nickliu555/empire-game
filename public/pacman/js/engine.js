@@ -15,7 +15,7 @@
 
   // ---- Tunables (tiles/sec, seconds, points) ----
   const PAC_SPEED = 4.2;
-  const PAC_POWER_SPEED = 5.25;   // 25% faster than normal
+  const PAC_POWER_SPEED = 5.46;   // 30% faster than normal
   const GHOST_SPEED = 4.0;
   const GHOST_FRIGHT_SPEED = 2.4;
   const GHOST_EYES_SPEED = 9;
@@ -516,35 +516,80 @@
       if (!choices.length) { const d = DIRS[rev]; g.dirIdx = this.passable(cy + d.y, cx + d.x, opts2) ? rev : -1; return; }
       g.dirIdx = choices[(this.rng() * choices.length) | 0];
     }
-    // Frightened: actively flee. Among the non-reverse open exits, step toward the
-    // one that gets FARTHEST from the nearest powered player (the only thing that
-    // can eat a blue ghost). Column distance accounts for the wrap tunnels. Falls
-    // back to a random turn when nobody is currently powered.
+    // Multi-source BFS: maze distance from EVERY alive powered player, so each
+    // tile holds its distance to the NEAREST one. Walls block, tunnels wrap, the
+    // pen door is closed (a frightened ghost can't duck inside). Computed on
+    // demand — a frightened ghost only re-decides at tile centres, so this runs
+    // a handful of times a second, not per frame.
+    _threatDist(powered) {
+      const b = this.board, W = b.w, H = b.h;
+      const dist = [];
+      for (let r = 0; r < H; r++) dist.push(new Array(W).fill(Infinity));
+      const q = [];
+      let head = 0;
+      for (const p of powered) {
+        const r = Math.round(p.y), c = wrapCol(Math.round(p.x), W);
+        if (r < 0 || r >= H || dist[r][c] === 0) continue;
+        dist[r][c] = 0; q.push([r, c]);
+      }
+      while (head < q.length) {
+        const [r, c] = q[head++]; const d = dist[r][c];
+        for (const dv of DIRS) {
+          const nr = r + dv.y; if (nr < 0 || nr >= H) continue;
+          const nc = wrapCol(c + dv.x, W);
+          if (b.tiles[nr][nc] !== 1) continue; // walls and the pen door block
+          if (dist[nr][nc] > d + 1) { dist[nr][nc] = d + 1; q.push([nr, nc]); }
+        }
+      }
+      return dist;
+    }
+    // Frightened: actively flee. Among the non-reverse open exits, take the one
+    // with the greatest MAZE distance to the nearest powered player — straight-
+    // line distance ignores walls, so it sends the ghost round a corner and
+    // straight into the pac it's meant to be running from. Ties (a corridor that
+    // is equally far either way) break on the straight-line distance, which
+    // prefers the exit that also opens up physical space. Falls back to a random
+    // turn when nobody is currently powered.
     _fleeDir(g) {
       const powered = [];
       for (const p of this.players) if (p.alive && p.powered) powered.push(p);
       if (!powered.length) { this._randomDir(g); return; }
+      const field = this._threatDist(powered);
       const W = this.board.w;
       const cx = g.x, cy = g.y;
       const rev = REVERSE[g.dirIdx];
-      let best = -1, bestScore = -Infinity;
+      let best = -1, bestD = -Infinity, bestTie = -Infinity;
       for (const idx of [0, 1, 2, 3]) {
         if (idx === rev) continue;
         const d = DIRS[idx];
         const nr = cy + d.y, nc = cx + d.x;
         if (!this.passable(nr, nc, { door: false })) continue;
-        // Squared distance from this candidate tile to the CLOSEST powered pac.
-        let nearest = Infinity;
+        const wc = wrapCol(nc, W);
+        // Unreachable tiles (no powered pac can get there) are a perfect escape.
+        const md = field[nr][wc];
+        // Tie-break: squared straight-line distance to the CLOSEST powered pac.
+        let tie = Infinity;
         for (const p of powered) {
           let ex = nc - p.x;
           if (ex > W / 2) ex -= W; else if (ex < -W / 2) ex += W; // shortest way round the tunnel
           const ey = nr - p.y;
           const dd = ex * ex + ey * ey;
-          if (dd < nearest) nearest = dd;
+          if (dd < tie) tie = dd;
         }
-        if (nearest > bestScore) { bestScore = nearest; best = idx; }
+        if (md > bestD || (md === bestD && tie > bestTie)) { bestD = md; bestTie = tie; best = idx; }
       }
       if (best < 0) { const d = DIRS[rev]; best = this.passable(cy + d.y, cx + d.x, { door: false }) ? rev : -1; }
+      // Turn tail. A ghost normally never reverses, but a frightened one that is
+      // cornered — every forward exit walks it INTO a powered pac, which is what
+      // a corridor approached head-on always looks like — would otherwise march
+      // straight down your throat. Allow the U-turn only when going back is
+      // strictly farther than the best way forward, so it can't dither: once the
+      // ghost is running away, forward is the better option again.
+      if (rev !== undefined && best !== rev) {
+        const d = DIRS[rev];
+        const rr = cy + d.y, rc = cx + d.x;
+        if (this.passable(rr, rc, { door: false }) && field[rr][wrapCol(rc, W)] > bestD) best = rev;
+      }
       g.dirIdx = best;
     }
 

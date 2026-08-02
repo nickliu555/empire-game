@@ -182,7 +182,7 @@
     endRoundBtn.disabled = false;
 
     var totalMs = (r.timeLimitSec || 180) * 1000;
-    var lastSec = -1, urgent = false;
+    var lastSec = -1, urgent = false, lastTickSec = null;
     function update() {
       var msLeft = Math.max(0, r.endsAt - serverNow());
       var secLeft = Math.ceil(msLeft / 1000);
@@ -192,6 +192,13 @@
         timerText.textContent = fmtClock(secLeft);
         var u = secLeft <= 15 && msLeft > 0;
         if (u !== urgent) { urgent = u; timerRing.classList.toggle('urgent', urgent); }
+        // Audible countdown over the last 5 seconds so heads-down players know
+        // to get their last answers in. It stops at 1s — the round end already
+        // has its own sound, and doubling up just muddies both.
+        if (secLeft >= 1 && secLeft <= 5 && secLeft !== lastTickSec) {
+          lastTickSec = secLeft;
+          playTick(secLeft);
+        }
       }
       if (msLeft <= 0) { stopRoundTimer(); return; }
       roundRaf = requestAnimationFrame(update);
@@ -865,6 +872,26 @@
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.4);
+  }
+  // Countdown tick for the last 5 seconds of a round — the host screen is
+  // across the room, so players need an audible "time's nearly up". Rises in
+  // volume each second. Nothing plays at zero: the round end has its own sound.
+  function playTick(secLeft) {
+    var ctx = readyCtx();
+    if (!ctx) return;
+    var t = ctx.currentTime;
+    var vol = 0.4 + (5 - secLeft) * 0.14;
+    var dur = 0.12;
+    var osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(vol, t + 0.01);
+    gain.gain.setValueAtTime(vol, t + dur - 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + dur + 0.02);
   }
   // Rising "look up!" arpeggio for each new round's letter reveal.
   function playNextRoundCue() {

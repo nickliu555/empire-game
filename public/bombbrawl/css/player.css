@@ -45,6 +45,33 @@ body.player input, body.player textarea { touch-action: auto; }
   padding: 4px 4px 8px;
   min-width: 0;
 }
+/* Connection warning. Floats over the pad so it can never reflow the controls
+   out from under a thumb, and sits clear of the stick/bomb halves. */
+.net-pill {
+  position: fixed;
+  top: calc(6px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex; align-items: center; gap: 7px;
+  max-width: 80vw;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(24, 18, 40, 0.92);
+  border: 1px solid rgba(255, 190, 80, 0.55);
+  color: #FFCE6A;
+  font-size: 12px; font-weight: 800;
+  white-space: nowrap;
+  pointer-events: none;   /* never eat a touch meant for the stick */
+}
+.net-pill[hidden] { display: none; }   /* [hidden] loses to display:flex */
+.net-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #FFCE6A;
+  animation: netBlink 1s ease-in-out infinite;
+}
+@keyframes netBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .net-dot { animation: none; } }
 .p-seat {
   flex: 0 0 auto;
   width: 26px; height: 26px;

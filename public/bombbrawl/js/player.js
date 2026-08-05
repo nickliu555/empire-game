@@ -58,6 +58,12 @@
   const finalTitle = el('finalTitle');
   const finalList = el('finalList');
   const rotateHint = el('rotateHint');
+  const netPill = el('netPill');
+
+  /** Show/hide the "Reconnecting…" pill. */
+  function setNetPill(on) {
+    if (netPill) netPill.hidden = !on;
+  }
   const gamepadBadge = el('gamepadBadge');
   const playerAttribution = el('playerAttribution');
 
@@ -222,14 +228,23 @@
   }
 
   socket.on('connect', function () {
+    setNetPill(false);
     socket.emit('player:reconnect', { playerId: PID }, function (res) {
       if (!res || !res.ok) return bailToJoin(true);
       if (res.player && res.player.name) localStorage.setItem('bombbrawl.playerName', res.player.name);
       if (res.lobby) applyLobby(res.lobby);
       if (res.match) applyMatchSnapshot(res.match);
       else if (res.phase === 'LOBBY') enterWaiting();
+      // The socket that carried the last input is gone, so whatever the thumb is
+      // holding has to be stated again on the new one.
+      resendStick();
     });
   });
+
+  // A dropped link means nothing is reaching the host, so say so rather than
+  // letting the pad look responsive while inputs go nowhere.
+  socket.on('disconnect', function () { setNetPill(true); });
+  socket.io.on('reconnect_attempt', function () { setNetPill(true); });
 
   socket.on('player:rejected', function (p) {
     if (p && p.reason === 'kicked') {
@@ -431,6 +446,15 @@
   // ============================================================
   const DEADZONE = 0.18;
   const SEND_MS = 50;           // ~20 Hz upstream
+  // Input is edge-triggered (only changes are sent), so on a lossy link a single
+  // dropped packet would strand the bomber walking — or standing still — until
+  // the thumb happened to move again. Re-assert the current value this often so
+  // any loss self-corrects within a few frames instead of never.
+  const REASSERT_MS = 300;
+  // Keep re-asserting a resting stick for this long after it settles, so a lost
+  // "stop" can't leave the bomber marching into a blast. Once it's been quiet
+  // longer than this there is nothing left to correct, so the phone goes silent.
+  const REST_REASSERT_MS = 2000;
   let stickId = null;           // active pointer id
   const zonePointers = new Map(); // every finger currently down in the stick zone
   let originX = 0, originY = 0; // where the finger first landed
@@ -438,6 +462,7 @@
   let vx = 0, vy = 0;           // current normalised vector
   let sentX = 0, sentY = 0;
   let lastSend = 0;
+  let lastChange = 0;           // when vx/vy last actually changed
   let sendTimer = null;
 
   function canControl() {
@@ -488,7 +513,6 @@
     lastSend = Date.now();
     socket.emit('in', { x: Math.round(vx * 100) / 100, y: Math.round(vy * 100) / 100 });
   }
-
   /**
    * Send the stick's current value again, ignoring the de-duplication. The host
    * drops any input that arrives before the round is live or while it is
@@ -501,6 +525,27 @@
     flushSend();
   }
 
+  /**
+   * Heartbeat that repairs lost input. The host only ever acts on the last
+   * vector it received, so simply re-stating it is safe to repeat and makes the
+   * controller self-healing: a packet dropped by a bad connection — or thrown
+   * away by the server because the round wasn't live yet — is replaced within
+   * REASSERT_MS instead of being lost for good.
+   */
+  setInterval(function () {
+    if (!socket.connected || currentView !== 'play') return;
+    if (Date.now() - lastSend < REASSERT_MS) return;
+    const moving = vx !== 0 || vy !== 0;
+    if (!moving && Date.now() - lastChange > REST_REASSERT_MS) return;
+    resendStick();
+  }, REASSERT_MS);
+
+  /** Single place vx/vy change, so the heartbeat knows how fresh the value is. */
+  function setVec(nx, ny) {
+    if (nx !== vx || ny !== vy) lastChange = Date.now();
+    vx = nx; vy = ny;
+  }
+
   function updateVector(clientX, clientY) {
     let dx = clientX - originX;
     let dy = clientY - originY;
@@ -510,7 +555,7 @@
     const nx = dx / radius;
     const ny = dy / radius;
     const mag = Math.hypot(nx, ny);
-    if (mag < DEADZONE) { vx = 0; vy = 0; } else { vx = nx; vy = ny; }
+    if (mag < DEADZONE) setVec(0, 0); else setVec(nx, ny);
     queueSend();
   }
 
@@ -518,7 +563,7 @@
   function applyVector(nx, ny) {
     const mag = Math.hypot(nx, ny);
     if (mag > 1) { nx /= mag; ny /= mag; }
-    if (mag < DEADZONE) { vx = 0; vy = 0; } else { vx = nx; vy = ny; }
+    if (mag < DEADZONE) setVec(0, 0); else setVec(nx, ny);
     setKnob(vx * radius, vy * radius);
     queueSend();
   }
@@ -590,7 +635,7 @@
     stickBase.style.top = '';
     setKnob(0, 0);
     if (vx !== 0 || vy !== 0 || sentX !== 0 || sentY !== 0) {
-      vx = 0; vy = 0;
+      setVec(0, 0);
       flushSend();
     }
   }

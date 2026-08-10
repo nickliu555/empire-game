@@ -460,6 +460,19 @@
   let sdStarted = false;
   let prevHud = {};
 
+  /**
+   * With drops off nobody can earn anything mid-round, so everyone spawns on
+   * the preset loadout instead — otherwise a round is four bombers stuck at a
+   * single one-tile bomb, which never resolves.
+   */
+  function startLoadout() { return powerUps ? null : BB.PRESET_LOADOUT; }
+
+  /** Stats a bomber starts on, in HUD shape — used before the world exists. */
+  function startHud() {
+    const l = startLoadout() || BB.BASE_LOADOUT;
+    return { bombs: l.bombs, fire: l.fire, speed: l.speedTier, kick: !!l.kick };
+  }
+
   // ---------------- Pause ----------------
   // The whole simulation runs in this browser, so pausing means: stop stepping
   // the world/clock in loop(), and freeze every wall-clock timer so the
@@ -550,7 +563,7 @@
   function beginRound(r) {
     round = r;
     const seed = (Math.random() * 2147483647) | 0;
-    world = new BB.World({ powerUps: powerUps });
+    world = new BB.World({ powerUps: powerUps, startLoadout: startLoadout() });
     world.reset(seed, roster);
     world.frozen = true;
     if (!renderer) renderer = new window.BombBrawlRender.Renderer(canvas, world);
@@ -568,6 +581,8 @@
     requestAnimationFrame(function () { if (renderer) renderer.resize(); });
     socket.emit('host:roundStart', { round: round, seed: seed, durationSec: roundLengthSec });
     socket.emit('host:board', { board: { round: round, gamePoints: gamePoints } });
+    // Phones need their stats during the countdown — the tick only emits once play starts.
+    emitHudChanges();
     playLookUp();
     beginCountdown();
   }
@@ -794,7 +809,7 @@
       }
       for (let k = 0; k < pipsEl.children.length; k++) pipsEl.children[k].classList.toggle('on', k < have);
 
-      const h = p ? world.hudOf(p) : { bombs: 1, fire: 1, speed: 0, kick: false };
+      const h = p ? world.hudOf(p) : startHud();
       setStat(card, 'bombs', '💣 ' + h.bombs, false);
       setStat(card, 'fire', '🔥 ' + h.fire, false);
       setStat(card, 'speed', '👟 ' + h.speed, h.speed === 0);

@@ -35,6 +35,12 @@
     { type: POW.KICK, w: 16 },
   ];
 
+  // What a bomber spawns with. BASE is the classic start for a drops game —
+  // everything beyond it has to be earned off the floor. PRESET is handed to
+  // everyone when drops are turned off, so a no-items round still moves.
+  var BASE_LOADOUT = { bombs: 1, fire: 1, speedTier: 0, kick: false };
+  var PRESET_LOADOUT = { bombs: 3, fire: 3, speedTier: 1, kick: true };
+
   // ---------------- Bombers ----------------
   var P_R = 0.38;             // half-size of a bomber's collision box
   var BASE_SPEED = 3.6;       // tiles/sec at speed tier 0
@@ -62,6 +68,13 @@
   ];
 
   var EPS = 1e-4;
+
+  /** Coerce a loadout stat to a whole number inside the engine's limits. */
+  function clampStat(v, fallback, lo, hi) {
+    var n = Math.round(Number(v));
+    if (!isFinite(n)) n = fallback;
+    return Math.max(lo, Math.min(hi, n));
+  }
 
   // Deterministic PRNG so a round's arena can be reproduced from its seed.
   function mulberry32(a) {
@@ -111,6 +124,8 @@
     this.W = W;
     this.H = H;
     this.powerUps = opts.powerUps !== false;
+    // Stats every bomber spawns with. Omit for the classic base start.
+    this.startLoadout = opts.startLoadout || null;
     this.frozen = true;        // true during the countdown / pause
     this.seed = 0;
     this.grid = [];
@@ -195,6 +210,12 @@
       }
     }
 
+    var start = this.startLoadout || BASE_LOADOUT;
+    var startBombs = clampStat(start.bombs, BASE_LOADOUT.bombs, 1, MAX_BOMBS);
+    var startFire = clampStat(start.fire, BASE_LOADOUT.fire, 1, MAX_FIRE);
+    var startSpeed = clampStat(start.speedTier, BASE_LOADOUT.speedTier, 0, MAX_SPEED_TIER);
+    var startKick = !!start.kick;
+
     this.players = (roster || []).map(function (p) {
       var sp = SPAWNS[p.seat % SPAWNS.length];
       return {
@@ -210,11 +231,11 @@
         dyingT: 0,
         moving: false,
         walk: 0,
-        bombs: 1,
+        bombs: startBombs,
         bombsOut: 0,
-        fire: 1,
-        speedTier: 0,
-        kick: false,
+        fire: startFire,
+        speedTier: startSpeed,
+        kick: startKick,
         in: { x: 0, y: 0 },
         wantBomb: false,
         killedBy: null,
@@ -775,6 +796,8 @@
     MAX_SPEED_TIER: MAX_SPEED_TIER,
     BASE_SPEED: BASE_SPEED,
     SPEED_STEP: SPEED_STEP,
+    BASE_LOADOUT: BASE_LOADOUT,
+    PRESET_LOADOUT: PRESET_LOADOUT,
     SPAWNS: SPAWNS,
     spiralCells: spiralCells,
     mulberry32: mulberry32,

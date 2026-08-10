@@ -510,6 +510,58 @@ section('Power-ups');
   ok(w5.items.has(firstHidden), 'a generated power-up survives onto the floor');
 }
 
+// ---------------- Starting loadout ----------------
+section('Starting loadout');
+{
+  // Default: the classic base start, everything has to be earned.
+  const base = makeWorld(4);
+  ok(base.players.every((p) => p.bombs === 1 && p.fire === 1 && p.speedTier === 0 && !p.kick),
+    'no startLoadout spawns everyone on base stats');
+
+  // Preset mode: drops off, but every bomber starts kitted out so a round
+  // without items still resolves.
+  const L = BB.PRESET_LOADOUT;
+  ok(L.bombs > 1 && L.fire > 1 && L.speedTier > 0 && L.kick === true,
+    'the preset loadout is an actual upgrade over base');
+  const pre = makeWorld(4, { powerUps: false, startLoadout: L });
+  ok(pre.players.every((p) => p.bombs === L.bombs && p.fire === L.fire &&
+    p.speedTier === L.speedTier && p.kick === L.kick), 'preset loadout applied to every bomber');
+  ok(pre.players.every((p) => p.bombsOut === 0), 'preset loadout still starts with no bombs out');
+  ok(pre.speedOf(pre.players[0]) > BB.BASE_SPEED, 'preset speed tier makes you faster');
+  ok(pre.hidden.size === 0, 'preset mode buries nothing in the crates');
+
+  // ...and nothing can appear mid-round either: a death leaves no drop.
+  const victim = pre.players[0];
+  place(victim, 5, 5);
+  pre.grid[5][5] = TILE.FLOOR;
+  pre._kill(victim, 'test');
+  ok(pre.items.size === 0, 'preset mode drops nothing when a bomber falls');
+
+  // The same drop in a drops game does leave a prize, so the check above is real.
+  const drops = makeWorld(4);
+  const fallen = drops.players[0];
+  place(fallen, 5, 5);
+  drops.grid[5][5] = TILE.FLOOR;
+  drops.items.clear();
+  drops._kill(fallen, 'test');
+  ok(drops.items.size === 1, 'drops mode still leaves a power-up where a bomber fell');
+
+  // A silly loadout is clamped to the engine's limits rather than trusted.
+  const wild = makeWorld(2, { startLoadout: { bombs: 999, fire: 999, speedTier: 99, kick: true } });
+  ok(wild.players[0].bombs === BB.MAX_BOMBS, 'loadout bombs clamp to ' + BB.MAX_BOMBS);
+  ok(wild.players[0].fire === BB.MAX_FIRE, 'loadout fire clamps to ' + BB.MAX_FIRE);
+  ok(wild.players[0].speedTier === BB.MAX_SPEED_TIER, 'loadout speed clamps to tier ' + BB.MAX_SPEED_TIER);
+  const junk = makeWorld(2, { startLoadout: { bombs: 0, fire: 0, speedTier: -5 } });
+  ok(junk.players[0].bombs === 1 && junk.players[0].fire === 1 && junk.players[0].speedTier === 0,
+    'a below-floor loadout clamps back up to base');
+
+  // Reset must re-apply the loadout, not leave last round's earned stats behind.
+  const again = makeWorld(2, { powerUps: false, startLoadout: L });
+  again._applyItem(again.players[0], POW.BOMB);
+  again.reset(4321, roster(2));
+  ok(again.players[0].bombs === L.bombs, 'a fresh round re-applies the preset loadout');
+}
+
 // ---------------- Sudden death ----------------
 section('Sudden death');
 {

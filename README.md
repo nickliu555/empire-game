@@ -123,11 +123,11 @@ The host can **Pause** at any time. Each round rotates to a different maze.
 A four-way bomber battle on the Host screen — blast open the arena, grab power-ups, and be the last one standing.
 
 1. Players scan the QR code to join (**2–4 players**); the host can **Add CPU** bombers to fill in
-2. The host **drags the roster into spawn order** — seat 1 starts **top-left**, 2 **top-right**, 3 **bottom-left**, 4 **bottom-right** — then sets the **round wins** needed, the **round length**, **power-ups on/off** and **CPU difficulty**, and hits **Start**
+2. The host **drags the roster into spawn order** — seat 1 starts **top-left**, 2 **top-right**, 3 **bottom-left**, 4 **bottom-right** — then sets the **round wins** needed, the **round length**, the **power-ups mode** and **CPU difficulty**, and hits **Start**
 3. Each phone is a **thumbstick + Bomb button**
 4. Bombs explode in a **cross** after a short fuse, blasting the **first crate** in each direction — and any bomber caught in the flames, **including you**
 5. A bomb caught in another blast **detonates instantly**, so chain reactions can sweep the whole arena
-6. Blown-up crates reveal power-ups: **Extra Bomb**, **Fire** (bigger blast), **Speed**, and **Kick** (walk into a bomb to shove it)
+6. Power-ups come in two flavours: on **Drops**, blown-up crates reveal **Extra Bomb**, **Fire** (bigger blast), **Speed** and **Kick** (walk into a bomb to shove it); on **Preset**, nothing drops and every bomber starts loaded with **3 bombs**, **fire 3**, **+1 speed** and **kick**
 7. If the clock runs low, **sudden death** begins — indestructible blocks slam down in a spiral and crush anyone left in the open
 8. **Last bomber standing wins the round**; if everyone dies in the same blast it's a **draw** and the round is replayed
 9. **First to the target number of round wins takes the game!**

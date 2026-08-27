@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Camo · Host</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="/shared/iris-preload.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/shared/topbar.css" />
+  <link rel="stylesheet" href="/shared/modal.css" />
+  <link rel="stylesheet" href="/shared/iris.css" />
+  <link rel="stylesheet" href="/camo/css/base.css" />
+  <link rel="stylesheet" href="/camo/css/host.css" />
+  <script src="/shared/topbar.js" defer></script>
+  <script src="/shared/modal.js" defer></script>
+  <script src="/shared/iris.js" defer></script>
+</head>
+<body class="host">
+  <div class="host-shell">
+    <div class="game-topbar">
+      <span class="gtb-brand">🦎 Camo</span>
+      <div class="gtb-controls">
+        <a href="/" id="hubBtn" class="gtb-btn" title="Back to hub (resets game)">← Hub</a>
+        <button class="gtb-btn" type="button" data-gtb-help-open="helpOverlay" title="How to play">? Help</button>
+        <div class="gtb-settings-wrapper">
+          <button class="gtb-btn" type="button" data-gtb-settings-toggle aria-controls="settingsPanel" aria-expanded="false" title="Settings">⚙️ Settings</button>
+          <div class="gtb-settings-panel" id="settingsPanel" hidden>
+            <button id="fullscreenBtn" class="gtb-btn" type="button" title="Toggle fullscreen">⛶ Fullscreen</button>
+            <button id="muteReactionsBtn" class="gtb-btn" type="button" data-gtb-settings-keep-open title="Mute player reactions">🔔 Reactions</button>
+            <div class="gtb-divider"></div>
+            <button id="resetBtn" class="gtb-btn gtb-btn-danger" type="button" title="Reset the whole game">Reset game</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="host-main">
+      <!-- Lobby -->
+      <section class="view active" id="view-lobby">
+        <div class="lobby-grid">
+          <div class="qr-panel">
+            <h2>Scan to join</h2>
+            <p>Or type the URL below on your phone</p>
+            <img id="qrImg" alt="Join QR code" width="420" height="420" />
+            <div class="join-url" id="joinUrl"></div>
+          </div>
+          <div class="players-panel">
+            <div class="header">
+              <h3>🦎 Camo</h3>
+              <div class="count"><span id="playerCount">0</span> / <span id="playerMax">8</span></div>
+            </div>
+            <div class="cap-note">3–8 players · tap a name to remove</div>
+            <div class="player-list" id="playerList"></div>
+            <div class="lobby-config">
+              <div class="config-row">
+                <label for="targetSelect">First to…</label>
+                <select id="targetSelect">
+                  <option value="3">3 points</option>
+                  <option value="5" selected>5 points</option>
+                  <option value="7">7 points</option>
+                  <option value="10">10 points</option>
+                </select>
+              </div>
+              <div class="config-row config-row-check">
+                <label for="autoAdvanceCheck">
+                  <input type="checkbox" id="autoAdvanceCheck" />
+                  Auto-advance reveal
+                </label>
+              </div>
+            </div>
+            <div class="lobby-actions">
+              <button id="startBtn" class="btn-accent">Start the game</button>
+              <div class="start-error" id="startError" hidden></div>
+            </div>
+          </div>
+        </div>
+        <div class="lobby-attribution">Developed by Nick Liu (with help from Claude)</div>
+      </section>
+
+      <!-- Intro -->
+      <section class="view" id="view-intro">
+        <div class="intro-view">
+          <div class="intro-hint">Phones out — nobody peek at your neighbour</div>
+          <h1 class="intro-title">Dealing the words…</h1>
+          <div class="intro-countdown" id="introCountdown">4</div>
+          <p class="intro-sub">One of you will get no word at all…</p>
+        </div>
+      </section>
+
+      <!-- Role (secret word delivery) -->
+      <section class="view" id="view-role">
+        <div class="round-view">
+          <div class="round-meta">Round <span id="roleRound">1</span> · First to <span id="roleTarget">5</span></div>
+          <div class="topic-pill" id="roleTopic">Topic</div>
+          <h1 class="round-title">Check your phone 👀</h1>
+          <p class="round-sub">Everyone gets the secret word — except the Chameleon. Hold the card to peek.</p>
+          <div class="grid-panel grow-region">
+            <div class="word-grid" id="roleGrid"></div>
+          </div>
+          <div class="progress-pill"><span id="roleAcked">0</span> / <span id="roleTotal">0</span> ready</div>
+        </div>
+      </section>
+
+      <!-- Clues (one word each, in turn) -->
+      <section class="view" id="view-clues">
+        <div class="round-view">
+          <div class="round-meta">Round <span id="cluesRound">1</span> · Say one word out loud</div>
+          <div class="topic-pill" id="cluesTopic">Topic</div>
+          <div class="speaker-banner" id="cluesSpeaker">—</div>
+          <div class="grow-region">
+            <div class="grid-panel">
+              <div class="word-grid" id="cluesGrid"></div>
+            </div>
+            <div class="side-panel">
+              <h3>Speaking order</h3>
+              <div class="side-scroll" id="cluesOrder"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Discuss -->
+      <section class="view" id="view-discuss">
+        <div class="round-view">
+          <div class="round-meta">Round <span id="discussRound">1</span></div>
+          <h1 class="round-title">Talk it out 🗣️</h1>
+          <p class="round-sub">Who sounded like they were guessing? Accuse, defend, then vote.</p>
+          <div class="grow-region">
+            <div class="grid-panel">
+              <div class="word-grid grid-small" id="discussGrid"></div>
+            </div>
+            <div class="side-panel">
+              <h3>Who said what</h3>
+              <div class="side-scroll" id="discussOrder"></div>
+            </div>
+          </div>
+          <div class="reveal-actions">
+            <button id="voteBtn" class="btn-primary">Start the vote →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Vote -->
+      <section class="view" id="view-vote">
+        <div class="round-view">
+          <div class="round-meta">Round <span id="voteRound">1</span></div>
+          <h1 class="round-title">Who is the Chameleon? 🦎</h1>
+          <p class="round-sub">Select a name on your phone — you can't vote for yourself.</p>
+          <div class="grid-panel grow-region">
+            <div class="word-grid grid-small" id="voteGrid"></div>
+          </div>
+          <div class="progress-pill"><span id="voteCount">0</span> / <span id="voteTotal">0</span> voted</div>
+          <div class="reveal-actions">
+            <button id="closeVoteBtn" class="btn-ghost">Close the vote now</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Guess (caught Chameleon picks the word) -->
+      <section class="view" id="view-guess">
+        <div class="round-view">
+          <div class="round-meta">Round <span id="guessRound">1</span></div>
+          <h1 class="round-title" id="guessTitle">Caught!</h1>
+          <p class="round-sub" id="guessSub">One shot to name the secret word and steal a point.</p>
+          <div class="grow-region">
+            <div class="grid-panel">
+              <div class="word-grid" id="guessGrid"></div>
+            </div>
+            <div class="side-panel">
+              <h3>The vote</h3>
+              <div class="side-scroll"><div class="tally-list" id="guessTally"></div></div>
+            </div>
+          </div>
+          <div class="reveal-actions">
+            <button id="skipGuessBtn" class="btn-ghost">Skip the guess</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Reveal -->
+      <section class="view" id="view-reveal">
+        <div class="round-view">
+          <div class="round-meta">Round <span id="revealRound">1</span> · First to <span id="revealTarget">5</span></div>
+          <h2 class="outcome-banner" id="outcomeBanner">—</h2>
+          <p class="round-sub" id="outcomeSub"></p>
+          <div class="reveal-cols grow-region">
+            <div class="reveal-col">
+              <h3>The word was…</h3>
+              <div class="scroll-region"><div class="word-grid grid-small" id="revealGrid"></div></div>
+            </div>
+            <div class="reveal-col">
+              <h3>Scores</h3>
+              <div class="scroll-region"><div class="lb-panel" id="revealLb"></div></div>
+            </div>
+          </div>
+          <div class="reveal-actions">
+            <button id="nextBtn" class="btn-primary">Next round →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Final -->
+      <section class="view" id="view-final">
+        <div class="final-view">
+          <h2 id="finalTitle">🏆 We have a winner!</h2>
+          <div class="results-intro" id="resultsIntro"></div>
+          <div class="podium" id="podium"></div>
+          <div class="full-lb" id="fullLb"></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- Floating reaction emojis from players -->
+  <div class="reaction-layer" id="reactionLayer" aria-hidden="true"></div>
+  <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/camo/js/host.js"></script>
+
+  <!-- Help modal -->
+  <div class="gtb-help-overlay" id="helpOverlay">
+    <div class="gtb-help-modal">
+      <button class="gtb-help-modal-close" type="button" data-gtb-help-close aria-label="Close help">&times;</button>
+      <h2>🦎 Camo</h2>
+      <p>Sixteen words on this screen. Everyone shares one secret word from the grid — except the <strong>Chameleon</strong>, who has no idea which one it is.</p>
+      <ol>
+        <li><strong>Players join</strong> by scanning the QR code — 3 to 8 players</li>
+        <li>Each round shows a <strong>topic and 16 words</strong> here; phones reveal the secret word privately</li>
+        <li>In turn, everyone says <strong>one word out loud</strong> that hints at the secret word</li>
+        <li>Say too little and you look suspicious; say too much and you hand it to the Chameleon</li>
+        <li>Discuss, then <strong>vote</strong> for who you think is faking it</li>            <li>A tie at the top only accuses someone if the Chameleon is in it</li>        <li>Vote wrong and the Chameleon scores <strong>2</strong>; catch them and every correct voter scores <strong>1</strong></li>
+        <li>A caught Chameleon gets <strong>one guess</strong> at the secret word — nail it and they still take <strong>1</strong></li>
+        <li>First player to the target score wins</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>

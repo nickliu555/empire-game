@@ -55,6 +55,19 @@ One random letter, twelve categories, one timer — only answers nobody else tho
 8. Every round draws a **fresh letter** — no letter is ever repeated
 9. **Most points after the final round wins!**
 
+### 🦎 Camo
+Everyone gets the same secret word — except one player, who has to bluff their way through it.
+
+1. The host picks the **target score** (first to 3, 5, 7 or 10 points)
+2. Each round a **topic** and a 4×4 grid of 16 words appear on the big screen
+3. Every phone privately shows the **secret word** — hold the card to peek so nobody can shoulder-surf — but one random player is the **Chameleon** and gets no word at all
+4. Going round in order, each player says **one word out loud** as a clue: specific enough to prove you know the secret word, vague enough not to hand it to the Chameleon
+5. Talk it out, then the host opens the vote and everyone points at who they think the Chameleon is
+6. The player with the **most votes** is accused — if the top vote is tied, only a tie the **Chameleon shares** counts as an accusation, otherwise the **Chameleon escapes for 2 points**
+7. Accuse the right person and the Chameleon gets **one guess** at the secret word from the grid — nail it and they still steal **1 point**
+8. Get it wrong and every player who **voted for the Chameleon** scores **1 point**
+9. **First to the target score wins!**
+
 ### �🔠 Noggle
 A Boggle-style word hunt on a shared, randomly shaken letter grid.
 

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Camo · Playing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#2A1B3D">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/camo/css/base.css" />
+  <link rel="stylesheet" href="/camo/css/player.css" />
+</head>
+<body class="player">
+  <div class="host-absent-overlay" id="hostAbsentOverlay" hidden>
+    <div class="host-absent-card">
+      <div class="icon">🦎</div>
+      <div class="title">Waiting for the host…</div>
+      <div class="sub">
+        <span class="pulse-dot"></span>
+        The host is not in the game right now. The screen will unlock automatically when they return.
+      </div>
+    </div>
+  </div>
+
+  <div class="player-top">
+    <div class="player-name" id="playerName">—</div>
+    <div class="player-score" id="playerScore">0 pts</div>
+  </div>
+
+  <div class="player-view" id="playerView">
+    <div class="state-card" id="stateCard">
+      <h2>Connecting…</h2>
+      <p>Hang tight.</p>
+    </div>
+  </div>
+
+  <div class="reaction-bar" id="reactionBar" hidden>
+    <button type="button" class="reaction-btn" data-reaction="0" aria-label="laugh">😂</button>
+    <button type="button" class="reaction-btn" data-reaction="1" aria-label="fire">🔥</button>
+    <button type="button" class="reaction-btn" data-reaction="2" aria-label="eyes">👀</button>
+    <button type="button" class="reaction-btn" data-reaction="3" aria-label="party">🎉</button>
+    <button type="button" class="reaction-btn" data-reaction="4" aria-label="shock">😱</button>
+    <button type="button" class="reaction-btn" data-reaction="5" aria-label="angry">😡</button>
+    <div class="reaction-cooldown" id="reactionCooldown" hidden></div>
+  </div>
+
+  <div class="player-attribution" id="playerAttribution" hidden>Developed by Nick Liu (with help from Claude)</div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/camo/js/player.js"></script>
+</body>
+</html>

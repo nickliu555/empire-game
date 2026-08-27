@@ -14,7 +14,9 @@
     "itest:rankfive": "node scripts/itest-rankfive.js",
     "test:bombbrawl": "node scripts/test-bombbrawl-engine.js",
     "test:bombbrawl-bot": "node scripts/test-bombbrawl-bot.js",
-    "itest:bombbrawl": "node scripts/itest-bombbrawl.js"
+    "itest:bombbrawl": "node scripts/itest-bombbrawl.js",
+    "gen:camo": "node scripts/gen-camo-topics.js",
+    "itest:camo": "node scripts/itest-camo.js"
   },
   "dependencies": {
     "dotenv": "^17.3.1",

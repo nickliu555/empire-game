@@ -1,0 +1,132 @@
+:root {
+  /* Camo — deep violet + lime palette */
+  --bg: #2A1B3D;             /* violet (host backdrop base) */
+  --bg-deep: #1B1029;        /* darker violet for gradients */
+  --surface: #FFFFFF;
+  --ink: #241634;
+  --ink-soft: #5b4a70;
+  --muted: #9186a3;
+
+  --accent: #5B2A86;         /* violet */
+  --accent-deep: #3F1C60;
+  --accent-soft: #8B5FBF;
+  --lime: #A3E635;           /* the chameleon green */
+  --lime-deep: #7CB518;
+  --warn: #E2506B;
+  --good: #4E9E5B;
+  --gold: #F0A83A;
+
+  --radius: 14px;
+  --shadow: 0 8px 30px rgba(12, 6, 22, 0.28);
+  --shadow-strong: 0 12px 40px rgba(12, 6, 22, 0.42);
+
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+
+  /* Shared modal theme (see /shared/modal.css) */
+  --gm-overlay-bg: rgba(20, 10, 32, 0.6);
+  --gm-surface: var(--surface);
+  --gm-text: var(--ink);
+  --gm-border: rgba(0, 0, 0, 0.08);
+  --gm-radius: var(--radius);
+  --gm-btn-secondary-bg: #f0ecf5;
+  --gm-btn-secondary-fg: var(--ink-soft);
+  --gm-btn-secondary-border: rgba(0, 0, 0, 0.08);
+  --gm-btn-secondary-hover-border: rgba(0, 0, 0, 0.18);
+  --gm-btn-secondary-hover-fg: var(--ink);
+  --gm-btn-primary-bg: var(--accent);
+  --gm-btn-primary-fg: #fff;
+  --gm-btn-primary-border: var(--accent);
+  --gm-btn-primary-hover: var(--accent-deep);
+  --gm-btn-danger-bg: var(--warn);
+  --gm-btn-danger-fg: #fff;
+  --gm-btn-danger-hover: #c23a53;
+  --gm-toast-bg: var(--ink);
+  --gm-toast-fg: #fff;
+
+  /* Topbar theme (see /shared/topbar.css) */
+  --gtb-bg: rgba(32, 19, 48, 0.85);
+  --gtb-fg: #fff;
+  --gtb-btn-bg: rgba(255, 255, 255, 0.12);
+  --gtb-btn-fg: #fff;
+  --gtb-btn-hover-bg: rgba(255, 255, 255, 0.22);
+  --gtb-accent: var(--lime);
+  --gtb-danger: var(--warn);
+
+  /* Iris page-transition backdrop */
+  --iris-bg: #2A1B3D;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior-y: contain;
+}
+
+h1, h2, h3 { font-family: var(--font-sans); font-weight: 800; letter-spacing: -0.01em; }
+
+.player-attribution {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  padding: 14px 12px 18px;
+}
+.player-attribution[hidden] { display: none; }
+
+button, .btn-ghost {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: var(--ink);
+  color: white;
+  padding: 14px 22px;
+  border-radius: var(--radius);
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-block;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 0.08s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+button:active:not(:disabled) { transform: translateY(0); }
+/* iOS ignores touch-action on disabled controls; make them inert so the tap
+   falls through to the touch-action: manipulation container behind them. */
+button:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+@media (hover: hover) {
+  button:hover:not(:disabled), .btn-ghost:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+}
+
+.btn-primary { background: var(--lime-deep); }
+.btn-accent  { background: var(--accent); color: #fff; }
+.btn-lime    { background: var(--lime); color: #24380a; }
+.btn-ghost   { background: rgba(255, 255, 255, 0.1); color: white; border: 1.5px solid rgba(255,255,255,0.4); }
+.btn-ghost.btn-muted { background: var(--warn); color: white; border-color: var(--warn); }
+
+input[type="text"], select {
+  font-family: inherit;
+  font-size: 18px;
+  padding: 14px 16px;
+  border: 1.5px solid #ddd3e8;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease;
+  width: 100%;
+}
+input[type="text"]:focus, select:focus { border-color: var(--accent-soft); }
+
+.brand {
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 28px;
+  color: white;
+  letter-spacing: -0.01em;
+}

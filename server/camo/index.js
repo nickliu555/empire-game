@@ -4,8 +4,8 @@ const path = require('path');
 const { Server } = require('socket.io');
 const QRCode = require('qrcode');
 
-const { Game, PHASES, MIN_PLAYERS, WORDS_PER_PLAYER, MAX_WORD_LEN } = require('./game');
-const words = require('./words');
+const { Game, PHASES, MIN_PLAYERS, MAX_PLAYERS } = require('./game');
+const topics = require('./topics');
 
 const HOST_ROOM = 'hosts';
 const PLAYER_ROOM = 'players';
@@ -15,14 +15,14 @@ const INACTIVITY_RESET_MS = 60 * 60 * 1000;
 const HOST_GRACE_MS = 15000;
 
 /**
- * Mount the Ranking game onto the hub's Express app and HTTP server.
+ * Mount the Camo game onto the hub's Express app and HTTP server.
  *
  * @param {import('express').Application} app
  * @param {import('http').Server} httpServer
  * @param {Object} opts
  * @param {() => string} opts.getPublicBaseUrl
  */
-function mountRanking(app, httpServer, opts) {
+function mountCamo(app, httpServer, opts) {
   const getPublicBaseUrl = (opts && opts.getPublicBaseUrl) || (() => '');
 
   // ---------------- Game state ----------------
@@ -54,24 +54,24 @@ function mountRanking(app, httpServer, opts) {
   }, 60 * 1000).unref();
 
   // ---------------- Page routes ----------------
-  const pub = (f) => path.join(__dirname, '..', '..', 'public', 'ranking', f);
-  app.get('/ranking/host', (_req, res) => res.sendFile(pub('host.html')));
-  app.get('/ranking/join', (_req, res) => res.sendFile(pub('join.html')));
-  app.get('/ranking/play', (_req, res) => res.sendFile(pub('player.html')));
+  const pub = (f) => path.join(__dirname, '..', '..', 'public', 'camo', f);
+  app.get('/camo/host', (_req, res) => res.sendFile(pub('host.html')));
+  app.get('/camo/join', (_req, res) => res.sendFile(pub('join.html')));
+  app.get('/camo/play', (_req, res) => res.sendFile(pub('player.html')));
 
   // ---------------- REST endpoints ----------------
-  app.get('/api/ranking/config', (_req, res) => {
+  app.get('/api/camo/config', (_req, res) => {
     const base = getPublicBaseUrl();
-    res.json({ joinUrl: `${base}/ranking/join`, wordsTotal: words.count() });
+    res.json({ joinUrl: `${base}/camo/join`, topicsTotal: topics.count(), maxPlayers: MAX_PLAYERS });
   });
 
-  app.get('/api/ranking/qr', async (req, res) => {
+  app.get('/api/camo/qr', async (req, res) => {
     const url = String(req.query.url || '');
     if (!url || url.length > 500) return res.status(400).send('bad url');
     try {
       const svg = await QRCode.toString(url, {
         type: 'svg', margin: 1, width: 320,
-        color: { dark: '#5A3E00', light: '#FFFFFF' },
+        color: { dark: '#2A1B3D', light: '#FFFFFF' },
       });
       res.setHeader('Content-Type', 'image/svg+xml');
       res.setHeader('Cache-Control', 'no-store');
@@ -88,7 +88,7 @@ function mountRanking(app, httpServer, opts) {
     httpServer._triviaIo = new Server(httpServer, { cors: { origin: '*' } });
   }
   const io = httpServer._triviaIo;
-  const ns = io.of('/ranking');
+  const ns = io.of('/camo');
 
   // ---------------- Broadcast helpers ----------------
   function broadcastLobby() {
@@ -96,46 +96,66 @@ function mountRanking(app, httpServer, opts) {
       phase: game.phase,
       players: game.getLobbyPlayers(),
       total: game.players.size,
+      max: MAX_PLAYERS,
     });
   }
   function broadcastIntro() { ns.emit('state:intro', game.getIntroPublic()); }
 
-  // On entering COLLECT, tell EVERYONE (players render the form, host renders
-  // progress). Progress-only updates thereafter go to the host room only, so a
-  // player typing in their form is never clobbered by a re-render.
-  function broadcastCollectAll() { ns.emit('state:collect', game.getCollectPublic()); }
-  function broadcastCollectHost() { ns.to(HOST_ROOM).emit('state:collect', game.getCollectPublic()); }
-
-  function socketOf(playerId) {
-    const p = game.players.get(playerId);
-    return p && p.socketId ? p.socketId : null;
+  // The grid is public; the secret word goes to one socket at a time.
+  function broadcastRole() {
+    ns.emit('state:role', game.getRolePublic());
+    sendRoles();
   }
-
-  function broadcastRank() {
-    ns.emit('state:rank', game.getRankPublic());
-    const r = game.currentRound();
-    if (!r) return;
-    const sid = socketOf(r.rankerId);
-    const items = game.getRankerItems(r.rankerId);
-    if (sid && items && !items.alreadyRanked) ns.to(sid).emit('you:rankItems', items);
+  function sendRoles(target) {
+    for (const p of game.players.values()) {
+      if (!p.socketId || !p.connected) continue;
+      if (target && p.socketId !== target) continue;
+      const priv = game.getRolePrivate(p.id);
+      if (priv) ns.to(p.socketId).emit('you:role', priv);
+    }
   }
-
-  function broadcastDiscuss() {
-    ns.emit('state:discuss', game.getDiscussPublic());
-    const r = game.currentRound();
-    if (!r) return;
-    const sid = socketOf(r.rankerId);
-    const secret = game.getRankerSecret(r.rankerId);
-    if (sid && secret) ns.to(sid).emit('you:rankerSecret', secret);
+  function broadcastClues() { ns.emit('state:clues', game.getCluesPublic()); }
+  function broadcastDiscuss() { ns.emit('state:discuss', game.getDiscussPublic()); }
+  function broadcastVote() { ns.emit('state:vote', game.getVotePublic()); }
+  function broadcastGuess() { ns.emit('state:guess', game.getGuessPublic()); }
+  function broadcastReveal() {
+    ns.emit('state:reveal', game.getRevealPublic());
+    for (const p of game.players.values()) {
+      if (!p.socketId) continue;
+      const r = game.getPlayerResult(p.id);
+      if (r) ns.to(p.socketId).emit('player:result', r);
+    }
   }
-
-  function broadcastConsensus() { ns.emit('state:consensus', game.getConsensusPublic()); }
-  function broadcastRevealTransition() { ns.emit('state:revealTransition', game.getRevealTransitionPublic()); }
-  function broadcastReveal() { ns.emit('state:reveal', game.getRevealPublic()); }
   function broadcastFinal() { ns.emit('state:final', game.getFinalPublic()); }
+  function broadcastRoleAckCount() {
+    ns.to(HOST_ROOM).emit('host:roleAckCount', {
+      acked: game.roleAckedCount(), total: game.rosterCount(),
+    });
+  }
+  function broadcastVoteCount() {
+    ns.to(HOST_ROOM).emit('host:voteCount', {
+      voted: game.votedCount(), total: game.rosterCount(),
+    });
+  }
 
-  game.onIntroEnd = () => broadcastRank();
-  game.onRevealReady = () => broadcastReveal();
+  // Push whatever screen the current phase calls for.
+  function broadcastPhase(phase) {
+    if (phase === PHASES.ROLE) broadcastRole();
+    else if (phase === PHASES.CLUES) broadcastClues();
+    else if (phase === PHASES.DISCUSS) broadcastDiscuss();
+    else if (phase === PHASES.VOTE) broadcastVote();
+    else if (phase === PHASES.GUESS) broadcastGuess();
+    else if (phase === PHASES.REVEAL) broadcastReveal();
+    else if (phase === PHASES.FINAL) broadcastFinal();
+  }
+
+  game.onIntroEnd = () => broadcastRole();
+  game.onRoleEnd = () => broadcastClues();
+  game.onRevealEnd = () => {
+    const res = game.advanceReveal();
+    if (!res.ok) return;
+    broadcastPhase(res.phase);
+  };
 
   // ---------------- Socket handlers ----------------
   ns.on('connection', (socket) => {
@@ -143,7 +163,11 @@ function mountRanking(app, httpServer, opts) {
     let playerId = null;
 
     socket.on('query:status', (_p, ack) => {
-      ack && ack({ hostPresent: isHostPresent(), phase: game.phase });
+      ack && ack({
+        hostPresent: isHostPresent(),
+        phase: game.phase,
+        full: game.players.size >= MAX_PLAYERS,
+      });
     });
 
     // ---- Player flows ----
@@ -156,7 +180,12 @@ function mountRanking(app, httpServer, opts) {
       role = 'player';
       playerId = pid;
       socket.join(PLAYER_ROOM);
-      ack && ack({ ok: true, player: { id: res.player.id, name: res.player.name }, reactionsMuted, hostPresent: isHostPresent() });
+      ack && ack({
+        ok: true,
+        player: { id: res.player.id, name: res.player.name },
+        reactionsMuted,
+        hostPresent: isHostPresent(),
+      });
       broadcastLobby();
     });
 
@@ -169,80 +198,78 @@ function mountRanking(app, httpServer, opts) {
       socket.join(PLAYER_ROOM);
       const payload = {
         ok: true,
-        player: { id: res.player.id, name: res.player.name },
+        player: { id: res.player.id, name: res.player.name, score: res.player.score },
         phase: game.phase,
         reactionsMuted,
         hostPresent: isHostPresent(),
         total: game.players.size,
+        target: game.targetScore,
       };
       if (game.phase === PHASES.INTRO) payload.intro = game.getIntroPublic();
-      else if (game.phase === PHASES.COLLECT) payload.collect = game.getCollectPersonal(pid);
-      else if (game.phase === PHASES.RANK) {
-        payload.rank = game.getRankPublic();
-        const items = game.getRankerItems(pid);
-        if (items && !items.alreadyRanked) payload.rankItems = items;
+      else if (game.phase === PHASES.ROLE) {
+        payload.role = game.getRolePublic();
+        payload.myRole = game.getRolePrivate(pid);
+        payload.acked = res.player.roleAckRound === game.roundIndex;
+      } else if (game.phase === PHASES.CLUES) {
+        payload.clues = game.getCluesPublic();
+        payload.myRole = game.getRolePrivate(pid);
       } else if (game.phase === PHASES.DISCUSS) {
         payload.discuss = game.getDiscussPublic();
-        const secret = game.getRankerSecret(pid);
-        if (secret) payload.rankerSecret = secret;
+        payload.myRole = game.getRolePrivate(pid);
+      } else if (game.phase === PHASES.VOTE) {
+        payload.vote = game.getVotePublic();
+        payload.myRole = game.getRolePrivate(pid);
+        payload.myVote = res.player.votedRound === game.roundIndex ? res.player.votedFor : null;
+      } else if (game.phase === PHASES.GUESS) {
+        payload.guess = game.getGuessPublic();
       } else if (game.phase === PHASES.REVEAL) {
-        if (game.revealTransition) payload.revealTransition = game.getRevealTransitionPublic();
-        else payload.reveal = game.getRevealPublic();
-      } else if (game.phase === PHASES.FINAL) payload.final = game.getFinalPublic();
+        payload.reveal = game.getRevealPublic();
+        payload.myResult = game.getPlayerResult(pid);
+      } else if (game.phase === PHASES.FINAL) {
+        payload.final = game.getFinalPublic();
+      }
       ack && ack(payload);
       broadcastLobby();
+      if (game.phase === PHASES.ROLE) broadcastRoleAckCount();
+      if (game.phase === PHASES.VOTE) broadcastVoteCount();
     });
 
-    socket.on('player:words', ({ words: submitted } = {}, ack) => {
+    socket.on('player:roleAck', (_p, ack) => {
       touchActivity();
       if (!playerId) return ack && ack({ ok: false, reason: 'not-joined' });
-      if (!isHostPresent()) return ack && ack({ ok: false, reason: 'host-absent' });
-      const res = game.submitWords({ playerId, words: submitted });
+      const res = game.ackRole({ playerId });
       if (!res.ok) return ack && ack(res);
-      ack && ack({ ok: true, words: res.words, phase: game.phase });
-      // No auto-advance: the host starts the game once everyone is ready. Update
-      // host progress (and the ready/Start state) only.
-      broadcastCollectHost();
+      ack && ack({ ok: true, acked: res.acked, total: res.total });
+      broadcastRoleAckCount();
+      // _endRole fires onRoleEnd → broadcastClues.
     });
 
-    socket.on('player:editWords', (_p = {}, ack) => {
+    socket.on('player:clueDone', (_p, ack) => {
       touchActivity();
       if (!playerId) return ack && ack({ ok: false, reason: 'not-joined' });
-      if (!isHostPresent()) return ack && ack({ ok: false, reason: 'host-absent' });
-      const res = game.editWords({ playerId });
+      const res = game.clueDone({ playerId });
       if (!res.ok) return ack && ack(res);
-      ack && ack({ ok: true, words: res.words });
-      // They're now unsubmitted → progress ticks down and the host Start retracts.
-      broadcastCollectHost();
+      ack && ack({ ok: true, phase: res.phase });
+      broadcastPhase(res.phase);
     });
 
-    socket.on('player:rank', ({ order } = {}, ack) => {
+    socket.on('player:vote', ({ targetId } = {}, ack) => {
       touchActivity();
       if (!playerId) return ack && ack({ ok: false, reason: 'not-joined' });
-      if (!isHostPresent()) return ack && ack({ ok: false, reason: 'host-absent' });
-      const res = game.submitRanking({ playerId, order });
+      const res = game.castVote({ playerId, targetId });
       if (!res.ok) return ack && ack(res);
-      ack && ack({ ok: true });
-      broadcastDiscuss();
+      ack && ack({ ok: true, targetId: res.targetId, voted: res.voted, total: res.total });
+      broadcastVoteCount();
+      if (res.closed) broadcastPhase(res.phase);
     });
 
-    socket.on('player:consensus', ({ order } = {}, ack) => {
+    socket.on('player:guess', ({ wordIndex } = {}, ack) => {
       touchActivity();
       if (!playerId) return ack && ack({ ok: false, reason: 'not-joined' });
-      const res = game.updateConsensus({ playerId, order });
+      const res = game.submitGuess({ playerId, wordIndex });
       if (!res.ok) return ack && ack(res);
       ack && ack({ ok: true });
-      broadcastConsensus();
-    });
-
-    socket.on('player:submit', ({ order } = {}, ack) => {
-      touchActivity();
-      if (!playerId) return ack && ack({ ok: false, reason: 'not-joined' });
-      if (!isHostPresent()) return ack && ack({ ok: false, reason: 'host-absent' });
-      const res = game.submitConsensus({ playerId, order });
-      if (!res.ok) return ack && ack(res);
-      ack && ack({ ok: true });
-      broadcastRevealTransition();
+      broadcastReveal();
     });
 
     socket.on('player:reaction', ({ index } = {}, ack) => {
@@ -251,7 +278,7 @@ function mountRanking(app, httpServer, opts) {
       if (typeof index !== 'number' || index < 0 || index >= REACTION_COUNT) {
         return ack && ack({ ok: false, reason: 'bad-index' });
       }
-      if (game.phase === PHASES.INTRO || game.phase === PHASES.COLLECT || game.phase === PHASES.RANK || game.phase === PHASES.DISCUSS) {
+      if (game.phase === PHASES.INTRO || game.phase === PHASES.ROLE) {
         return ack && ack({ ok: false, reason: 'phase-closed' });
       }
       if (reactionsMuted) return ack && ack({ ok: false, reason: 'muted' });
@@ -284,49 +311,37 @@ function mountRanking(app, httpServer, opts) {
         ok: true,
         phase: game.phase,
         players: game.getLobbyPlayers(),
-        wordsTotal: words.count(),
+        topicsTotal: topics.count(),
         reactionsMuted,
+        target: game.targetScore,
         minPlayers: MIN_PLAYERS,
-        customWords: game.customWords,
-        wordsPerPlayer: WORDS_PER_PLAYER,
-        maxWordLen: MAX_WORD_LEN,
+        maxPlayers: MAX_PLAYERS,
       });
       if (game.phase === PHASES.INTRO) socket.emit('state:intro', game.getIntroPublic());
-      else if (game.phase === PHASES.COLLECT) socket.emit('state:collect', game.getCollectPublic());
-      else if (game.phase === PHASES.RANK) socket.emit('state:rank', game.getRankPublic());
+      else if (game.phase === PHASES.ROLE) {
+        socket.emit('state:role', game.getRolePublic());
+        socket.emit('host:roleAckCount', { acked: game.roleAckedCount(), total: game.rosterCount() });
+      } else if (game.phase === PHASES.CLUES) socket.emit('state:clues', game.getCluesPublic());
       else if (game.phase === PHASES.DISCUSS) socket.emit('state:discuss', game.getDiscussPublic());
-      else if (game.phase === PHASES.REVEAL) {
-        if (game.revealTransition) socket.emit('state:revealTransition', game.getRevealTransitionPublic());
-        else socket.emit('state:reveal', game.getRevealPublic());
-      } else if (game.phase === PHASES.FINAL) socket.emit('state:final', game.getFinalPublic());
+      else if (game.phase === PHASES.VOTE) {
+        socket.emit('state:vote', game.getVotePublic());
+        socket.emit('host:voteCount', { voted: game.votedCount(), total: game.rosterCount() });
+      } else if (game.phase === PHASES.GUESS) socket.emit('state:guess', game.getGuessPublic());
+      else if (game.phase === PHASES.REVEAL) socket.emit('state:reveal', game.getRevealPublic());
+      else if (game.phase === PHASES.FINAL) socket.emit('state:final', game.getFinalPublic());
     });
 
-    socket.on('host:start', (_payload = {}, ack) => {
+    socket.on('host:start', (payload = {}, ack) => {
       if (!requireHost(ack)) return;
       touchActivity();
-      // Custom Words: a Start during COLLECT builds the rounds (only when everyone
-      // has submitted and nobody is mid-edit); otherwise it's the lobby start.
-      if (game.phase === PHASES.COLLECT) {
-        const res = game.beginFromCollect();
-        if (!res.ok) return ack && ack(res);
-        ack && ack({ ok: true, phase: game.phase });
-        return broadcastIntro();
-      }
-      const res = game.start();
+      const res = game.start({
+        targetScore: payload.targetScore,
+        autoAdvance: !!payload.autoAdvance,
+      });
       if (!res.ok) return ack && ack(res);
-      ack && ack({ ok: true, phase: game.phase });
+      ack && ack({ ok: true });
       broadcastLobby();
-      // Custom Words: collect phrases first; otherwise straight into the intro.
-      if (game.phase === PHASES.COLLECT) broadcastCollectAll();
-      else broadcastIntro();
-    });
-
-    socket.on('host:setCustomWords', ({ on } = {}, ack) => {
-      if (!requireHost(ack)) return;
-      const res = game.setCustomWords(on);
-      if (!res.ok) return ack && ack(res);
-      ack && ack({ ok: true, customWords: res.customWords });
-      ns.emit('state:customWords', { on: res.customWords });
+      broadcastIntro();
     });
 
     socket.on('host:next', (_p, ack) => {
@@ -334,14 +349,12 @@ function mountRanking(app, httpServer, opts) {
       touchActivity();
       const res = game.advance();
       if (!res.ok) return ack && ack(res);
-      if (res.phase === PHASES.RANK) broadcastRank();
-      else if (res.phase === PHASES.FINAL) broadcastFinal();
       ack && ack({ ok: true, phase: res.phase });
+      broadcastPhase(res.phase);
     });
 
     socket.on('host:kick', ({ playerId: pid } = {}, ack) => {
       if (!requireHost(ack)) return;
-      // Kicking is only allowed in the lobby; removePlayer returns null otherwise.
       const p = game.removePlayer(pid);
       if (!p) return ack && ack({ ok: false, reason: 'unknown-player' });
       if (p.socketId) ns.to(p.socketId).emit('player:rejected', { reason: 'kicked' });
@@ -375,8 +388,16 @@ function mountRanking(app, httpServer, opts) {
 
     socket.on('disconnect', () => {
       if (role === 'player') {
-        game.markDisconnected(socket.id);
+        const gone = game.markDisconnected(socket.id);
         broadcastLobby();
+        if (!gone) return;
+        // The roster is fixed once the game starts, so a drop never shrinks a
+        // total. Only the speaking order needs a nudge, or the round dead-ends
+        // on someone who can no longer take their turn.
+        if (game.phase === PHASES.CLUES && game.currentSpeakerId() === gone.id) {
+          const res = game.skipTurn();
+          if (res.ok) broadcastPhase(res.phase);
+        }
       } else if (role === 'host') {
         hostCount = Math.max(0, hostCount - 1);
         lastHostSeenAt = Date.now();
@@ -392,4 +413,4 @@ function mountRanking(app, httpServer, opts) {
   });
 }
 
-module.exports = mountRanking;
+module.exports = mountCamo;

@@ -25,7 +25,7 @@ const ALLOWED_EMOTES = new Set(['😀', '😂', '😎', '😭', '😡', '👍', 
 const REACTION_COOLDOWN_MS = 2000;
 
 /**
- * Mount Pac-Man Royale onto the hub's Express app and HTTP server.
+ * Mount Maze Chomp onto the hub's Express app and HTTP server.
  *
  * The live game runs on the HOST browser; this module is a thin relay + lobby
  * manager + match-meta cache. It MUST reuse the single shared Socket.IO Server
@@ -38,7 +38,7 @@ const REACTION_COOLDOWN_MS = 2000;
  * @param {Object} opts
  * @param {() => string} opts.getPublicBaseUrl
  */
-function mountPacman(app, httpServer, opts) {
+function mountMazeChomp(app, httpServer, opts) {
   const getPublicBaseUrl = (opts && opts.getPublicBaseUrl) || (() => '');
 
   const game = new Game();
@@ -64,27 +64,27 @@ function mountPacman(app, httpServer, opts) {
       game.reset();
       ns.emit('state:reset');
       broadcastLobby();
-      console.log('[pacman] auto-reset after 60 minutes of inactivity.');
+      console.log('[mazechomp] auto-reset after 60 minutes of inactivity.');
       touchActivity();
     }
   }, 60 * 1000).unref();
 
   // ---------------- Page routes ----------------
-  app.get('/pacman/host', (_req, res) => {
-    res.sendFile(path.join(__dirname, '..', '..', 'public', 'pacman', 'host.html'));
+  app.get('/mazechomp/host', (_req, res) => {
+    res.sendFile(path.join(__dirname, '..', '..', 'public', 'mazechomp', 'host.html'));
   });
-  app.get('/pacman/join', (_req, res) => {
-    res.sendFile(path.join(__dirname, '..', '..', 'public', 'pacman', 'join.html'));
+  app.get('/mazechomp/join', (_req, res) => {
+    res.sendFile(path.join(__dirname, '..', '..', 'public', 'mazechomp', 'join.html'));
   });
-  app.get('/pacman/play', (_req, res) => {
-    res.sendFile(path.join(__dirname, '..', '..', 'public', 'pacman', 'player.html'));
+  app.get('/mazechomp/play', (_req, res) => {
+    res.sendFile(path.join(__dirname, '..', '..', 'public', 'mazechomp', 'player.html'));
   });
 
   // ---------------- REST endpoints ----------------
-  app.get('/api/pacman/config', (_req, res) => {
+  app.get('/api/mazechomp/config', (_req, res) => {
     const base = getPublicBaseUrl();
     res.json({
-      joinUrl: `${base}/pacman/join`,
+      joinUrl: `${base}/mazechomp/join`,
       minRoundSec: MIN_ROUND_SEC,
       maxRoundSec: MAX_ROUND_SEC,
       defaultRoundSec: DEFAULT_ROUND_SEC,
@@ -94,7 +94,7 @@ function mountPacman(app, httpServer, opts) {
     });
   });
 
-  app.get('/api/pacman/qr', async (req, res) => {
+  app.get('/api/mazechomp/qr', async (req, res) => {
     const url = String(req.query.url || '');
     if (!url || url.length > 500) return res.status(400).send('bad url');
     try {
@@ -117,7 +117,7 @@ function mountPacman(app, httpServer, opts) {
     httpServer._triviaIo = new Server(httpServer, { cors: { origin: '*' } });
   }
   const io = httpServer._triviaIo;
-  const ns = io.of('/pacman');
+  const ns = io.of('/mazechomp');
 
   // ---------------- Broadcast helpers ----------------
   function broadcastLobby() {
@@ -188,7 +188,7 @@ function mountPacman(app, httpServer, opts) {
     });
 
     // Reaction emoji relay (whitelisted, cooldown-throttled). Shown as a bubble
-    // over that player's Pac-Man on the host screen. Purely cosmetic.
+    // over that player's chomper on the host screen. Purely cosmetic.
     socket.on('emote', (msg) => {
       if (role !== 'player' || !playerId) return;
       if (game.phase !== PHASES.PLAYING) return;
@@ -418,4 +418,4 @@ function mountPacman(app, httpServer, opts) {
   });
 }
 
-module.exports = mountPacman;
+module.exports = mountMazeChomp;

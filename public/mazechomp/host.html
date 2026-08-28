@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Pac-Man Royale · Host</title>
+  <title>Maze Chomp · Host</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <script src="/shared/iris-preload.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,8 +11,8 @@
   <link rel="stylesheet" href="/shared/topbar.css" />
   <link rel="stylesheet" href="/shared/modal.css" />
   <link rel="stylesheet" href="/shared/iris.css" />
-  <link rel="stylesheet" href="/pacman/css/base.css" />
-  <link rel="stylesheet" href="/pacman/css/host.css" />
+  <link rel="stylesheet" href="/mazechomp/css/base.css" />
+  <link rel="stylesheet" href="/mazechomp/css/host.css" />
   <script src="/shared/topbar.js" defer></script>
   <script src="/shared/modal.js" defer></script>
   <script src="/shared/iris.js" defer></script>
@@ -20,7 +20,7 @@
 <body class="host">
   <div class="host-container">
     <div class="game-topbar">
-      <span class="gtb-brand"><span class="brand-bg">👻</span> Pac-Man Royale</span>
+      <span class="gtb-brand"><span class="brand-bg">👻</span> Maze Chomp</span>
       <div class="gtb-controls">
         <a href="/" id="hubBtn" class="gtb-btn" title="Back to hub (resets game)">← Hub</a>
         <button class="gtb-btn" type="button" data-gtb-help-open="helpOverlay" title="How to play">? Help</button>
@@ -49,7 +49,7 @@
 
         <div class="lobby-right">
           <div class="lobby-header">
-            <div class="brand"><span class="brand-bg">👻</span> Pac-Man Royale</div>
+            <div class="brand"><span class="brand-bg">👻</span> Maze Chomp</div>
             <div class="player-count"><span id="playerCount">0</span> / <span id="playerCap">4</span></div>
           </div>
 
@@ -139,22 +139,22 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/pacman/js/mazes.js"></script>
-  <script src="/pacman/js/engine.js"></script>
-  <script src="/pacman/js/render.js"></script>
-  <script src="/pacman/js/host.js"></script>
+  <script src="/mazechomp/js/mazes.js"></script>
+  <script src="/mazechomp/js/engine.js"></script>
+  <script src="/mazechomp/js/render.js"></script>
+  <script src="/mazechomp/js/host.js"></script>
 
   <!-- Help modal -->
   <div class="gtb-help-overlay" id="helpOverlay">
     <div class="gtb-help-modal">
       <button class="gtb-help-modal-close" type="button" data-gtb-help-close aria-label="Close help">&times;</button>
-      <h2><span class="brand-bg">👻</span> Pac-Man Royale</h2>
-      <p>Multiplayer Pac-Man. The maze plays out on <strong>this screen</strong> while each player steers their Pac-Man from their phone.</p>
+      <h2><span class="brand-bg">👻</span> Maze Chomp</h2>
+      <p>Maze Chomp plays out on <strong>this screen</strong> while each player steers their chomper from their phone.</p>
       <ol>
         <li>Players scan the QR code to join from their phone (2–4 players)</li>
-        <li>No second player? Hit <strong>🤖 Add CPU</strong> to add computer Pac-Men</li>
+        <li>No second player? Hit <strong>🤖 Add CPU</strong> to add computer chompers</li>
         <li>Set the <strong>round length</strong> and how many <strong>round wins</strong> take the game, then hit <strong>Start!</strong></li>
-        <li>On their phones: <strong>up / down / left / right</strong> steer their Pac-Man</li>
+        <li>On their phones: <strong>up / down / left / right</strong> steer their chomper</li>
         <li>Gobble pellets and cherries for points; the maze edges wrap to the other side</li>
         <li>A <strong>normal ghost eats you</strong> on contact — even while powered (power is <em>not</em> a shield). Die and you're out for the rest of the round</li>
         <li>Grab a <strong>power pellet</strong> to turn big and fast: the ghosts already out turn blue and flee — <strong>eat them for big points</strong> — and you can eat smaller players. But freshly-spawned ghosts come back <strong>normal</strong> and can still get you</li>

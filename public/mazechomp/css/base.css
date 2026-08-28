@@ -1,5 +1,5 @@
 :root {
-  /* Pac-Man Royale palette: deep arcade midnight-blue maze, neon-yellow
+  /* Maze Chomp palette: deep arcade midnight-blue maze, neon-yellow
      accent, vivid ghost colours. */
   --bg: #12123a;
   --bg-deep: #08081f;
@@ -8,7 +8,7 @@
   --ink-soft: #4a4a6a;
   --muted: #8a8aa8;
 
-  --accent: #FFE100;         /* Pac-Man yellow */
+  --accent: #FFE100;         /* Maze Chomp yellow */
   --accent-deep: #C9A812;
   --warn: #FF3B30;
   --good: #3DDC84;

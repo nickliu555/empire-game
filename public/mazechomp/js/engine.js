@@ -1,4 +1,4 @@
-/* Pac-Man Royale — game engine (runs on the HOST browser; also loadable
+/* Maze Chomp — game engine (runs on the HOST browser; also loadable
  * in Node via a window/global shim for the headless test).
  *
  * Tile-based world: positions are in TILE units (floats); a tile centre is an
@@ -14,8 +14,8 @@
   const REVERSE = [1, 0, 3, 2];
 
   // ---- Tunables (tiles/sec, seconds, points) ----
-  const PAC_SPEED = 4.2;
-  const PAC_POWER_SPEED = 5.46;   // 30% faster than normal
+  const CHOMPER_SPEED = 4.2;
+  const CHOMPER_POWER_SPEED = 5.46;   // 30% faster than normal
   const GHOST_SPEED = 4.0;
   const GHOST_FRIGHT_SPEED = 2.4;
   const GHOST_EYES_SPEED = 9;
@@ -37,13 +37,13 @@
   const EYES_RESPAWN_SEC = 3;         // an eaten ghost waits this long in the pen
                                       // before heading back out (breather after a kill)
 
-  // Power pellets spawn at random spots (classic Battle-Royale style): keep a
+  // Power pellets spawn at random spots: keep a
   // steady number on the map, respawning shortly after one is eaten.
   const POWER_TARGET = 4;             // active power pellets on the map at once
   const POWER_RESPAWN_MIN = 3;        // seconds after one is eaten
   const POWER_RESPAWN_MAX = 6;
 
-  const DEATH_ANIM_SEC = 1.6;         // dying Pac-Man plays this before vanishing
+  const DEATH_ANIM_SEC = 1.6;         // dying chomper plays this before vanishing
 
   const FRUIT_FIRST_SEC = 12;
   const FRUIT_GAP_MIN = 14;
@@ -53,7 +53,7 @@
   const COLLIDE_DIST = 0.85;     // tile distance for entity overlap
   const KNOCK_SEC = 0.35;        // input-lockout after an equal-size bump
 
-  const GHOST_NAMES = ['Blinky', 'Pinky', 'Inky', 'Clyde'];
+  const GHOST_NAMES = ['Ember', 'Rose', 'Spark', 'Amber'];
   const GHOST_COLORS = ['#FF3B30', '#FF9ED8', '#37E1FF', '#FFB852'];
 
   function wrapCol(c, w) { return ((c % w) + w) % w; }
@@ -63,13 +63,13 @@
   class World {
     constructor(opts) {
       opts = opts || {};
-      this.mazes = opts.mazes || (global.PacmanMazes || null);
+      this.mazes = opts.mazes || (global.MazeChompMazes || null);
       this.parse = opts.parse || (this.mazes && this.mazes.parse) || null;
       this.rng = opts.rng || Math.random;
       this.frozen = true;
       // While settleFreeze is set, step() advances the clock (so a death
       // animation keeps playing) but freezes ALL movement/collisions — used to
-      // guarantee a round has a winner: once the 2nd-to-last Pac-Man dies the
+      // guarantee a round has a winner: once the 2nd-to-last chomper dies the
       // whole board freezes so the last one can't also die.
       this.settleFreeze = false;
       this.now = 0;
@@ -98,7 +98,7 @@
      *  owned by the host; the engine only resets positions/pellets/ghosts. */
     reset(mazeIndex) {
       const defs = this.mazes;
-      if (!defs || !this.parse) throw new Error('PacmanMazes not available');
+      if (!defs || !this.parse) throw new Error('MazeChompMazes not available');
       this.mazeIndex = ((mazeIndex | 0) % defs.length + defs.length) % defs.length;
       this.board = this.parse(defs[this.mazeIndex]);
       this.settleFreeze = false;
@@ -134,7 +134,7 @@
       this.fruitIdx = 0;
       this.nextFruitAt = FRUIT_FIRST_SEC;
 
-      // Players → Pac-Men at the four corner spawns (by seat).
+      // Players → chompers at the four corner spawns (by seat).
       this.players = [];
       this.byId = new Map();
       const spawns = this.board.playerSpawns;
@@ -182,7 +182,7 @@
     // ---- Queries ----
     aliveCount() { let n = 0; for (const p of this.players) if (p.alive) n++; return n; }
     pelletsLeft() { return this.board ? this.board.pellets.size + this.board.powerPellets.size : 0; }
-    // True while any just-killed Pac-Man is still playing its death animation.
+    // True while any just-killed chomper is still playing its death animation.
     anyDying() { for (const p of this.players) if (!p.alive && p.dying != null && (this.now - p.dying) < DEATH_ANIM_SEC) return true; return false; }
 
     _inHouse(r, c) {
@@ -326,7 +326,7 @@
       this._updateFruit();
       this._updatePowers();
 
-      for (const p of this.players) this._movePac(p, dt);
+      for (const p of this.players) this._moveChomper(p, dt);
       for (const g of this.ghosts) this._moveGhost(g, dt);
 
       this._collisions(ev, dt);
@@ -354,8 +354,8 @@
       // Fright is applied ONLY to the ghosts that are on the maze at the instant a
       // power pellet is eaten (see _startFright). Ghosts that spawn or respawn
       // AFTER that are NOT retroactively frightened — they come out normal and can
-      // hunt (and kill) a powered player, classic Pac-Man Battle-Royale style.
-      // Expire per-pac power.
+      // hunt and kill a powered player.
+      // Expire per-chomper power.
       for (const p of this.players) {
         if (p.powered && this.now >= p.poweredEnd) p.powered = false;
       }
@@ -375,11 +375,11 @@
       }
     }
 
-    // ---- Pac movement ----
-    _movePac(p, dt) {
+    // ---- Chomper movement ----
+    _moveChomper(p, dt) {
       if (!p.alive) return;
       p.mouth = (p.mouth + dt * 10) % (Math.PI * 2);
-      let dist = (p.powered ? PAC_POWER_SPEED : PAC_SPEED) * dt;
+      let dist = (p.powered ? CHOMPER_POWER_SPEED : CHOMPER_SPEED) * dt;
       const knocked = this.now < p.knockUntil;
       while (dist > 1e-9) {
         if (atCenter(p)) {
@@ -389,7 +389,7 @@
           if (!knocked && p.desired >= 0 && canGo(p.desired)) p.dirIdx = p.desired;
           else if (p.dirIdx >= 0 && canGo(p.dirIdx)) { /* keep */ }
           else { p.dirIdx = -1; }
-          // Keep facing the last direction actually travelled — a Pac-Man that
+          // Keep facing the last direction actually travelled — a chomper that
           // runs into a wall stays pointing that way instead of snapping around.
           if (p.dirIdx >= 0) p.facing = p.dirIdx;
           if (p.dirIdx < 0) break;
@@ -460,25 +460,25 @@
       // Scatter → home corners.
       const corners = [ [1, b.w - 2], [1, 1], [b.h - 2, b.w - 2], [b.h - 2, 1] ];
       if (this.scatter) { const c = corners[g.idx]; return { r: c[0], c: c[1] }; }
-      const pac = this._nearestPac(g);
-      if (!pac) { const c = corners[g.idx]; return { r: c[0], c: c[1] }; }
-      const pr = Math.round(pac.y), pc = Math.round(pac.x);
-      const pd = pac.dirIdx >= 0 ? DIRS[pac.dirIdx] : { x: 0, y: 0 };
-      if (g.idx === 0) return { r: pr, c: pc };                       // Blinky
-      if (g.idx === 1) return { r: pr + pd.y * 4, c: pc + pd.x * 4 }; // Pinky
-      if (g.idx === 2) {                                             // Inky
+      const chomper = this._nearestChomper(g);
+      if (!chomper) { const c = corners[g.idx]; return { r: c[0], c: c[1] }; }
+      const pr = Math.round(chomper.y), pc = Math.round(chomper.x);
+      const pd = chomper.dirIdx >= 0 ? DIRS[chomper.dirIdx] : { x: 0, y: 0 };
+      if (g.idx === 0) return { r: pr, c: pc };                       // Direct pursuit.
+      if (g.idx === 1) return { r: pr + pd.y * 4, c: pc + pd.x * 4 }; // Forward ambush.
+      if (g.idx === 2) {                                             // Vector target.
         const ar = pr + pd.y * 2, ac = pc + pd.x * 2;
-        const blinky = this.ghosts[0];
-        const br = Math.round(blinky.y), bc = Math.round(blinky.x);
+        const anchorGhost = this.ghosts[0];
+        const br = Math.round(anchorGhost.y), bc = Math.round(anchorGhost.x);
         return { r: 2 * ar - br, c: 2 * ac - bc };
       }
-      // Clyde: chase if far, scatter to corner if close.
+      // Distance-based retreat: chase if far, scatter to a corner if close.
       const d2 = (g.y - pr) * (g.y - pr) + (g.x - pc) * (g.x - pc);
       if (d2 > 64) return { r: pr, c: pc };
       const c = corners[3]; return { r: c[0], c: c[1] };
     }
 
-    _nearestPac(g) {
+    _nearestChomper(g) {
       let best = null, bd = Infinity;
       for (const p of this.players) {
         if (!p.alive) continue;
@@ -546,7 +546,7 @@
     // Frightened: actively flee. Among the non-reverse open exits, take the one
     // with the greatest MAZE distance to the nearest powered player — straight-
     // line distance ignores walls, so it sends the ghost round a corner and
-    // straight into the pac it's meant to be running from. Ties (a corridor that
+    // straight into the chomper it's meant to be running from. Ties (a corridor that
     // is equally far either way) break on the straight-line distance, which
     // prefers the exit that also opens up physical space. Falls back to a random
     // turn when nobody is currently powered.
@@ -565,9 +565,9 @@
         const nr = cy + d.y, nc = cx + d.x;
         if (!this.passable(nr, nc, { door: false })) continue;
         const wc = wrapCol(nc, W);
-        // Unreachable tiles (no powered pac can get there) are a perfect escape.
+        // Unreachable tiles (no powered chomper can get there) are a perfect escape.
         const md = field[nr][wc];
-        // Tie-break: squared straight-line distance to the CLOSEST powered pac.
+        // Tie-break: squared straight-line distance to the CLOSEST powered chomper.
         let tie = Infinity;
         for (const p of powered) {
           let ex = nc - p.x;
@@ -580,7 +580,7 @@
       }
       if (best < 0) { const d = DIRS[rev]; best = this.passable(cy + d.y, cx + d.x, { door: false }) ? rev : -1; }
       // Turn tail. A ghost normally never reverses, but a frightened one that is
-      // cornered — every forward exit walks it INTO a powered pac, which is what
+      // cornered — every forward exit walks it INTO a powered chomper, which is what
       // a corridor approached head-on always looks like — would otherwise march
       // straight down your throat. Allow the U-turn only when going back is
       // strictly farther than the best way forward, so it can't dither: once the
@@ -643,7 +643,7 @@
           ev.fruitBy = p.id;
         }
       }
-      // Pac vs ghost.
+      // Chomper vs ghost.
       for (const p of this.players) {
         if (!p.alive) continue;
         for (const g of this.ghosts) {
@@ -671,7 +671,7 @@
           }
         }
       }
-      // Pac vs pac.
+      // Chomper vs chomper.
       for (let i = 0; i < this.players.length; i++) {
         const a = this.players[i];
         if (!a.alive) continue;
@@ -713,7 +713,7 @@
       bb.knockUntil = this.now + KNOCK_SEC;
     }
 
-    // Snapshot of per-pac round scores (host owns the authoritative tally).
+    // Snapshot of per-chomper round scores (host owns the authoritative tally).
     scores() { const o = {}; for (const p of this.players) o[p.id] = p.score || 0; return o; }
   }
 
@@ -723,6 +723,6 @@
     PELLET_PTS, POWER_PTS, FRUIT_PTS, GHOST_BASE_PTS, EAT_PLAYER_PTS,
     GHOST_NAMES, GHOST_COLORS,
   };
-  global.Pacman = api;
+  global.MazeChomp = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

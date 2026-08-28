@@ -1,9 +1,9 @@
 'use strict';
-// Headless end-to-end smoke test for Pac-Man Royale: lobby, start gating,
+// Headless end-to-end smoke test for Maze Chomp: lobby, start gating,
 // CPU bots, input-relay gating, round-meta rebroadcast, elimination, reconnect.
 // Not a unit test — a socket-flow probe against a running server on :3000.
 const { io } = require('socket.io-client');
-const URL = 'http://localhost:3000/pacman';
+const URL = 'http://localhost:3000/mazechomp';
 
 function mk(opts) { return io(URL, Object.assign({ transports: ['websocket'], forceNew: true }, opts)); }
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));

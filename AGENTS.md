@@ -192,7 +192,7 @@ universal, so it must degrade silently where unsupported.
   All listeners must be `{ passive: false }` or `preventDefault()` is ignored. Bind controls
   to `pointerdown`/`touchstart` rather than `click`, so swallowing the double-tap default
   can't eat a real input. Copy the block verbatim from `public/bombbrawl/js/player.js` or
-  `public/pacman/js/player.js`.
+  `public/mazechomp/js/player.js`.
 - **Two-tap confirm** for destructive/final actions (arm → "Tap again to…" → confirm).
   Don't rely on a timed auto-revert to reset the arm if the user might deliberate — cancel
   the arm on a meaningful change instead, or the button feels like it "needs 3 taps".

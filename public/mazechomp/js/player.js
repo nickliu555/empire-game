@@ -1,9 +1,9 @@
 (function () {
   'use strict';
 
-  const playerId = localStorage.getItem('pacman.playerId');
-  const playerName = localStorage.getItem('pacman.playerName') || 'Player';
-  if (!playerId) { window.location.replace('/pacman/join'); return; }
+  const playerId = localStorage.getItem('mazechomp.playerId');
+  const playerName = localStorage.getItem('mazechomp.playerName') || 'Player';
+  if (!playerId) { window.location.replace('/mazechomp/join'); return; }
 
   // Direction codes shared with the server relay + host engine.
   const UP = 0, DOWN = 1, LEFT = 2, RIGHT = 3;
@@ -32,7 +32,7 @@
     document.addEventListener('dblclick', stop, { passive: false });
   })();
 
-  const socket = io('/pacman', { transports: ['polling', 'websocket'] });
+  const socket = io('/mazechomp', { transports: ['polling', 'websocket'] });
 
   // ---------------- Element refs ----------------
   const body = document.body;
@@ -112,9 +112,9 @@
   socket.on('connect', function () {
     socket.emit('player:reconnect', { playerId: playerId }, function (res) {
       if (!res || !res.ok) {
-        localStorage.setItem('pacman.rejoinName', playerName);
-        localStorage.removeItem('pacman.playerId');
-        window.location.replace('/pacman/join');
+        localStorage.setItem('mazechomp.rejoinName', playerName);
+        localStorage.removeItem('mazechomp.playerId');
+        window.location.replace('/mazechomp/join');
         return;
       }
       setHostPresent(res.hostPresent !== false);
@@ -145,12 +145,12 @@
     if (currentPhase === 'LOBBY') showView('lobby');
   });
   socket.on('state:reset', function () {
-    localStorage.setItem('pacman.rejoinName', playerName);
-    localStorage.removeItem('pacman.playerId');
-    window.location.replace('/pacman/join');
+    localStorage.setItem('mazechomp.rejoinName', playerName);
+    localStorage.removeItem('mazechomp.playerId');
+    window.location.replace('/mazechomp/join');
   });
   socket.on('player:rejected', function (p) {
-    if (p && p.reason === 'kicked') { kicked = true; localStorage.removeItem('pacman.playerId'); showView('kicked'); }
+    if (p && p.reason === 'kicked') { kicked = true; localStorage.removeItem('mazechomp.playerId'); showView('kicked'); }
   });
 
   // ---------------- Match events ----------------
@@ -287,7 +287,7 @@
   //     pushing it past a small deadzone steers, and the heading sticks after
   //     letting go while the knob springs back to centre.
   //   • Swipe: the WHOLE screen is a pad — flick a direction anywhere and the
-  //     Pac-Man turns that way and keeps going until the next flick.
+  //     The chomper turns that way and keeps going until the next flick.
   //   • Tap zones: the screen splits along its diagonals into 4 triangles
   //     (top=up, bottom=down, left=left, right=right); tap a zone to steer.
   // A tiny haptic buzz confirms each turn; a big central arrow (swipe) or the
@@ -299,7 +299,7 @@
   const controllerView = views.controller;
 
   // Persisted control scheme: 'stick' (default), 'swipe' or 'tap'.
-  const savedMode = localStorage.getItem('pacman.controlMode');
+  const savedMode = localStorage.getItem('mazechomp.controlMode');
   let controlMode = (savedMode === 'tap' || savedMode === 'swipe') ? savedMode : 'stick';
   const dpadZones = dpad ? Array.prototype.slice.call(dpad.querySelectorAll('.dpad-zone')) : [];
 
@@ -318,7 +318,7 @@
   function setDir(dir) {
     if (!controlsEnabled || eliminated || dir < 0) return;
     if (dir !== currentDir) { currentDir = dir; vibrate(14); showDir(dir); }
-    send(dir); // Pac-Man buffers the desired heading; re-sending the same one is harmless.
+    send(dir); // The chomper buffers the desired heading; re-sending the same one is harmless.
   }
   function setControls(enabled) {
     controlsEnabled = enabled && !eliminated;
@@ -341,7 +341,7 @@
   // A floating thumbstick: the base jumps to wherever the thumb lands, the knob
   // follows the drag, and the dominant axis past the deadzone is the heading.
   // Steering stays discrete like the other schemes — the heading is latched, so
-  // letting go keeps the last direction (classic Pac-Man) while the knob springs
+  // letting go keeps the last direction while the knob springs
   // back to centre the way a real stick does.
   const STICK_DEADZONE = 0.34;     // fraction of the radius before a turn registers
   let stickId = null;              // active pointer id, or null
@@ -415,7 +415,7 @@
 
   function applyControlMode(mode) {
     controlMode = (mode === 'tap' || mode === 'swipe') ? mode : 'stick';
-    localStorage.setItem('pacman.controlMode', controlMode);
+    localStorage.setItem('mazechomp.controlMode', controlMode);
     body.classList.toggle('mode-tap', controlMode === 'tap');
     body.classList.toggle('mode-swipe', controlMode === 'swipe');
     body.classList.toggle('mode-stick', controlMode === 'stick');
@@ -438,7 +438,7 @@
   applyControlMode(controlMode);
 
   // Gear button toggles a small popover holding the control-scheme picker. Its taps
-  // must never steer the Pac-Man, so they stop propagation before the pad sees
+  // must never steer the chomper, so they stop propagation before the pad sees
   // them and don't count as a control gesture.
   function stopControl(e) { e.stopPropagation(); }
   if (gearBtn && ctrlPopover) {
@@ -506,11 +506,11 @@
 
   // ---------------- Gamepad (Bluetooth controller) support ----------------
   // Any controller paired to the phone — Xbox, PlayStation, or Switch Pro —
-  // drives Pac-Man via the standard Gamepad API layout, so the same left-stick
+  // drives the chomper via the standard Gamepad API layout, so the same left-stick
   // and D-pad indices work across all brands (no per-brand code). Steering is
   // discrete like the swipe pad: pushing a direction just calls setDir(), which
   // is gated + de-duped + re-send-safe; letting go keeps the last heading
-  // (classic Pac-Man). Runs alongside touch — either input works at any time.
+  // Runs alongside touch — either input works at any time.
   const GP_DEADZONE = 0.35;          // ignore analog-stick drift near centre
   let gpIndex = null;                // index of the active gamepad, or null
 
@@ -566,8 +566,8 @@
   pollGamepad();
 
   kickRejoinBtn && kickRejoinBtn.addEventListener('click', function () {
-    localStorage.setItem('pacman.rejoinName', playerName);
-    localStorage.removeItem('pacman.playerId');
-    window.location.replace('/pacman/join');
+    localStorage.setItem('mazechomp.rejoinName', playerName);
+    localStorage.removeItem('mazechomp.playerId');
+    window.location.replace('/mazechomp/join');
   });
 })();

@@ -1,5 +1,5 @@
-/* Pac-Man Royale — host canvas renderer. Draws the maze, pellets, fruit,
- * Pac-Men (with mouth animation, power growth + end-of-power flash) and ghosts
+/* Maze Chomp — host canvas renderer. Draws the maze, pellets, fruit,
+ * chompers (with mouth animation, power growth + end-of-power flash) and ghosts
  * (frightened / eyes states), plus per-player name tags and reaction bubbles.
  * Purely presentational — never mutates the world.
  */
@@ -58,7 +58,7 @@
     this._drawPellets(ctx, b, ts);
     this._drawFruit(ctx, ts);
     this._drawGhosts(ctx, ts);
-    this._drawPacs(ctx, ts);
+    this._drawChompers(ctx, ts);
 
     ctx.restore();
   };
@@ -186,18 +186,18 @@
     ctx.stroke();
   };
 
-  Renderer.prototype._drawPacs = function (ctx, ts) {
+  Renderer.prototype._drawChompers = function (ctx, ts) {
     const w = this.world;
-    const DEATH = (window.Pacman && window.Pacman.DEATH_ANIM_SEC) || 0.9;
+    const DEATH = (window.MazeChomp && window.MazeChomp.DEATH_ANIM_SEC) || 0.9;
     // Cosmetic clock — frozen during the death-settle so the powered aura/flash
     // freeze too; the death animation itself uses the master clock (w.now).
     const ac = (w.animClock != null) ? w.animClock : w.now;
     for (const p of w.players) {
       if (!p.alive) {
-        // Death animation: the mouth opens until the Pac-Man closes into nothing.
+        // Death animation: the mouth opens until the chomper closes into nothing.
         if (p.dying != null) {
           const t = (w.now - p.dying) / DEATH;
-          if (t >= 0 && t < 1) this._drawDyingPac(ctx, p, ts, t);
+          if (t >= 0 && t < 1) this._drawDyingChomper(ctx, p, ts, t);
         }
         continue;
       }
@@ -209,7 +209,7 @@
       // End-of-power blink: only in the final POWER_FLASH_SEC, ramping up.
       let alpha = 1, ending = false;
       if (p.powered) {
-        const flash = (window.Pacman && window.Pacman.POWER_FLASH_SEC) || 2;
+        const flash = (window.MazeChomp && window.MazeChomp.POWER_FLASH_SEC) || 2;
         const remain = p.poweredEnd - ac;
         if (remain < flash) {
           ending = true;
@@ -243,9 +243,9 @@
     }
   };
 
-  // Classic Pac-Man death: the wedge opens wider until it closes into nothing,
+  // Chomper death: the wedge opens wider until it closes into nothing,
   // with a small shrink + fade + a burst of sparks at the end.
-  Renderer.prototype._drawDyingPac = function (ctx, p, ts, t) {
+  Renderer.prototype._drawDyingChomper = function (ctx, p, ts, t) {
     const cx = p.x * ts + ts / 2, cy = p.y * ts + ts / 2;
     const r = ts * 0.44 * (1 - t * 0.35);
     const face = (p.facing != null) ? p.facing : (p.dirIdx >= 0 ? p.dirIdx : 3);
@@ -346,5 +346,5 @@
     ctx.closePath();
   }
 
-  global.PacmanRender = { Renderer };
+  global.MazeChompRender = { Renderer };
 })(typeof window !== 'undefined' ? window : globalThis);

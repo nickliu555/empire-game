@@ -3,7 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 // Bomb Brawl — server-side lobby + match-meta state machine.
 //
-// Like Pac-Man Royale / Soccer Head, the live game (arena, movement, bombs,
+// Like Maze Chomp / Soccer Head, the live game (arena, movement, bombs,
 // flames, power-ups, sudden death, CPU AI) runs on the HOST browser for the
 // lowest possible input latency (player -> server -> host is a single relay
 // hop). This module does NOT simulate the game. It owns:

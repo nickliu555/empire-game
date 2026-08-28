@@ -1,8 +1,8 @@
 'use strict';
-/* Headless engine tests for Pac-Man Royale.
+/* Headless engine tests for Maze Chomp.
  * Loads mazes.js + engine.js in a vm sandbox (with a window shim) and asserts
  * maze connectivity, movement, wrap, scoring, ghost/player collisions, and a
- * multi-second NaN-free simulation. Run: node scripts/test-pacman-engine.js
+ * multi-second NaN-free simulation. Run: node scripts/test-mazechomp-engine.js
  */
 const vm = require('vm');
 const fs = require('fs');
@@ -16,11 +16,11 @@ sandbox.module = { exports: {} };
 sandbox.Math = Math;
 sandbox.console = console;
 vm.createContext(sandbox);
-vm.runInContext(fs.readFileSync(path.join(ROOT, 'public/pacman/js/mazes.js'), 'utf8'), sandbox);
-vm.runInContext(fs.readFileSync(path.join(ROOT, 'public/pacman/js/engine.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'public/mazechomp/js/mazes.js'), 'utf8'), sandbox);
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'public/mazechomp/js/engine.js'), 'utf8'), sandbox);
 
-const Pacman = sandbox.window.Pacman;
-const Mazes = sandbox.window.PacmanMazes;
+const MazeChomp = sandbox.window.MazeChomp;
+const Mazes = sandbox.window.MazeChompMazes;
 
 let pass = 0, fail = 0;
 function ok(cond, msg) { if (cond) { pass++; } else { fail++; console.log('  ✗ ' + msg); } }
@@ -61,7 +61,7 @@ function makeWorld(n) {
   const roster = [];
   const colors = ['#FFE100', '#3DDC84', '#A96BFF', '#34C6FF'];
   for (let i = 0; i < n; i++) roster.push({ id: 'p' + i, name: 'P' + i, color: colors[i], seat: i });
-  const w = new Pacman.World({ rng: () => 0.5 });
+  const w = new MazeChomp.World({ rng: () => 0.5 });
   w.setRoster(roster);
   w.reset(0);
   w.frozen = false;
@@ -82,8 +82,8 @@ function openTile(w, r, c) { return w.passable(r, c, { door: false }); }
   p.y = found[0]; p.x = found[1]; p.dirIdx = -1; p.desired = 3; // move right
   const x0 = p.x;
   for (let i = 0; i < 60; i++) w.step(1 / 120);
-  ok(p.x > x0 + 0.9, 'pac moves right along a corridor');
-  ok(Number.isFinite(p.x) && Number.isFinite(p.y), 'pac position finite');
+  ok(p.x > x0 + 0.9, 'chomper moves right along a corridor');
+  ok(Number.isFinite(p.x) && Number.isFinite(p.y), 'chomper position finite');
 }
 {
   const w = makeWorld(2);
@@ -95,10 +95,10 @@ function openTile(w, r, c) { return w.passable(r, c, { door: false }); }
   }
   p.y = found[0]; p.x = found[1]; p.dirIdx = -1; p.desired = 0; // up into a wall
   for (let i = 0; i < 30; i++) w.step(1 / 120);
-  ok(Math.abs(p.y - found[0]) < 0.001, 'pac blocked by a wall stays put');
+  ok(Math.abs(p.y - found[0]) < 0.001, 'chomper blocked by a wall stays put');
 }
 {
-  // Facing is preserved: a pac that runs up into a wall keeps facing up.
+  // Facing is preserved: a chomper that runs up into a wall keeps facing up.
   const w = makeWorld(2);
   const p = w.byId.get('p0');
   // A one-tile up-stub: up is open, but two-up is a wall (so it moves then stops).
@@ -108,8 +108,8 @@ function openTile(w, r, c) { return w.passable(r, c, { door: false }); }
   }
   p.y = found[0]; p.x = found[1]; p.dirIdx = -1; p.desired = 0; p.facing = 1; // start facing DOWN
   for (let i = 0; i < 120; i++) w.step(1 / 120); // travels up, then hits the wall
-  ok(p.facing === 0, 'pac keeps facing the way it was going after hitting a wall');
-  ok(p.dirIdx === -1, 'blocked pac has no active movement direction');
+  ok(p.facing === 0, 'chomper keeps facing the way it was going after hitting a wall');
+  ok(p.dirIdx === -1, 'blocked chomper has no active movement direction');
 }
 
 // ---- Wrap tunnel (use a real tunnel row) ----
@@ -120,7 +120,7 @@ section('Tunnel wrap');
   const trow = w.board.tunnelRows.values().next().value;
   p.x = 1; p.y = trow; p.dirIdx = -1; p.desired = 2; // left toward the tunnel
   for (let i = 0; i < 120; i++) w.step(1 / 120);
-  ok(p.x > 10, 'pac wraps around the left tunnel to the right side (x=' + p.x.toFixed(1) + ')');
+  ok(p.x > 10, 'chomper wraps around the left tunnel to the right side (x=' + p.x.toFixed(1) + ')');
 }
 
 // ---- Pellet scoring ----
@@ -133,7 +133,7 @@ section('Pellets');
   p.x = c; p.y = r; p.dirIdx = -1; p.desired = -1;
   const before = w.pelletsLeft();
   w.step(0.001);
-  ok((p.score || 0) === Pacman.PELLET_PTS, 'eating a pellet scores 10');
+  ok((p.score || 0) === MazeChomp.PELLET_PTS, 'eating a pellet scores 10');
   ok(w.pelletsLeft() === before - 1, 'pellet removed from board');
 }
 
@@ -146,9 +146,9 @@ section('Power pellet');
   const [r, c] = key.split(',').map(Number);
   p.x = c; p.y = r; p.dirIdx = -1; p.desired = -1;
   w.step(0.001);
-  ok(p.powered === true, 'power pellet powers the pac');
+  ok(p.powered === true, 'power pellet powers the chomper');
   ok(w.frightUntil > w.now, 'power pellet frightens ghosts globally');
-  ok((p.score || 0) === Pacman.POWER_PTS, 'power pellet scores 50');
+  ok((p.score || 0) === MazeChomp.POWER_PTS, 'power pellet scores 50');
 }
 
 // ---- Frightened ghosts flee powered players ----
@@ -165,7 +165,7 @@ section('Frightened flee');
   }
   const [gr, gc] = found;
   g.state = 'frightened'; g.x = gc; g.y = gr; g.dirIdx = 0; // facing up → left & right both allowed
-  // Powered chaser two tiles to the RIGHT on the same row; the other pac unpowered.
+  // Powered chaser two tiles to the RIGHT on the same row; the other chomper unpowered.
   chaser.powered = true; chaser.alive = true; chaser.x = gc + 2; chaser.y = gr;
   other.powered = false; other.x = 1; other.y = 1;
   w._fleeDir(g);
@@ -178,23 +178,23 @@ section('Frightened flee');
   ok(g.dirIdx >= -1 && g.dirIdx <= 3, 'no powered players → flee falls back safely');
 }
 {
-  // Flee uses MAZE distance, not straight-line: a powered pac one tile away
+  // Flee uses MAZE distance, not straight-line: a powered chomper one tile away
   // through a wall is 2 tiles away as the crow flies but far around the maze,
   // so the ghost must not treat "diagonally adjacent" as safe. Sample real
   // junctions and assert every choice increases the true maze distance.
   const w = makeWorld(2);
   const g = w.ghosts[0];
-  const pac = w.byId.get('p0');
+  const chomper = w.byId.get('p0');
   const other = w.byId.get('p1');
   const W = w.board.w, H = w.board.h;
   other.alive = false; other.powered = false;
-  pac.alive = true; pac.powered = true; pac.poweredEnd = 999;
-  // BFS truth from the pac over pac-walkable tiles.
+  chomper.alive = true; chomper.powered = true; chomper.poweredEnd = 999;
+  // BFS truth from the chomper over chomper-walkable tiles.
   const truth = (sr, sc) => {
     const d = new Map(); const q = [[sr, sc]]; d.set(sr + ',' + sc, 0);
     for (let i = 0; i < q.length; i++) {
       const [r, c] = q[i]; const dd = d.get(r + ',' + c);
-      for (const dv of Pacman.DIRS) {
+      for (const dv of MazeChomp.DIRS) {
         const nr = r + dv.y, nc = ((c + dv.x) % W + W) % W;
         if (nr < 0 || nr >= H || !w.passable(nr, nc, { door: false })) continue;
         if (d.has(nr + ',' + nc)) continue;
@@ -210,22 +210,22 @@ section('Frightened flee');
     const gt = open[i];
     for (const stride of [7, 23, 61, 113, 191]) {
     const pt = open[(i * stride + 3) % open.length];
-    pac.y = pt[0]; pac.x = pt[1];
+    chomper.y = pt[0]; chomper.x = pt[1];
     const dist = truth(pt[0], pt[1]);
     const cur = dist.get(gt[0] + ',' + gt[1]);
     if (cur == null || cur < 2 || cur > 12) continue;
     for (let dir = 0; dir < 4; dir++) {
-      const rev = Pacman.REVERSE[dir];
-      if (!w.passable(gt[0] + Pacman.DIRS[rev].y, gt[1] + Pacman.DIRS[rev].x, { door: false })) continue;
+      const rev = MazeChomp.REVERSE[dir];
+      if (!w.passable(gt[0] + MazeChomp.DIRS[rev].y, gt[1] + MazeChomp.DIRS[rev].x, { door: false })) continue;
       let exits = 0;
       for (let k = 0; k < 4; k++) {
         if (k === rev) continue;
-        if (w.passable(gt[0] + Pacman.DIRS[k].y, gt[1] + Pacman.DIRS[k].x, { door: false })) exits++;
+        if (w.passable(gt[0] + MazeChomp.DIRS[k].y, gt[1] + MazeChomp.DIRS[k].x, { door: false })) exits++;
       }
       g.state = 'frightened'; g.y = gt[0]; g.x = gt[1]; g.dirIdx = dir;
       w._fleeDir(g);
       if (g.dirIdx < 0) continue;
-      const dv = Pacman.DIRS[g.dirIdx];
+      const dv = MazeChomp.DIRS[g.dirIdx];
       const nd = dist.get((gt[0] + dv.y) + ',' + (((gt[1] + dv.x) % W + W) % W));
       all++; if (nd > cur) awayAll++;
       if (exits >= 2) { junctions++; if (nd > cur) awayJ++; }
@@ -233,14 +233,14 @@ section('Frightened flee');
     }
   }
   ok(junctions > 50, 'sampled plenty of flee junctions (' + junctions + ')');
-  ok(awayJ === junctions, 'at every junction the frightened ghost increases its MAZE distance from the powered pac (' + awayJ + '/' + junctions + ')');
+  ok(awayJ === junctions, 'at every junction the frightened ghost increases its MAZE distance from the powered chomper (' + awayJ + '/' + junctions + ')');
   // Corridors count too: a cornered ghost may U-turn, so it should almost never
   // end up closer. Only true dead ends have no escape.
   ok(awayAll / all > 0.95, 'frightened ghosts escape on >95% of ALL decisions, corridors included (' + (100 * awayAll / all).toFixed(1) + '%)');
 }
 {
   // Ghosts flee ALL powered players — the field is multi-source, so a ghost runs
-  // from whichever powered pac is nearest, and ignores un-powered ones entirely.
+  // from whichever powered chomper is nearest, and ignores un-powered ones entirely.
   const w = makeWorld(3);
   const g = w.ghosts[0];
   const [a, b2, c2] = w.players;
@@ -255,23 +255,23 @@ section('Frightened flee');
   ok(!!found, 'found a walled corridor for the multi-powered flee test');
   const [gr, gc] = found;
   g.state = 'frightened'; g.y = gr; g.x = gc; g.dirIdx = 0; // facing up (a wall)
-  // Un-powered pac sitting immediately left: must NOT be fled from.
+  // Un-powered chomper sitting immediately left: must NOT be fled from.
   a.alive = true; a.powered = false; a.y = gr; a.x = gc - 1;
-  // Powered pac two tiles to the right.
+  // Powered chomper two tiles to the right.
   b2.alive = true; b2.powered = true; b2.poweredEnd = 999; b2.y = gr; b2.x = gc + 2;
   c2.alive = false; c2.powered = false;
   w._fleeDir(g);
-  ok(g.dirIdx === 2, 'ghost flees the POWERED pac and ignores an un-powered one right next to it');
-  // Now power up the left pac too, closer than the right one → flee right.
+  ok(g.dirIdx === 2, 'ghost flees the POWERED chomper and ignores an un-powered one right next to it');
+  // Now power up the left chomper too, closer than the right one → flee right.
   a.powered = true; a.poweredEnd = 999; a.x = gc - 1;
   b2.x = gc + 2;
   g.dirIdx = 0;
   w._fleeDir(g);
-  ok(g.dirIdx === 3, 'with two powered pacs the ghost runs from the NEAREST one');
+  ok(g.dirIdx === 3, 'with two powered chompers the ghost runs from the NEAREST one');
 }
 
-// ---- Ghost eats unpowered pac ----
-section('Ghost vs pac');
+// ---- Ghost eats unpowered chomper ----
+section('Ghost vs chomper');
 {
   const w = makeWorld(2);
   const p = w.byId.get('p0');
@@ -279,7 +279,7 @@ section('Ghost vs pac');
   g.state = 'active'; g.x = 5; g.y = 5; g.dirIdx = 2;
   p.x = 5; p.y = 5; p.dirIdx = -1; p.desired = -1; p.powered = false;
   const ev = w.step(0.001);
-  ok(p.alive === false, 'ghost eats an unpowered pac');
+  ok(p.alive === false, 'ghost eats an unpowered chomper');
   ok(ev.deaths.indexOf('p0') >= 0, 'death event fired');
 }
 {
@@ -291,9 +291,9 @@ section('Ghost vs pac');
   w.board.pellets.delete('5,5');
   p.x = 5; p.y = 5; p.dirIdx = -1; p.desired = -1; p.powered = true; p.poweredEnd = w.now + 5;
   const ev = w.step(0.001);
-  ok(g.state === 'eyes', 'powered pac eats a frightened ghost (→ eyes)');
-  ok(ev.ghostsEaten.length === 1 && (p.score || 0) === Pacman.GHOST_BASE_PTS, 'ghost eaten scores the base amount');
-  ok(p.alive === true, 'powered pac survives eating a ghost');
+  ok(g.state === 'eyes', 'powered chomper eats a frightened ghost (→ eyes)');
+  ok(ev.ghostsEaten.length === 1 && (p.score || 0) === MazeChomp.GHOST_BASE_PTS, 'ghost eaten scores the base amount');
+  ok(p.alive === true, 'powered chomper survives eating a ghost');
 }
 // Classic Battle-Royale rule: fright applies ONLY to the ghosts on the maze at
 // the instant the pellet is eaten. A ghost that becomes active AFTER (just left
@@ -340,8 +340,8 @@ section('Ghost vs pac');
   w.board.pellets.delete('5,5');
   p.x = 5; p.y = 5; p.dirIdx = -1; p.desired = -1; p.powered = false;
   const ev = w.step(0.001);
-  ok(p.alive === true, 'unpowered pac is unharmed by a frightened ghost');
-  ok(g.state === 'frightened' && ev.ghostsEaten.length === 0, 'unpowered pac cannot eat a frightened ghost (passes through)');
+  ok(p.alive === true, 'unpowered chomper is unharmed by a frightened ghost');
+  ok(g.state === 'frightened' && ev.ghostsEaten.length === 0, 'unpowered chomper cannot eat a frightened ghost (passes through)');
 }
 
 // ---- Eyes always return home ----
@@ -417,8 +417,8 @@ section('Dual pen doors');
   ok(back, 'eyes return home through the bottom door');
 }
 
-// ---- Pac vs pac ----
-section('Pac vs pac');
+// ---- Chomper vs chomper ----
+section('Chomper vs chomper');
 {
   const w = makeWorld(2);
   const a = w.byId.get('p0'), b = w.byId.get('p1');
@@ -426,8 +426,8 @@ section('Pac vs pac');
   a.x = 5; a.y = 5; a.dirIdx = -1; a.desired = -1; a.powered = true; a.poweredEnd = w.now + 5;
   b.x = 5; b.y = 5; b.dirIdx = -1; b.desired = -1; b.powered = false;
   const ev = w.step(0.001);
-  ok(b.alive === false && a.alive === true, 'powered pac eats an unpowered pac');
-  ok((a.score || 0) === Pacman.EAT_PLAYER_PTS, 'eating a player scores 200');
+  ok(b.alive === false && a.alive === true, 'powered chomper eats an unpowered chomper');
+  ok((a.score || 0) === MazeChomp.EAT_PLAYER_PTS, 'eating a player scores 200');
   ok(ev.playerKills.length === 1, 'player kill event fired');
 }
 {
@@ -436,7 +436,7 @@ section('Pac vs pac');
   a.x = 5; a.y = 5; a.dirIdx = 3; a.desired = -1; a.powered = false;
   b.x = 5; b.y = 5; b.dirIdx = 2; b.desired = -1; b.powered = false;
   w.step(0.001);
-  ok(a.alive && b.alive, 'equal-size pacs both survive a bump');
+  ok(a.alive && b.alive, 'equal-size chompers both survive a bump');
   ok(a.knockUntil > w.now && b.knockUntil > w.now, 'equal-size bump knocks both back');
 }
 
@@ -472,7 +472,7 @@ section('Power pellet while already powered');
   p.x = c; p.y = r; p.dirIdx = -1; p.desired = -1;
   const ev = w.step(0.001);
   ok(p.poweredEnd === 5.0, 'eating a power pellet while powered does NOT extend the timer');
-  ok((p.score || 0) === scoreBefore + Pacman.POWER_PTS, 'the consumed power pellet still scores');
+  ok((p.score || 0) === scoreBefore + MazeChomp.POWER_PTS, 'the consumed power pellet still scores');
   ok(ev.powerEaten.length === 0, 'no fresh power-up event for an already-powered player');
   ok(!w.board.powerPellets.has(key), 'the power pellet is consumed');
 }
@@ -512,7 +512,7 @@ section('Death animation');
   w.step(0.001);
   ok(p.alive === false && p.dying != null, 'death sets a dying timestamp');
   ok(w.anyDying() === true, 'anyDying true right after a death');
-  const settleFrames = Math.ceil(Pacman.DEATH_ANIM_SEC * 120) + 30;
+  const settleFrames = Math.ceil(MazeChomp.DEATH_ANIM_SEC * 120) + 30;
   for (let i = 0; i < settleFrames; i++) w.step(1 / 120);
   ok(w.anyDying() === false, 'anyDying false after the animation finishes');
 }

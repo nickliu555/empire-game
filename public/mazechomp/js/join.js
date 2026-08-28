@@ -52,13 +52,13 @@
   setHostPresent(false);
   setRoundLocked(true);
 
-  const existing = localStorage.getItem('pacman.playerId');
-  if (existing) { window.location.replace('/pacman/play'); return; }
+  const existing = localStorage.getItem('mazechomp.playerId');
+  if (existing) { window.location.replace('/mazechomp/play'); return; }
 
-  const rejoinName = localStorage.getItem('pacman.rejoinName');
-  if (rejoinName) { nameInput.value = rejoinName; localStorage.removeItem('pacman.rejoinName'); }
+  const rejoinName = localStorage.getItem('mazechomp.rejoinName');
+  if (rejoinName) { nameInput.value = rejoinName; localStorage.removeItem('mazechomp.rejoinName'); }
 
-  const socket = io('/pacman', { transports: ['polling', 'websocket'] });
+  const socket = io('/mazechomp', { transports: ['polling', 'websocket'] });
 
   let socketReady = false;
   socket.on('connect', function () {
@@ -109,9 +109,9 @@
         }[reason] || 'Could not join. Please try again.';
         return showError(friendly);
       }
-      localStorage.setItem('pacman.playerId', pid);
-      localStorage.setItem('pacman.playerName', res.player.name);
-      window.location.replace('/pacman/play');
+      localStorage.setItem('mazechomp.playerId', pid);
+      localStorage.setItem('mazechomp.playerName', res.player.name);
+      window.location.replace('/mazechomp/play');
     });
   });
 })();

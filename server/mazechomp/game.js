@@ -1,7 +1,7 @@
 'use strict';
 
 // ─────────────────────────────────────────────────────────────────────────
-// Pac-Man Royale — server-side lobby + match-meta state machine.
+// Maze Chomp — server-side lobby + match-meta state machine.
 //
 // Like Soccer Head / Sling Soccer, the live game (maze, movement, ghost AI,
 // scoring) runs on the HOST browser for the lowest possible input latency
@@ -36,7 +36,7 @@ const MIN_ROUNDS_TO_WIN = 1;
 const MAX_ROUNDS_TO_WIN = 7;
 const DEFAULT_ROUNDS_TO_WIN = 3;
 
-// Distinct Pac-Man body colours assigned by seat. Chosen to read clearly
+// Distinct chomper body colours assigned by seat. Chosen to read clearly
 // against the four ghost colours (red / pink / cyan / orange).
 const PLAYER_COLORS = ['#FFE100', '#3DDC84', '#A96BFF', '#34C6FF'];
 
@@ -111,7 +111,7 @@ class Game {
   }
 
   /**
-   * Add a CPU/bot Pac-Man to fill an open slot. The bot has no socket; the host
+  * Add a CPU/bot chomper to fill an open slot. The bot has no socket; the host
    * drives its inputs locally during a round. Lets 1 human play a real match.
    */
   addBot() {
@@ -199,7 +199,7 @@ class Game {
   // ---------------- Match lifecycle (meta only) ----------------
 
   /**
-   * Ordered roster the host uses to spawn Pac-Men. Ordered by join time so a
+   * Ordered roster the host uses to spawn chompers. Ordered by join time so a
    * player keeps the same seat/colour/corner across reconnects.
    */
   getRoster() {

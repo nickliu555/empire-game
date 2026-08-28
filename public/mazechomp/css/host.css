@@ -1,4 +1,4 @@
-/* === Pac-Man Royale host screen: built for a TV/laptop. === */
+/* === Maze Chomp host screen: built for a TV/laptop. === */
 body.host {
   background: linear-gradient(160deg, var(--bg) 0%, var(--bg-deep) 100%);
   color: #fff;

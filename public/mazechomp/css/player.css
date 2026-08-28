@@ -1,4 +1,4 @@
-/* Pac-Man Royale · player controller — a fullscreen, no-scroll D-pad. */
+/* Maze Chomp · player controller — a fullscreen, no-scroll D-pad. */
 html, body {
   height: 100%;
   /* Lock the whole page against pan / pinch-zoom (this is a fixed gamepad, not

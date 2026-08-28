@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const socket = io('/pacman', { transports: ['polling', 'websocket'] });
+  const socket = io('/mazechomp', { transports: ['polling', 'websocket'] });
 
   // ---------------- Tunables ----------------
   const FIXED_DT = 1 / 120;
@@ -12,7 +12,7 @@
   const ROUNDOVER_MS = 7000;
   const ROUND_END_HOLD_MS = 2000;   // freeze the board this long before the scoreboard
   const EMOTE_MS = 3000;
-  const POWER_FLASH_SEC = (window.Pacman && window.Pacman.POWER_FLASH_SEC) || 3;
+  const POWER_FLASH_SEC = (window.MazeChomp && window.MazeChomp.POWER_FLASH_SEC) || 3;
 
   // ---------------- Element refs ----------------
   const views = {
@@ -178,10 +178,10 @@
   function fmtDur(sec) { const m = Math.floor(sec / 60), s = sec % 60; return m + ':' + (s < 10 ? '0' : '') + s; }
 
   function renderQR() {
-    fetch('/api/pacman/config').then(function (r) { return r.json(); }).then(function (cfg) {
-      const url = (cfg && cfg.joinUrl) || (window.location.origin + '/pacman/join');
+    fetch('/api/mazechomp/config').then(function (r) { return r.json(); }).then(function (cfg) {
+      const url = (cfg && cfg.joinUrl) || (window.location.origin + '/mazechomp/join');
       joinUrlEl.textContent = url.replace(/^https?:\/\//, '');
-      return fetch('/api/pacman/qr?url=' + encodeURIComponent(url));
+      return fetch('/api/mazechomp/qr?url=' + encodeURIComponent(url));
     }).then(function (r) { return r.text(); }).then(function (svg) { qrSlot.innerHTML = svg; }).catch(function () {});
   }
 
@@ -442,7 +442,7 @@
     stats = {}; fastestDeath = null; finalAwards = null;
     roster.forEach(function (r) { stats[r.id] = { total: 0, kills: 0, ghosts: 0, powers: 0, cherries: 0, deaths: 0, survived: 0 }; });
     botIds = roster.filter(function (r) { return r.isBot; }).map(function (r) { return r.id; });
-    const nMazes = (window.PacmanMazes && window.PacmanMazes.length) || 1;
+    const nMazes = (window.MazeChompMazes && window.MazeChompMazes.length) || 1;
     mazeOrder = shuffle(Array.from({ length: nMazes }, function (_, i) { return i; }));
     if (initial && initial.gamePoints) { for (const id in initial.gamePoints) if (id in gamePoints) gamePoints[id] = initial.gamePoints[id]; }
     round = (initial && initial.round) || 1;
@@ -455,11 +455,11 @@
   function beginRound(r) {
     round = r;
     mazeIndex = mazeOrder[(r - 1) % mazeOrder.length];
-    world = new window.Pacman.World({ mazes: window.PacmanMazes, parse: window.PacmanMazes.parse });
+    world = new window.MazeChomp.World({ mazes: window.MazeChompMazes, parse: window.MazeChompMazes.parse });
     world.setRoster(roster);
     world.reset(mazeIndex);
     world.frozen = true;
-    renderer = new window.PacmanRender.Renderer(canvas, world);
+    renderer = new window.MazeChompRender.Renderer(canvas, world);
     prevPowered = {};
     roster.forEach(function (rr) { prevPowered[rr.id] = false; });
     clockMs = roundLengthSec * 1000;
@@ -840,7 +840,7 @@
   socket.on('player:dropped', function (d) { if (world && d) { const p = world.byId.get(d.id); if (p) { p.connected = false; world.clearInputs(d.id); } } });
   socket.on('player:rejoined', function (d) { if (world && d) { const p = world.byId.get(d.id); if (p) p.connected = true; } });
 
-  // ---------------- Bot AI (local Pac-Man CPUs) ----------------
+  // ---------------- Bot AI (local chomper CPUs) ----------------
   function driveBots(dt) {
     if (!world || !botIds.length) return;
     for (const id of botIds) { const p = world.byId.get(id); if (p && p.alive) botThink(p); }
@@ -850,8 +850,8 @@
     const W = b.w, H = b.h;
     const pr = Math.round(p.y), pc = ((Math.round(p.x) % W) + W) % W;
     // Threat distance field (multi-source BFS). Active ghosts are always deadly.
-    // A POWERED rival Pac-Man can eat this bot too — but only while the bot is
-    // UN-powered (two powered pacs merely knock each other back), so include
+    // A POWERED rival chomper can eat this bot too — but only while the bot is
+    // UN-powered (two powered chompers merely knock each other back), so include
     // powered rivals as threats only then. Frightened ghosts are edible, not
     // dangerous, so they're never threats.
     const threatCells = [];
@@ -873,9 +873,9 @@
     if (nearThreat <= 6) {
       let best = -1, bestD = -1;
       for (let idx = 0; idx < 4; idx++) {
-        const dv = window.Pacman.DIRS[idx];
+        const dv = window.MazeChomp.DIRS[idx];
         const nr = pr + dv.y, nc = ((pc + dv.x) % W + W) % W;
-        if (!passableForPac(nr, nc)) continue;
+        if (!passableForChomper(nr, nc)) continue;
         const gd = threatDist[nr] ? threatDist[nr][nc] : Infinity;
         const val = gd === Infinity ? 999 : gd;
         if (val > bestD) { bestD = val; best = idx; }
@@ -896,7 +896,7 @@
     const step = bfsFirstStep([pr, pc], goals);
     if (step >= 0) world.setDesiredDir(p.id, step);
   }
-  function passableForPac(r, c) {
+  function passableForChomper(r, c) {
     const b = world.board; if (r < 0 || r >= b.h) return false;
     const cc = ((c % b.w) + b.w) % b.w; const t = b.tiles[r][cc];
     return t === 1; // path only (not wall, not door)
@@ -909,9 +909,9 @@
     let head = 0;
     while (head < q.length) {
       const [r, c] = q[head++]; const d = dist[r][c];
-      for (const dv of window.Pacman.DIRS) {
+      for (const dv of window.MazeChomp.DIRS) {
         const nr = r + dv.y, nc = ((c + dv.x) % W + W) % W;
-        if (!passableForPac(nr, nc)) continue;
+        if (!passableForChomper(nr, nc)) continue;
         if (dist[nr][nc] > d + 1) { dist[nr][nc] = d + 1; q.push([nr, nc]); }
       }
     }
@@ -928,10 +928,10 @@
       const [r, c] = q[head++];
       if (goalSet.has(r + ',' + c) && !(r === start[0] && c === start[1])) { foundr = r; foundc = c; break; }
       for (let idx = 0; idx < 4; idx++) {
-        const dv = window.Pacman.DIRS[idx];
+        const dv = window.MazeChomp.DIRS[idx];
         const nr = r + dv.y, nc = ((c + dv.x) % W + W) % W;
         if (nr < 0 || nr >= H || seen[nr][nc]) continue;
-        if (!passableForPac(nr, nc)) continue;
+        if (!passableForChomper(nr, nc)) continue;
         seen[nr][nc] = true; prev[nr][nc] = [r, c, idx]; q.push([nr, nc]);
       }
     }

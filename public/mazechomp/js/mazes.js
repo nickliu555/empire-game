@@ -1,13 +1,13 @@
-/* Pac-Man Royale — maze definitions (host-only; phones never render these).
+/* Maze Chomp — maze definitions (host-only; phones never render these).
  *
  * Each maze is an array of equal-length rows. Legend:
  *   '#' wall            '.' pellet            'o' power pellet
- *   ' ' empty walkable  '-' ghost-house door (ghosts only, blocks Pac-Men)
+ *   ' ' empty walkable  '-' ghost-house door (ghosts only, blocks chompers)
  *   'P' player spawn    'G' ghost spawn       'C' fruit spawn
  *   'T' tunnel edge (wraps horizontally to the opposite side)
  *
- * All mazes are validated for full connectivity (see scripts/test-pacman-engine.js).
- * The host picks a different maze each round via PacmanMazes.length.
+ * All mazes are validated for full connectivity (see scripts/test-mazechomp-engine.js).
+ * The host picks a different maze each round via MazeChompMazes.length.
  */
 (function () {
   'use strict';
@@ -177,7 +177,7 @@
     };
   }
 
-  window.PacmanMazes = MAZES;
-  window.PacmanMazes.TILE = TILE;
-  window.PacmanMazes.parse = parse;
+  window.MazeChompMazes = MAZES;
+  window.MazeChompMazes.TILE = TILE;
+  window.MazeChompMazes.parse = parse;
 })();

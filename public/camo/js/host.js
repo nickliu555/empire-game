@@ -21,7 +21,6 @@
     intro: document.getElementById('view-intro'),
     role: document.getElementById('view-role'),
     clues: document.getElementById('view-clues'),
-    discuss: document.getElementById('view-discuss'),
     vote: document.getElementById('view-vote'),
     guess: document.getElementById('view-guess'),
     reveal: document.getElementById('view-reveal'),
@@ -32,6 +31,9 @@
   function show(name) {
     var incoming = views[name];
     if (!incoming) return;
+    // Leaving the reveal: kill any pending zoom-out so its timer can't fire
+    // over a later phase.
+    if (name !== 'reveal') clearRevealZoom();
     if (pendingView === name) return;
     // Phases can change faster than the 350ms crossfade (vote → guess → reveal
     // in one tick), so always sweep every other view, not just the one that
@@ -128,8 +130,8 @@
     var max = rows.reduce(function (m, r) { return Math.max(m, r.votes || 0); }, 0) || 1;
     el.innerHTML = rows.map(function (r) {
       var cls = 'tally-row';
-      if (o.accusedId && r.playerId === o.accusedId) cls += ' accused';
-      if (o.chameleonId && r.playerId === o.chameleonId) cls += ' chameleon';
+      if (o.accusedId && r.id === o.accusedId) cls += ' accused';
+      if (o.chameleonId && r.id === o.chameleonId) cls += ' chameleon';
       var pct = Math.round(((r.votes || 0) / max) * 100);
       return '<div class="' + cls + '">' +
         '<div class="tally-fill" style="width:' + pct + '%"></div>' +
@@ -139,13 +141,23 @@
     }).join('');
   }
 
-  function renderLeaderboardInto(el, rows, chameleonId) {
+  function renderLeaderboardInto(el, rows, chameleonId, scorers) {
     if (!el) return;
+    var gained = {};
+    (scorers || []).forEach(function (s) { if (s && s.playerId) gained[s.playerId] = s.points; });
+    var showDelta = !!(scorers && scorers.length);
+    el.classList.toggle('no-delta', !showDelta);
     el.innerHTML = (rows || []).map(function (r) {
       var cls = 'lb-row' + (chameleonId && r.id === chameleonId ? ' is-chameleon' : '');
+      // Always emit the delta cell, so a player who scored nothing doesn't pull
+      // their total out of the score column.
+      var delta = !showDelta ? ''
+        : gained[r.id] ? '<div class="delta">+' + gained[r.id] + '</div>'
+        : '<div class="delta empty"></div>';
       return '<div class="' + cls + '">' +
         '<div class="rank">' + r.rank + '</div>' +
         '<div class="name">' + escapeHtml(r.name) + '</div>' +
+        delta +
         '<div class="score">' + r.score + '</div>' +
         '</div>';
     }).join('');
@@ -237,6 +249,7 @@
 
   // ---- Clues ----
   var lastTurnKey = '';
+  var currentSpeakerName = '';
   function renderClues(c) {
     if (!c) return;
     show('clues');
@@ -245,6 +258,7 @@
     document.getElementById('cluesSpeaker').innerHTML = c.currentName
       ? '<span class="pname">' + escapeHtml(c.currentName) + '</span>, your word…'
       : '—';
+    currentSpeakerName = c.currentName || '';
     renderGrid(document.getElementById('cluesGrid'), c.grid, {});
     renderOrder(document.getElementById('cluesOrder'), c.order, c.turnIndex);
     var key = c.round + ':' + c.turnIndex;
@@ -253,18 +267,11 @@
       playTurnBlip();
     }
   }
-
-  // ---- Discuss ----
-  function renderDiscuss(d) {
-    if (!d) return;
-    show('discuss');
-    document.getElementById('discussRound').textContent = d.round || 1;
-    renderGrid(document.getElementById('discussGrid'), d.grid, {});
-    renderOrder(document.getElementById('discussOrder'), d.order);
-    playDiscussCue();
-  }
-  document.getElementById('voteBtn').addEventListener('click', function () {
-    socket.emit('host:next', {});
+  document.getElementById('skipTurnBtn').addEventListener('click', function () {
+    var who = currentSpeakerName ? '“' + currentSpeakerName + '”' : 'this player';
+    showConfirm('Skip ' + who + '’s turn?', 'Skip').then(function (ok) {
+      if (ok) socket.emit('host:next', {});
+    });
   });
 
   // ---- Vote ----
@@ -274,6 +281,7 @@
     show('vote');
     document.getElementById('voteRound').textContent = v.round || 1;
     renderGrid(document.getElementById('voteGrid'), v.grid, {});
+    renderOrder(document.getElementById('voteOrder'), v.order);
     document.getElementById('voteCount').textContent = v.voted || 0;
     document.getElementById('voteTotal').textContent = v.total || 0;
     lastVoted = v.voted || 0;
@@ -295,11 +303,8 @@
     if (!g) return;
     show('guess');
     document.getElementById('guessRound').textContent = g.round || 1;
-    var guessCham = '<span class="pname">' + escapeHtml(g.chameleonName || 'The Chameleon') + '</span>';
-    document.getElementById('guessTitle').innerHTML = 'Caught! ' + guessCham + ' was the Chameleon 🦎';
-    document.getElementById('guessSub').innerHTML =
-      (g.caughtOnTie ? 'Tied at the top — a shared accusation still counts. ' : '') +
-      guessCham + ' gets one shot at the secret word — nail it and they still steal a point.';
+    document.getElementById('guessName').textContent = g.chameleonName || 'The Chameleon';
+    document.getElementById('guessTieChip').hidden = !g.caughtOnTie;
     renderGrid(document.getElementById('guessGrid'), g.grid, {});
     renderTally(document.getElementById('guessTally'), g.tally, {
       accusedId: g.accusedId, chameleonId: g.chameleonId,
@@ -313,40 +318,88 @@
   // ---- Reveal ----
   var revealTimer = null;
   function stopRevealTimer() { if (revealTimer) { clearInterval(revealTimer); revealTimer = null; } }
+
+  // Lead-in: hold the verdict alone and centred for a beat, then let the rest
+  // of the details fade back in around it.
+  var REVEAL_FOCUS_MS = 1800;
+  var revealZoomTimer = null;
+  function clearRevealZoom() {
+    if (revealZoomTimer) { clearTimeout(revealZoomTimer); revealZoomTimer = null; }
+    var rv = views.reveal.querySelector('.reveal-view');
+    if (rv) rv.classList.remove('reveal-focus', 'reveal-instant');
+  }
+  function startRevealZoom() {
+    var rv = views.reveal.querySelector('.reveal-view');
+    var verdict = document.getElementById('revealVerdict');
+    if (!rv || !verdict) return;
+    // Measure before focusing: both rects sit inside the same (possibly
+    // mid-crossfade) section, so any view-level offset cancels out.
+    var box = rv.getBoundingClientRect();
+    var v = verdict.getBoundingClientRect();
+    rv.style.setProperty('--verdict-lift',
+      Math.round((box.top + box.height / 2) - (v.top + v.height / 2)) + 'px');
+    rv.classList.add('reveal-focus', 'reveal-instant');
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        rv.classList.remove('reveal-instant');
+        revealZoomTimer = setTimeout(function () {
+          revealZoomTimer = null;
+          rv.classList.remove('reveal-focus');
+        }, REVEAL_FOCUS_MS);
+      });
+    });
+  }
+
   function renderReveal(r) {
     if (!r) return;
     syncClock(r);
     show('reveal');
+    clearRevealZoom();
     document.getElementById('revealRound').textContent = r.round || 1;
     document.getElementById('revealTarget').textContent = r.target || 5;
 
-    var banner = document.getElementById('outcomeBanner');
-    var sub = document.getElementById('outcomeSub');
-    banner.classList.remove('caught', 'escaped');
-    var cham = '<span class="pname">' + escapeHtml(r.chameleonName || 'The Chameleon') + '</span>';
+    var verdict = document.getElementById('revealVerdict');
+    var word = document.getElementById('verdictWord');
+    var chip = document.getElementById('verdictChip');
+    verdict.classList.remove('caught', 'escaped', 'wrong', 'right');
     if (r.outcome === 'caught') {
-      banner.innerHTML = '🎯 Caught! ' + cham + ' was the Chameleon';
-      banner.classList.add('caught');
-      sub.innerHTML = r.guessWord
-        ? cham + ' guessed “' + escapeHtml(r.guessWord) + '” — wrong. Everyone who voted right scores 1.'
-        : 'Everyone who voted right scores 1.';
+      verdict.classList.add('caught');
+      // The vote already played out on the GUESS screen — the news here is the failed guess.
+      word.textContent = r.guessWord ? 'WRONG GUESS' : 'CAUGHT';
+      if (r.guessWord) {
+        verdict.classList.add('wrong');
+        chip.innerHTML = 'Guessed “' + escapeHtml(r.guessWord) + '” <span class="mark bad">✗</span>';
+        chip.hidden = false;
+      } else {
+        chip.hidden = true;
+      }
     } else if (r.outcome === 'escaped-guess') {
-      banner.innerHTML = '😼 ' + cham + ' guessed the word!';
-      banner.classList.add('escaped');
-      sub.innerHTML = 'Caught red-handed, then named “' + escapeHtml(r.guessWord || '') + '” anyway. Worth 1 point.';
+      // Voted out, but they named the word — redeemed, not escaped.
+      verdict.classList.add('escaped', 'right');
+      word.textContent = 'RIGHT GUESS';
+      chip.innerHTML = r.guessWord
+        ? 'Guessed “' + escapeHtml(r.guessWord) + '” <span class="mark good">✓</span>'
+        : 'Named the word <span class="mark good">✓</span>';
+      chip.hidden = false;
     } else {
-      banner.innerHTML = '🦎 ' + cham + ' slipped away';
-      banner.classList.add('escaped');
-      sub.innerHTML = r.accusedName
-        ? 'Most votes landed on <span class="pname">' + escapeHtml(r.accusedName) + '</span>. Wrong — that\'s 2 points to the Chameleon.'
-        : 'Nobody could agree — that\'s 2 points to the Chameleon.';
+      verdict.classList.add('escaped');
+      word.textContent = 'ESCAPED';
+      if (r.accusedName) {
+        chip.innerHTML = 'The room voted <span class="pname">' + escapeHtml(r.accusedName) + '</span>';
+        chip.hidden = false;
+      } else {
+        chip.textContent = 'No majority';
+        chip.hidden = false;
+      }
     }
 
-    renderGrid(document.getElementById('revealGrid'), r.grid, {
-      secretIndex: r.secretIndex,
-      guessIndex: typeof r.guessIndex === 'number' && r.guessIndex >= 0 ? r.guessIndex : undefined,
+    document.getElementById('revealCham').textContent = r.chameleonName || '—';
+    document.getElementById('revealWord').textContent = r.secretWord || '—';
+
+    renderTally(document.getElementById('revealTally'), r.tally, {
+      accusedId: r.accusedId, chameleonId: r.chameleonId,
     });
-    renderLeaderboardInto(document.getElementById('revealLb'), r.leaderboard, r.chameleonId);
+    renderLeaderboardInto(document.getElementById('revealLb'), r.leaderboard, r.chameleonId, r.scorers);
 
     var nextBtn = document.getElementById('nextBtn');
     nextBtn.textContent = r.gameOver ? 'See the results →' : 'Next round →';
@@ -362,6 +415,8 @@
 
     if (r.outcome === 'caught') playCaughtReveal();
     else playEscapeReveal();
+
+    startRevealZoom();
   }
   document.getElementById('nextBtn').addEventListener('click', function () {
     stopRevealTimer();
@@ -444,7 +499,6 @@
   socket.on('state:intro', renderIntro);
   socket.on('state:role', renderRole);
   socket.on('state:clues', renderClues);
-  socket.on('state:discuss', renderDiscuss);
   socket.on('state:vote', renderVote);
   socket.on('state:guess', renderGuess);
   socket.on('state:reveal', renderReveal);
@@ -630,18 +684,6 @@
       { freq: 1046.50, start: 0.09, dur: 0.20 },
     ], function (n) {
       return [{ type: 'sine', freq: n.freq, vol: 0.30 }];
-    });
-  }
-  // Murmuring two-tone cue when the table opens up for discussion.
-  function playDiscussCue() {
-    playNotes([
-      { freq: 440.00, start: 0.00, dur: 0.26 },
-      { freq: 554.37, start: 0.16, dur: 0.34 },
-    ], function (n) {
-      return [
-        { type: 'triangle', freq: n.freq, vol: 0.34 },
-        { type: 'sine', freq: n.freq * 2, vol: 0.07 },
-      ];
     });
   }
   // Tense descending chime when voting opens.

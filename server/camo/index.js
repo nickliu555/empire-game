@@ -115,7 +115,6 @@ function mountCamo(app, httpServer, opts) {
     }
   }
   function broadcastClues() { ns.emit('state:clues', game.getCluesPublic()); }
-  function broadcastDiscuss() { ns.emit('state:discuss', game.getDiscussPublic()); }
   function broadcastVote() { ns.emit('state:vote', game.getVotePublic()); }
   function broadcastGuess() { ns.emit('state:guess', game.getGuessPublic()); }
   function broadcastReveal() {
@@ -142,11 +141,18 @@ function mountCamo(app, httpServer, opts) {
   function broadcastPhase(phase) {
     if (phase === PHASES.ROLE) broadcastRole();
     else if (phase === PHASES.CLUES) broadcastClues();
-    else if (phase === PHASES.DISCUSS) broadcastDiscuss();
     else if (phase === PHASES.VOTE) broadcastVote();
     else if (phase === PHASES.GUESS) broadcastGuess();
     else if (phase === PHASES.REVEAL) broadcastReveal();
     else if (phase === PHASES.FINAL) broadcastFinal();
+  }
+
+  // Re-push the views that render per-player presence, so a drop dims and a
+  // return un-dims immediately instead of waiting for the next natural render.
+  function broadcastPresence() {
+    broadcastLobby();
+    if (game.phase === PHASES.CLUES) broadcastClues();
+    else if (game.phase === PHASES.VOTE) broadcastVote();
   }
 
   game.onIntroEnd = () => broadcastRole();
@@ -213,9 +219,6 @@ function mountCamo(app, httpServer, opts) {
       } else if (game.phase === PHASES.CLUES) {
         payload.clues = game.getCluesPublic();
         payload.myRole = game.getRolePrivate(pid);
-      } else if (game.phase === PHASES.DISCUSS) {
-        payload.discuss = game.getDiscussPublic();
-        payload.myRole = game.getRolePrivate(pid);
       } else if (game.phase === PHASES.VOTE) {
         payload.vote = game.getVotePublic();
         payload.myRole = game.getRolePrivate(pid);
@@ -229,7 +232,7 @@ function mountCamo(app, httpServer, opts) {
         payload.final = game.getFinalPublic();
       }
       ack && ack(payload);
-      broadcastLobby();
+      broadcastPresence();
       if (game.phase === PHASES.ROLE) broadcastRoleAckCount();
       if (game.phase === PHASES.VOTE) broadcastVoteCount();
     });
@@ -322,7 +325,6 @@ function mountCamo(app, httpServer, opts) {
         socket.emit('state:role', game.getRolePublic());
         socket.emit('host:roleAckCount', { acked: game.roleAckedCount(), total: game.rosterCount() });
       } else if (game.phase === PHASES.CLUES) socket.emit('state:clues', game.getCluesPublic());
-      else if (game.phase === PHASES.DISCUSS) socket.emit('state:discuss', game.getDiscussPublic());
       else if (game.phase === PHASES.VOTE) {
         socket.emit('state:vote', game.getVotePublic());
         socket.emit('host:voteCount', { voted: game.votedCount(), total: game.rosterCount() });
@@ -388,16 +390,11 @@ function mountCamo(app, httpServer, opts) {
 
     socket.on('disconnect', () => {
       if (role === 'player') {
-        const gone = game.markDisconnected(socket.id);
-        broadcastLobby();
-        if (!gone) return;
-        // The roster is fixed once the game starts, so a drop never shrinks a
-        // total. Only the speaking order needs a nudge, or the round dead-ends
-        // on someone who can no longer take their turn.
-        if (game.phase === PHASES.CLUES && game.currentSpeakerId() === gone.id) {
-          const res = game.skipTurn();
-          if (res.ok) broadcastPhase(res.phase);
-        }
+        // A dropped phone is backgrounded, not gone: the roster, the speaking
+        // order and every total stay exactly as they were. Only the host can
+        // move a stuck turn along.
+        game.markDisconnected(socket.id);
+        broadcastPresence();
       } else if (role === 'host') {
         hostCount = Math.max(0, hostCount - 1);
         lastHostSeenAt = Date.now();

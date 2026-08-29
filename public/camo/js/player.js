@@ -21,6 +21,7 @@
       if (now - lastTouchEnd <= 350) e.preventDefault();
       lastTouchEnd = now;
     }, { passive: false });
+    document.addEventListener('dblclick', stop, { passive: false });
   }());
 
   var socket = io('/camo', { transports: ['polling', 'websocket'] });
@@ -42,6 +43,10 @@
   }
   function render(html) { clearArm(); elView.innerHTML = '<div class="state-card">' + html + '</div>'; }
   function tryVibrate(p) { if (navigator.vibrate) { try { navigator.vibrate(p); } catch (e) {} } }
+  function ordinal(n) {
+    var tail = ['th', 'st', 'nd', 'rd'], v = n % 100;
+    return n + (tail[(v - 20) % 10] || tail[v] || tail[0]);
+  }
 
   var cachedName = '—';
   var lobbyTotal = 0;
@@ -193,8 +198,11 @@
       btn.addEventListener('click', function () {
         btn.disabled = true;
         socket.emit('player:roleAck', {}, function (res) {
-          if (res && res.ok) { roleAcked = true; renderRoleWaiting(res.acked, res.total); }
-          else btn.disabled = false;
+          if (!res || !res.ok) { btn.disabled = false; return; }
+          roleAcked = true;
+          // The last ack ends the phase, so the clues screen can land before this reply —
+          // only paint the waiting screen if we're still on the role card.
+          if (document.body.contains(btn)) renderRoleWaiting(res.acked, res.total);
         });
       });
     } else {
@@ -225,7 +233,7 @@
   }
   function renderClues(c) {
     if (!c) return;
-    setReactionsAllowed(true);
+    setReactionsAllowed(false);
     setAttribution(false);
     stopIntroTimer();
     clearArm();
@@ -259,23 +267,9 @@
     }
   }
 
-  // ---- Discuss ----
-  function renderDiscuss(d) {
-    setReactionsAllowed(true);
-    setAttribution(false);
-    elView.innerHTML =
-      '<div class="state-card">' +
-        secretCardHtml() +
-        '<h2>Talk it out 🗣️</h2>' +
-        '<p>Who sounded like they were guessing? The host will open the vote.</p>' +
-        queueHtml(d && d.order) +
-      '</div>';
-    bindSecretCard();
-  }
-
   // ---- Vote ----
   function renderVote(v, myVote) {
-    setReactionsAllowed(true);
+    setReactionsAllowed(false);
     setAttribution(false);
     clearArm();
     voteArmedId = null;
@@ -283,9 +277,9 @@
     var players = (v && v.players) || [];
     elView.innerHTML =
       '<div class="state-card">' +
-        '<div class="topic-line">' + escapeHtml((v && v.grid && v.grid.topic) || '') + '</div>' +
+        secretCardHtml() +
         '<h2>Who is the Chameleon?</h2>' +
-        '<p class="vote-scroll-hint">Tap a name, then tap it again to lock your vote.</p>' +
+        '<p class="vote-scroll-hint">Talk it out, then tap a name twice to lock your vote.</p>' +
         '<div class="vote-list scroll-region" id="voteList">' +
           players.map(function (p) {
             var me = p.id === playerId;
@@ -296,6 +290,7 @@
           }).join('') +
         '</div>' +
       '</div>';
+    bindSecretCard();
     var list = document.getElementById('voteList');
     function paintVote(pid) {
       Array.prototype.forEach.call(list.querySelectorAll('.vote-btn'), function (b) {
@@ -330,13 +325,13 @@
       '<div class="card-meta">Vote locked</div>' +
       '<h2>You voted for</h2>' +
       '<div class="result-word">' + escapeHtml(target ? target.name : '…') + '</div>' +
-      '<p>Waiting for everyone else…</p>'
+      '<p>Waiting for everyone…</p>'
     );
   }
 
   // ---- Guess ----
   function renderGuess(g) {
-    setReactionsAllowed(true);
+    setReactionsAllowed(false);
     setAttribution(false);
     clearArm();
     guessArmedIndex = -1;
@@ -345,7 +340,7 @@
       render(
         '<div class="card-meta">Caught!</div>' +
         '<h2 class="has-name"><span class="pname">' + escapeHtml((g && g.chameleonName) || 'The Chameleon') + '</span> was the Chameleon 🦎</h2>' +
-        '<p>They get one guess at the secret word. Look up at the big screen.</p>'
+        '<p>Look up — they get one guess.</p>'
       );
       return;
     }
@@ -355,7 +350,7 @@
       '<div class="state-card">' +
         '<div class="turn-badge">You\'re caught</div>' +
         '<h2>Name the secret word</h2>' +
-        '<p class="vote-scroll-hint">Get it right and you still steal a point. Tap a word, then tap again to lock it.</p>' +
+        '<p class="vote-scroll-hint">Tap a word, then tap again to lock.</p>' +
         '<div class="guess-grid scroll-region" id="guessGrid">' +
           words.map(function (w, i) {
             return '<button type="button" class="guess-cell" data-idx="' + i + '">' + escapeHtml(w) + '</button>';
@@ -405,54 +400,53 @@
     myRole = null;
     roleAcked = false;
 
-    var main = '';
+    var verdict, tone;
     if (res.wasChameleon) {
-      if (res.outcome === 'escaped-vote') {
-        main = '<h2 class="result-good">You slipped away 🦎</h2><p>Nobody pinned it on you.</p>';
-      } else if (res.outcome === 'escaped-guess') {
-        main = '<h2 class="result-good">Caught — but you nailed the word 😼</h2>' +
-          '<p>You guessed “' + escapeHtml(res.guessWord || '') + '”.</p>';
-      } else {
-        main = '<h2 class="result-bad">Busted 🎯</h2>' +
-          (res.guessWord ? '<p>You guessed “' + escapeHtml(res.guessWord) + '” — not the word.</p>'
-                         : '<p>They saw right through you.</p>');
-      }
+      if (res.outcome === 'escaped-vote') { verdict = 'ESCAPED'; tone = 'good'; }
+      else if (res.outcome === 'escaped-guess') { verdict = 'RIGHT GUESS'; tone = 'good'; }
+      else { verdict = 'BUSTED'; tone = 'bad'; }
+    } else if (res.outcome === 'escaped-guess') {
+      verdict = 'THEY GUESSED THE WORD';
+      tone = 'bad';
+    } else if (res.caught && res.votedCorrectly && res.pointsEarned > 0) {
+      // Only claim the catch when it actually paid — a scoreless round never reads as a win.
+      verdict = 'YOU CAUGHT THEM';
+      tone = 'good';
     } else if (res.caught) {
-      main = res.votedCorrectly
-        ? '<h2 class="result-good">You caught the Chameleon! 🎯</h2>'
-        : '<h2 class="result-bad">You did not catch the Chameleon</h2>';
-      main += '<p><span class="pname">' + escapeHtml(res.chameleonName || 'They') + '</span> was the Chameleon.</p>';
+      verdict = 'THEY GOT CAUGHT';
+      tone = 'bad';
     } else {
-      main = '<h2 class="result-bad">The Chameleon got away 🦎</h2>' +
-        '<p>It was <span class="pname">' + escapeHtml(res.chameleonName || '—') + '</span>.</p>';
+      verdict = 'THEY ESCAPED';
+      tone = 'bad';
     }
-    main += '<div class="result-points' + (res.pointsEarned ? '' : ' zero') + '">' +
-      (res.pointsEarned ? '+' + res.pointsEarned : '+0') + '</div>';
-    main += '<p>The word was</p><div class="result-word">' + escapeHtml(res.secretWord || '') + '</div>';
 
-    var foot = '';
-    if (res.myVote) foot += '<p>You voted for <span class="pname">' + escapeHtml(res.myVote) + '</span>.</p>';
-    else if (!res.wasChameleon) foot += '<p>You didn\'t vote this round.</p>';
+    var main = '<h2 class="result-' + tone + '">' + verdict + '</h2>' +
+      '<div class="result-points' + (res.pointsEarned ? '' : ' zero') + '">' +
+      (res.pointsEarned ? '+' + res.pointsEarned : '+0') + '</div>' +
+      '<div class="result-fact"><span class="fact-label">🦎 Chameleon</span>' +
+        '<span class="fact-value">' + escapeHtml(res.wasChameleon ? 'You' : (res.chameleonName || '—')) + '</span></div>' +
+      '<div class="result-fact"><span class="fact-label">The word</span>' +
+        '<span class="fact-value">' + escapeHtml(res.secretWord || '—') + '</span></div>';
+
+    var foot;
     if (res.gameOver) {
-      foot += res.isWinner
-        ? '<p><strong>🏆 You win!</strong> Check the big screen.</p>'
-        : '<p>Game over — check the big screen for the winner!</p>';
+      foot = res.isWinner ? '<p><strong>🏆 You win!</strong></p>' : '<p>Game over</p>';
     } else {
-      foot += res.tied
-        ? '<p>You\'re tied at <strong>#' + res.rank + '</strong></p>'
-        : '<p>You\'re <strong>#' + res.rank + '</strong></p>';
+      foot = '<div class="result-fact"><span class="fact-label">Your place</span>' +
+        '<span class="fact-value">' + (res.tied ? 'Tied for ' : '') + ordinal(res.rank) +
+        ' of ' + res.totalPlayers + '</span></div>';
     }
     render('<div class="result-main">' + main + '</div><div class="result-foot">' + foot + '</div>');
   }
 
   function renderWaitReveal() {
-    setReactionsAllowed(true);
+    setReactionsAllowed(false);
     setAttribution(false);
     render('<h2>Hold tight…</h2><p>The reveal is on the big screen.</p>');
   }
 
   function renderFinal() {
-    setReactionsAllowed(true);
+    setReactionsAllowed(false);
     setAttribution(false);
     stopIntroTimer();
     render('<h2>Thanks for playing! 🦎</h2><p>Check the big screen for the final results.</p>');
@@ -498,7 +492,6 @@
       else if (res.phase === 'INTRO') renderIntro(res.intro);
       else if (res.phase === 'ROLE') { roleAcked = !!res.acked; renderRole(); }
       else if (res.phase === 'CLUES') renderClues(res.clues);
-      else if (res.phase === 'DISCUSS') renderDiscuss(res.discuss);
       else if (res.phase === 'VOTE') renderVote(res.vote, res.myVote);
       else if (res.phase === 'GUESS') renderGuess(res.guess);
       else if (res.phase === 'REVEAL') { if (res.myResult) renderResult(res.myResult); else renderWaitReveal(); }
@@ -515,7 +508,6 @@
   socket.on('you:role', function (r) { myRole = r; roleAcked = false; renderRole(); });
   socket.on('state:role', function () { if (!myRole) renderRole(); });
   socket.on('state:clues', renderClues);
-  socket.on('state:discuss', renderDiscuss);
   socket.on('state:vote', function (v) { renderVote(v, null); });
   socket.on('state:guess', renderGuess);
   socket.on('state:reveal', function () { /* per-player result arrives via player:result */ });

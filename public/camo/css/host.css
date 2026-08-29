@@ -198,7 +198,7 @@ body.host {
 .intro-sub { color: rgba(255,255,255,0.8); font-size: 22px; margin-top: 10px; }
 
 /* ---- Shared round scaffolding ---- */
-#view-role, #view-clues, #view-discuss, #view-vote, #view-guess, #view-reveal, #view-final {
+#view-role, #view-clues, #view-vote, #view-guess, #view-reveal, #view-final {
   align-self: stretch;
   height: 100%;
   min-height: 0;
@@ -217,14 +217,9 @@ body.host {
   text-align: center;
 }
 .round-title {
-  font-size: clamp(26px, 3.4vw, 46px); margin: 0;
+  font-size: clamp(30px, 4vw, 56px); margin: 0;
   text-align: center; text-wrap: balance; overflow-wrap: anywhere;
   max-width: min(1100px, 82vw);
-}
-.round-sub {
-  color: rgba(255,255,255,0.82); font-size: clamp(15px, 1.5vw, 21px); margin: 0;
-  text-align: center; text-wrap: balance; overflow-wrap: anywhere;
-  max-width: min(1000px, 80vw);
 }
 .topic-pill {
   display: inline-block; background: var(--lime); color: #24380a;
@@ -354,15 +349,87 @@ body.host {
 .tally-row.chameleon .label::after {
   content: ' 🦎'; }
 
-/* ---- Reveal ---- */
-.outcome-banner {
-  font-size: clamp(28px, 3.6vw, 54px); font-weight: 800;
-  text-align: center; text-wrap: balance; overflow-wrap: anywhere;
-  max-width: min(1200px, 88vw); margin: 0; color: rgba(255,255,255,0.72);
+/* ---- Verdict (guess + reveal) ---- */
+.verdict {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  max-width: min(1200px, 90vw); text-align: center;
 }
-.outcome-banner.caught .pname { color: var(--lime); }
-.outcome-banner.escaped .pname { color: #FF9BB0; }
-.reveal-cols { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 26px; width: 100%; min-height: 0; flex: 1 1 auto; }
+.verdict-word {
+  font-size: clamp(46px, 7vw, 116px); font-weight: 800; line-height: 0.95;
+  letter-spacing: 0.04em; color: rgba(255,255,255,0.85);
+}
+.verdict.caught .verdict-word { color: var(--lime); }
+.verdict.caught.wrong .verdict-word { color: #FF4B4B; }
+.verdict.escaped .verdict-word { color: #FF9BB0; }
+.verdict.escaped.right .verdict-word { color: var(--lime); }
+.verdict-name {
+  font-size: clamp(26px, 3.4vw, 52px); font-weight: 800; color: var(--lime);
+  min-width: 0; overflow-wrap: anywhere;
+}
+.verdict-chip {
+  font-size: clamp(14px, 1.3vw, 20px); font-weight: 700;
+  background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.86);
+  padding: 7px 18px; border-radius: 999px;
+  min-width: 0; max-width: min(760px, 84vw); overflow-wrap: anywhere;
+}
+.verdict-chip[hidden] { display: none; }
+.verdict-chip .mark { font-weight: 900; }
+.verdict-chip .mark.bad { color: #FF7A90; }
+.verdict-chip .mark.good { color: var(--lime); }
+
+.phase-status {
+  font-size: clamp(18px, 1.9vw, 28px); font-weight: 700;
+  color: rgba(255,255,255,0.7); text-align: center; overflow-wrap: anywhere;
+}
+
+/* ---- Reveal ---- */
+.fact-cards {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px; width: 100%; max-width: min(1100px, 88vw);
+}
+.fact-card {
+  background: var(--surface); color: var(--ink);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 12px 18px; min-width: 0; text-align: center;
+  display: flex; flex-direction: column; gap: 4px; justify-content: center;
+}
+.fact-label {
+  font-size: 13px; font-weight: 800; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted);
+}
+.fact-value {
+  font-size: clamp(24px, 3vw, 46px); font-weight: 800; line-height: 1.1;
+  min-width: 0; overflow-wrap: anywhere;
+}
+.fact-word .fact-value { color: var(--accent); }
+
+/* ---- Reveal lead-in ----
+   The verdict lands alone, centred and enlarged for a beat, then everything
+   else fades in around it. `.reveal-instant` snaps the focused state on the
+   first frame so there's no entry flicker. */
+.reveal-view > *,
+.reveal-view .verdict-chip {
+  transition: opacity 0.5s ease, transform 0.75s cubic-bezier(.2, .9, .25, 1);
+  transform-origin: center;
+}
+.reveal-view.reveal-focus > *:not(.verdict),
+.reveal-view.reveal-focus .verdict-chip {
+  opacity: 0;
+  pointer-events: none;
+}
+.reveal-view.reveal-focus > *:not(.verdict) { transform: translateY(20px); }
+.reveal-view.reveal-focus .verdict {
+  transform: translateY(var(--verdict-lift, 0px)) scale(1.35);
+}
+.reveal-view.reveal-instant > *,
+.reveal-view.reveal-instant .verdict-chip { transition: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-view > *,
+  .reveal-view .verdict-chip { transition: none; }
+}
+
+.reveal-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 26px; width: 100%; min-height: 0; flex: 1 1 auto; }
 .reveal-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 0; }
 .reveal-col > h3 { flex: 0 0 auto; margin: 0; font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.7); }
 .reveal-col > .scroll-region { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
@@ -371,13 +438,19 @@ body.host {
   border-radius: var(--radius); padding: 14px 18px; box-shadow: var(--shadow);
 }
 .lb-row {
-  display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center;
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) 46px 40px; align-items: center;
   gap: 10px; padding: 9px 4px; border-bottom: 1px solid #f0eaf6; font-size: 17px;
 }
 .lb-row:last-child { border-bottom: none; }
 .lb-row .rank { font-weight: 800; font-size: 20px; color: var(--accent); }
 .lb-row .name { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lb-row .score { font-weight: 800; color: var(--lime-deep); font-variant-numeric: tabular-nums; }
+.lb-row .delta {
+  font-weight: 800; font-size: 14px; color: #24380a; background: var(--lime);
+  padding: 2px 9px; border-radius: 999px; white-space: nowrap; justify-self: end;
+}
+.lb-row .delta.empty { background: none; padding: 0; }
+.no-delta .lb-row { grid-template-columns: 34px minmax(0, 1fr) 40px; }
+.lb-row .score { font-weight: 800; color: var(--lime-deep); font-variant-numeric: tabular-nums; text-align: right; }
 .lb-row.is-chameleon .name::after { content: ' 🦎'; }
 
 .reveal-actions { padding-top: 2px; }

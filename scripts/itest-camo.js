@@ -62,7 +62,7 @@ function listen(sock, events) {
   };
 }
 
-const HOST_EVENTS = ['state:lobby', 'state:intro', 'state:role', 'state:clues', 'state:discuss',
+const HOST_EVENTS = ['state:lobby', 'state:intro', 'state:role', 'state:clues',
   'state:vote', 'state:guess', 'state:reveal', 'state:final', 'host:roleAckCount', 'host:voteCount'];
 const PLAYER_EVENTS = ['you:role', 'player:result', 'state:reveal', 'state:clues', 'state:vote'];
 
@@ -148,8 +148,12 @@ async function runClues(firstClues) {
     const res = await emitAck(speaker.sock, 'player:clueDone', {});
     check(res.ok === true, 'turn ' + (i + 1) + ' (' + speaker.name + ') taps Done');
   }
+  check(order.length > 0, 'the last clue opens the vote with no extra host tap');
   hostBus.flush('state:clues');
-  return hostBus.next('state:discuss');
+  const vote = await hostBus.next('state:vote');
+  check(vote.order && vote.order.length === players.length,
+    'the vote screen carries the speaking order for the discussion');
+  return vote;
 }
 
 /**
@@ -170,9 +174,7 @@ async function playRound(outcome, label) {
   const clues = await hostBus.next('state:clues');
   checkNoLeak(clues, info.secretWord, 'state:clues');
 
-  await runClues(clues);
-  await emitAck(host, 'host:next', {});               // DISCUSS → VOTE
-  const vote = await hostBus.next('state:vote');
+  const vote = await runClues(clues);
   checkNoLeak(vote, info.secretWord, 'state:vote');
 
   const self = await emitAck(players[0].sock, 'player:vote', { targetId: players[0].id });
@@ -226,14 +228,12 @@ function scoreOf(reveal, playerId) {
   return row ? row.score : null;
 }
 
-// Role → clues → discuss → vote, leaving the round parked on the open vote.
+// Role → clues → vote, leaving the round parked on the open vote.
 async function toVote() {
   const role = await hostBus.next('state:role');
   const info = await collectRoles(role.grid);
   await ackAllRoles();
   await runClues(await hostBus.next('state:clues'));
-  await emitAck(host, 'host:next', {});
-  await hostBus.next('state:vote');
   return info;
 }
 
@@ -331,9 +331,7 @@ async function main() {
   const lastAck = await emitAck(dropped.sock, 'player:roleAck', {});
   check(lastAck.total === 4 && lastAck.acked === 4, 'the fourth ack completes the roster');
 
-  await runClues(await hostBus.next('state:clues'));
-  await emitAck(host, 'host:next', {});               // DISCUSS → VOTE
-  const vote4 = await hostBus.next('state:vote');
+  const vote4 = await runClues(await hostBus.next('state:clues'));
   check(vote4.total === 4, 'the vote is counted against all four players');
   check(vote4.players.length === 4, 'the vote list still offers every player');
 
@@ -351,6 +349,45 @@ async function main() {
   await emitAck(host, 'host:next', {});               // host closes the stalled vote
   const guess4 = await hostBus.next('state:guess');
   check(guess4.chameleonId === info4.chameleon.id, 'the host can still close a vote a dropped player stalled');
+
+  console.log('\n— A dropped speaker keeps their turn —');
+  await emitAck(host, 'host:reset', {});
+  for (const p of players) p.sock.close();
+  players.length = 0;
+  for (const n of ['Ana', 'Ben', 'Cleo']) await addPlayer(n);
+  hostBus.flushAll();
+  await emitAck(host, 'host:start', { targetScore: 10, autoAdvance: false });
+  await hostBus.next('state:intro');
+  await hostBus.next('state:role');
+  for (const p of players) await p.bus.next('you:role');
+  await ackAllRoles();
+
+  const clues5 = await hostBus.next('state:clues');
+  const speaker = players.find((p) => p.id === clues5.currentId);
+  speaker.sock.close();
+  await new Promise((r) => setTimeout(r, 150));
+  const afterDrop = await hostBus.next('state:clues');
+  check(afterDrop.turnIndex === clues5.turnIndex, 'a dropped speaker does not lose their turn');
+  check(afterDrop.currentId === speaker.id, 'the turn stays with the missing player');
+  check(afterDrop.order.find((o) => o.id === speaker.id).connected === false,
+    'the host sees the missing player dimmed straight away');
+
+  speaker.sock = await connect();
+  speaker.bus = listen(speaker.sock, PLAYER_EVENTS);
+  await emitAck(speaker.sock, 'player:reconnect', { playerId: speaker.id });
+  const backClues = await hostBus.next('state:clues');
+  check(backClues.order.find((o) => o.id === speaker.id).connected === true,
+    'the host un-dims them the moment they return');
+  check(backClues.currentId === speaker.id, 'they come back to their own turn');
+  const resumed = await emitAck(speaker.sock, 'player:clueDone', {});
+  check(resumed.ok === true, 'a returning speaker can still take their turn');
+
+  const clues6 = await hostBus.next('state:clues');
+  const stuck = clues6.currentId;
+  await emitAck(host, 'host:next', {});
+  const clues7 = await hostBus.next('state:clues');
+  check(clues7.turnIndex === clues6.turnIndex + 1, 'the host can skip a stuck turn manually');
+  check(clues7.currentId !== stuck, 'the skipped player is no longer up');
 
   console.log('\n— Tied vote —');
   await emitAck(host, 'host:reset', {});

@@ -90,7 +90,7 @@
     if (s && typeof s.total === 'number' && typeof s.max === 'number') setGameFull(s.total >= s.max);
   });
   socket.on('state:reset', function () { setRoundLocked(false); setGameFull(false); });
-  ['intro', 'role', 'clues', 'discuss', 'vote', 'guess', 'reveal', 'final'].forEach(function (p) {
+  ['intro', 'role', 'clues', 'vote', 'guess', 'reveal', 'final'].forEach(function (p) {
     socket.on('state:' + p, function () { setRoundLocked(true); });
   });
   socket.on('state:hostPresence', function (p) { setHostPresent(!(p && p.present === false)); });

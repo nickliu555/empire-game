@@ -3,16 +3,16 @@
 // ─────────────────────────────────────────────────────────────────────────
 // Camo — single-room game state machine.
 //
-// Flow: LOBBY → INTRO → ROLE → CLUES → DISCUSS → VOTE → (GUESS) → REVEAL
+// Flow: LOBBY → INTRO → ROLE → CLUES → VOTE → (GUESS) → REVEAL
 //       → (loop) → FINAL
 //
 //   ROLE    : everyone privately sees the secret word — except the Chameleon,
 //             whose phone only says they ARE the Chameleon.
 //   CLUES   : one pass around a shuffled speaking order; each player says a
 //             single word OUT LOUD, then taps Done.
-//   DISCUSS : untimed, host-advanced.
-//   VOTE    : everyone accuses someone else. Ends when all connected players
-//             have voted, or when the host closes it.
+//   VOTE    : opens the moment the last clue lands — the room argues it out
+//             with the ballot already open. Ends when everyone has voted, or
+//             when the host closes it.
 //   GUESS   : only reached when the Chameleon is the SOLE top vote — they get
 //             one shot at the secret word to escape anyway.
 //   REVEAL  : identity, guess outcome and scores.
@@ -28,7 +28,6 @@ const PHASES = {
   INTRO: 'INTRO',
   ROLE: 'ROLE',
   CLUES: 'CLUES',
-  DISCUSS: 'DISCUSS',
   VOTE: 'VOTE',
   GUESS: 'GUESS',
   REVEAL: 'REVEAL',
@@ -326,17 +325,14 @@ class Game {
 
   _advanceTurn() {
     this.turnIndex += 1;
-    if (this.turnIndex >= this.order.length) {
-      this.phase = PHASES.DISCUSS;
-      return { ok: true, phase: PHASES.DISCUSS };
-    }
+    if (this.turnIndex >= this.order.length) return this.startVote();
     return { ok: true, phase: PHASES.CLUES, turnIndex: this.turnIndex };
   }
 
   // ---------------- Vote ----------------
 
   startVote() {
-    if (this.phase !== PHASES.DISCUSS) return { ok: false, reason: 'not-discuss-phase' };
+    if (this.phase !== PHASES.CLUES) return { ok: false, reason: 'not-clue-phase' };
     this.phase = PHASES.VOTE;
     for (const p of this.players.values()) {
       p.votedRound = -1;
@@ -515,7 +511,6 @@ class Game {
     if (this.phase === PHASES.INTRO) { this._endIntro(); return { ok: true, phase: PHASES.ROLE }; }
     if (this.phase === PHASES.ROLE) { this._endRole(); return { ok: true, phase: PHASES.CLUES }; }
     if (this.phase === PHASES.CLUES) return this.skipTurn();
-    if (this.phase === PHASES.DISCUSS) return this.startVote();
     if (this.phase === PHASES.VOTE) return this.closeVote();
     if (this.phase === PHASES.GUESS) return this.skipGuess();
     if (this.phase === PHASES.REVEAL) return this.advanceReveal();
@@ -607,6 +602,10 @@ class Game {
       round: this.roundIndex,
       grid: this.getGridPublic(),
       players: this.getLobbyPlayers(),
+      order: this.order.map((id) => {
+        const p = this.players.get(id);
+        return { id, name: p ? p.name : '?', connected: p ? p.connected : false };
+      }),
       voted: this.votedCount(),
       total: this.rosterCount(),
       target: this.targetScore,

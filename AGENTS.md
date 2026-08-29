@@ -39,6 +39,28 @@ Reuse these patterns verbatim:
 
 ---
 
+## ✅ Roster is locked once the game starts — never punish an inactive player
+
+A phone that backgrounds, locks, loses signal or switches apps **drops its socket**. That is
+normal and constant on mobile — it is **not** a signal that the player quit. Once a player is
+in the lobby when the host starts the game, assume they are in the game **for the whole
+session**.
+
+Never strip anything from a player because they look inactive or disconnected:
+- **Never skip, forfeit or auto-play their turn**, and never advance a turn/round because the
+  current player dropped.
+- **Never end a phase early** by treating them as absent, and never count a phase "complete"
+  because only the *connected* players finished.
+- **Never remove them from the roster, the speaking order, the vote list or the leaderboard**,
+  and never drop their already-submitted answer, vote or score.
+- **Progress totals are always measured against the full roster** (`X / rosterCount()`), never
+  against a live connection count — a drop must not shrink a denominator and silently trigger
+  "everyone's done".
+- **Kicking is lobby-only.** After the game starts, the only way a player leaves is an explicit
+  host reset.
+
+---
+
 ## ✅ Scalable UI — lists that grow with player count MUST scroll, never shrink or clip
 
 Any UI that renders one element **per player or per round** (lobby chips, "players ready"
@@ -233,5 +255,7 @@ code inspection alone.
 - **Attribution footer** ("Developed by Nick Liu …") only shows on the **join and lobby**
   screens — never during gameplay. Keep it out of the Host match/final views and the player
   controller/eliminated/final views (hide it whenever the active view isn't the lobby/waiting one).
+- **A player's name inside a sentence always gets its own colour** (wrap it in the game's
+  name span, e.g. `<span class="pname">`), so it reads as a person and not as body text.
 - Only implement what's asked; don't add unrequested features, comments, or docs.
 - **Do not create markdown files to document changes** unless explicitly requested.

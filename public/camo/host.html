@@ -95,7 +95,6 @@
           <div class="round-meta">Round <span id="roleRound">1</span> · First to <span id="roleTarget">5</span></div>
           <div class="topic-pill" id="roleTopic">Topic</div>
           <h1 class="round-title">Check your phone 👀</h1>
-          <p class="round-sub">Everyone gets the secret word — except the Chameleon. Hold the card to peek.</p>
           <div class="grid-panel grow-region">
             <div class="word-grid" id="roleGrid"></div>
           </div>
@@ -118,26 +117,8 @@
               <div class="side-scroll" id="cluesOrder"></div>
             </div>
           </div>
-        </div>
-      </section>
-
-      <!-- Discuss -->
-      <section class="view" id="view-discuss">
-        <div class="round-view">
-          <div class="round-meta">Round <span id="discussRound">1</span></div>
-          <h1 class="round-title">Talk it out 🗣️</h1>
-          <p class="round-sub">Who sounded like they were guessing? Accuse, defend, then vote.</p>
-          <div class="grow-region">
-            <div class="grid-panel">
-              <div class="word-grid grid-small" id="discussGrid"></div>
-            </div>
-            <div class="side-panel">
-              <h3>Who said what</h3>
-              <div class="side-scroll" id="discussOrder"></div>
-            </div>
-          </div>
           <div class="reveal-actions">
-            <button id="voteBtn" class="btn-primary">Start the vote →</button>
+            <button id="skipTurnBtn" class="btn-ghost">Skip this turn</button>
           </div>
         </div>
       </section>
@@ -146,10 +127,15 @@
       <section class="view" id="view-vote">
         <div class="round-view">
           <div class="round-meta">Round <span id="voteRound">1</span></div>
-          <h1 class="round-title">Who is the Chameleon? 🦎</h1>
-          <p class="round-sub">Select a name on your phone — you can't vote for yourself.</p>
-          <div class="grid-panel grow-region">
-            <div class="word-grid grid-small" id="voteGrid"></div>
+          <h1 class="round-title">Talk it out — who is the Chameleon? 🦎</h1>
+          <div class="grow-region">
+            <div class="grid-panel">
+              <div class="word-grid grid-small" id="voteGrid"></div>
+            </div>
+            <div class="side-panel">
+              <h3>Who said what</h3>
+              <div class="side-scroll" id="voteOrder"></div>
+            </div>
           </div>
           <div class="progress-pill"><span id="voteCount">0</span> / <span id="voteTotal">0</span> voted</div>
           <div class="reveal-actions">
@@ -162,17 +148,21 @@
       <section class="view" id="view-guess">
         <div class="round-view">
           <div class="round-meta">Round <span id="guessRound">1</span></div>
-          <h1 class="round-title" id="guessTitle">Caught!</h1>
-          <p class="round-sub" id="guessSub">One shot to name the secret word and steal a point.</p>
+          <div class="verdict caught">
+            <div class="verdict-word">VOTED OUT</div>
+            <div class="verdict-name" id="guessName">—</div>
+            <div class="verdict-chip" id="guessTieChip" hidden>Tied vote — still counts</div>
+          </div>
           <div class="grow-region">
             <div class="grid-panel">
               <div class="word-grid" id="guessGrid"></div>
             </div>
             <div class="side-panel">
-              <h3>The vote</h3>
+              <h3>Votes</h3>
               <div class="side-scroll"><div class="tally-list" id="guessTally"></div></div>
             </div>
           </div>
+          <div class="phase-status">🦎 Guessing the word…</div>
           <div class="reveal-actions">
             <button id="skipGuessBtn" class="btn-ghost">Skip the guess</button>
           </div>
@@ -181,14 +171,26 @@
 
       <!-- Reveal -->
       <section class="view" id="view-reveal">
-        <div class="round-view">
+        <div class="round-view reveal-view">
           <div class="round-meta">Round <span id="revealRound">1</span> · First to <span id="revealTarget">5</span></div>
-          <h2 class="outcome-banner" id="outcomeBanner">—</h2>
-          <p class="round-sub" id="outcomeSub"></p>
+          <div class="verdict" id="revealVerdict">
+            <div class="verdict-word" id="verdictWord">—</div>
+            <div class="verdict-chip" id="verdictChip" hidden></div>
+          </div>
+          <div class="fact-cards">
+            <div class="fact-card fact-cham">
+              <div class="fact-label">🦎 The Chameleon</div>
+              <div class="fact-value" id="revealCham">—</div>
+            </div>
+            <div class="fact-card fact-word">
+              <div class="fact-label">The word</div>
+              <div class="fact-value" id="revealWord">—</div>
+            </div>
+          </div>
           <div class="reveal-cols grow-region">
             <div class="reveal-col">
-              <h3>The word was…</h3>
-              <div class="scroll-region"><div class="word-grid grid-small" id="revealGrid"></div></div>
+              <h3>Votes</h3>
+              <div class="scroll-region"><div class="tally-list" id="revealTally"></div></div>
             </div>
             <div class="reveal-col">
               <h3>Scores</h3>
@@ -231,7 +233,9 @@
         <li>Each round shows a <strong>topic and 16 words</strong> here; phones reveal the secret word privately</li>
         <li>In turn, everyone says <strong>one word out loud</strong> that hints at the secret word</li>
         <li>Say too little and you look suspicious; say too much and you hand it to the Chameleon</li>
-        <li>Discuss, then <strong>vote</strong> for who you think is faking it</li>            <li>A tie at the top only accuses someone if the Chameleon is in it</li>        <li>Vote wrong and the Chameleon scores <strong>2</strong>; catch them and every correct voter scores <strong>1</strong></li>
+        <li>Discuss, then <strong>vote</strong> for who you think is faking it</li>
+        <li>A tie at the top only accuses someone if the Chameleon is in it</li>
+        <li>Vote wrong and the Chameleon scores <strong>2</strong>; catch them and every correct voter scores <strong>1</strong></li>
         <li>A caught Chameleon gets <strong>one guess</strong> at the secret word — nail it and they still take <strong>1</strong></li>
         <li>First player to the target score wins</li>
       </ol>

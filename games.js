@@ -114,7 +114,7 @@ const games = [
             'One player is the Chameleon: they see the topic but NOT the word',
             'Taking turns, everyone says ONE word out loud that hints at the secret word',
             'Be too obvious and the Chameleon guesses it; be too vague and you look guilty',
-            'After a discussion, everyone votes on their phone for who they think is faking',
+            'The vote opens as soon as the last clue lands — argue it out with the ballot open, then everyone votes on their phone for who they think is faking',
             'If the vote misses (or ties), the Chameleon escapes and scores 2 points',
             'If the Chameleon is caught, they get one guess at the secret word — right, and they still score 1',
             'Catch the Chameleon and beat their guess, and everyone who voted for them scores 1',

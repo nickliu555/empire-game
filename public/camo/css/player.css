@@ -241,9 +241,10 @@ body.join *, body.player * { touch-action: manipulation; }
   flex: 1 1 auto; min-width: 0; text-align: right;
   font-size: 20px; font-weight: 800; overflow-wrap: anywhere;
 }
-.result-foot { margin-top: 24px; padding-top: 14px; border-top: 1px solid #efe8f6; }
 .result-foot > * { margin: 4px 0; }
-.result-foot .result-fact { border-top: none; padding: 0; }
+.result-foot > p { margin-top: 18px; }
+/* The place row is another fact row — it keeps the shared divider, not an extra break. */
+.result-foot .result-fact { margin: 0; }
 
 /* ---- Reaction bar ---- */
 .reaction-bar {

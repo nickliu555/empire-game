@@ -31,9 +31,9 @@
   function show(name) {
     var incoming = views[name];
     if (!incoming) return;
-    // Leaving the reveal: kill any pending zoom-out so its timer can't fire
-    // over a later phase.
-    if (name !== 'reveal') clearRevealZoom();
+    // Kill any pending zoom-out so its timer can't fire over a later phase; the
+    // verdict views re-arm their own focus right after this call.
+    clearVerdictFocus();
     if (pendingView === name) return;
     // Phases can change faster than the 350ms crossfade (vote → guess → reveal
     // in one tick), so always sweep every other view, not just the one that
@@ -310,6 +310,7 @@
       accusedId: g.accusedId, chameleonId: g.chameleonId,
     });
     playCaughtStinger();
+    startVerdictFocus(views.guess);
   }
   document.getElementById('skipGuessBtn').addEventListener('click', function () {
     socket.emit('host:next', {});
@@ -321,32 +322,38 @@
 
   // Lead-in: hold the verdict alone and centred for a beat, then let the rest
   // of the details fade back in around it.
-  var REVEAL_FOCUS_MS = 1800;
-  var revealZoomTimer = null;
-  function clearRevealZoom() {
-    if (revealZoomTimer) { clearTimeout(revealZoomTimer); revealZoomTimer = null; }
-    var rv = views.reveal.querySelector('.reveal-view');
-    if (rv) rv.classList.remove('reveal-focus', 'reveal-instant');
+  var FOCUS_HOLD_MS = 1800;
+  var focusTimer = null;
+  var focusedView = null;
+  function clearVerdictFocus() {
+    if (focusTimer) { clearTimeout(focusTimer); focusTimer = null; }
+    if (focusedView) {
+      focusedView.classList.remove('focus-hold', 'focus-instant');
+      focusedView = null;
+    }
   }
-  function startRevealZoom() {
-    var rv = views.reveal.querySelector('.reveal-view');
-    var verdict = document.getElementById('revealVerdict');
-    if (!rv || !verdict) return;
+  function startVerdictFocus(viewEl) {
+    clearVerdictFocus();
+    var fv = viewEl && viewEl.querySelector('.focus-view');
+    var verdict = fv && fv.querySelector('.verdict');
+    if (!fv || !verdict) return;
     // Measure before focusing: both rects sit inside the same (possibly
     // mid-crossfade) section, so any view-level offset cancels out.
-    var box = rv.getBoundingClientRect();
+    var box = fv.getBoundingClientRect();
     var v = verdict.getBoundingClientRect();
-    rv.style.setProperty('--verdict-lift',
+    fv.style.setProperty('--verdict-lift',
       Math.round((box.top + box.height / 2) - (v.top + v.height / 2)) + 'px');
-    rv.classList.add('reveal-focus', 'reveal-instant');
+    fv.classList.add('focus-hold', 'focus-instant');
+    focusedView = fv;
+    // Timed off the clock, not the frame loop: a backgrounded tab never runs
+    // rAF, and the details must never be left stuck behind the verdict.
+    focusTimer = setTimeout(function () {
+      focusTimer = null;
+      fv.classList.remove('focus-hold', 'focus-instant');
+      if (focusedView === fv) focusedView = null;
+    }, FOCUS_HOLD_MS);
     requestAnimationFrame(function () {
-      requestAnimationFrame(function () {
-        rv.classList.remove('reveal-instant');
-        revealZoomTimer = setTimeout(function () {
-          revealZoomTimer = null;
-          rv.classList.remove('reveal-focus');
-        }, REVEAL_FOCUS_MS);
-      });
+      requestAnimationFrame(function () { fv.classList.remove('focus-instant'); });
     });
   }
 
@@ -354,7 +361,6 @@
     if (!r) return;
     syncClock(r);
     show('reveal');
-    clearRevealZoom();
     document.getElementById('revealRound').textContent = r.round || 1;
     document.getElementById('revealTarget').textContent = r.target || 5;
 
@@ -365,7 +371,7 @@
     if (r.outcome === 'caught') {
       verdict.classList.add('caught');
       // The vote already played out on the GUESS screen — the news here is the failed guess.
-      word.textContent = r.guessWord ? 'WRONG GUESS' : 'CAUGHT';
+      word.textContent = r.guessWord ? 'CHAMELEON WRONG GUESS' : 'CHAMELEON CAUGHT';
       if (r.guessWord) {
         verdict.classList.add('wrong');
         chip.innerHTML = 'Guessed “' + escapeHtml(r.guessWord) + '” <span class="mark bad">✗</span>';
@@ -376,14 +382,14 @@
     } else if (r.outcome === 'escaped-guess') {
       // Voted out, but they named the word — redeemed, not escaped.
       verdict.classList.add('escaped', 'right');
-      word.textContent = 'RIGHT GUESS';
+      word.textContent = 'CHAMELEON CORRECT GUESS';
       chip.innerHTML = r.guessWord
         ? 'Guessed “' + escapeHtml(r.guessWord) + '” <span class="mark good">✓</span>'
         : 'Named the word <span class="mark good">✓</span>';
       chip.hidden = false;
     } else {
       verdict.classList.add('escaped');
-      word.textContent = 'ESCAPED';
+      word.textContent = 'CHAMELEON ESCAPED';
       if (r.accusedName) {
         chip.innerHTML = 'The room voted <span class="pname">' + escapeHtml(r.accusedName) + '</span>';
         chip.hidden = false;
@@ -416,7 +422,7 @@
     if (r.outcome === 'caught') playCaughtReveal();
     else playEscapeReveal();
 
-    startRevealZoom();
+    startVerdictFocus(views.reveal);
   }
   document.getElementById('nextBtn').addEventListener('click', function () {
     stopRevealTimer();

@@ -190,7 +190,7 @@
         '<div class="state-card">' +
           '<div class="card-meta">Round ' + (myRole.round || 1) + '</div>' +
           secretCardHtml() +
-          '<p>Hold the card to read it — keep it off your neighbour\'s screen.</p>' +
+          '<p>Hold the card to read it — keep it off your neighbor\'s screen.</p>' +
           '<div class="card-actions"><button type="button" class="btn-accent" id="ackBtn">Got it</button></div>' +
         '</div>';
       bindSecretCard();
@@ -340,7 +340,7 @@
       render(
         '<div class="card-meta">Caught!</div>' +
         '<h2 class="has-name"><span class="pname">' + escapeHtml((g && g.chameleonName) || 'The Chameleon') + '</span> was the Chameleon 🦎</h2>' +
-        '<p>Look up — they get one guess.</p>'
+        '<p>Look up — they get one chance to guess the word.</p>'
       );
       return;
     }

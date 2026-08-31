@@ -355,15 +355,16 @@ body.host {
   max-width: min(1200px, 90vw); text-align: center;
 }
 .verdict-word {
-  font-size: clamp(46px, 7vw, 116px); font-weight: 800; line-height: 0.95;
-  letter-spacing: 0.04em; color: rgba(255,255,255,0.85);
+  font-size: clamp(34px, 4.6vw, 78px); font-weight: 800; line-height: 0.98;
+  letter-spacing: 0.03em; color: rgba(255,255,255,0.85);
+  text-wrap: balance; overflow-wrap: anywhere;
 }
 .verdict.caught .verdict-word { color: var(--lime); }
 .verdict.caught.wrong .verdict-word { color: #FF4B4B; }
 .verdict.escaped .verdict-word { color: #FF9BB0; }
 .verdict.escaped.right .verdict-word { color: var(--lime); }
 .verdict-name {
-  font-size: clamp(26px, 3.4vw, 52px); font-weight: 800; color: var(--lime);
+  font-size: clamp(26px, 3.4vw, 52px); font-weight: 800; color: var(--gold);
   min-width: 0; overflow-wrap: anywhere;
 }
 .verdict-chip {
@@ -376,10 +377,9 @@ body.host {
 .verdict-chip .mark { font-weight: 900; }
 .verdict-chip .mark.bad { color: #FF7A90; }
 .verdict-chip .mark.good { color: var(--lime); }
-
-.phase-status {
-  font-size: clamp(18px, 1.9vw, 28px); font-weight: 700;
-  color: rgba(255,255,255,0.7); text-align: center; overflow-wrap: anywhere;
+.guess-hint {
+  background: rgba(163, 230, 53, 0.16); color: var(--lime);
+  font-size: clamp(16px, 1.6vw, 24px);
 }
 
 /* ---- Reveal ---- */
@@ -403,30 +403,30 @@ body.host {
 }
 .fact-word .fact-value { color: var(--accent); }
 
-/* ---- Reveal lead-in ----
+/* ---- Verdict lead-in ----
    The verdict lands alone, centred and enlarged for a beat, then everything
-   else fades in around it. `.reveal-instant` snaps the focused state on the
+   else fades in around it. `.focus-instant` snaps the focused state on the
    first frame so there's no entry flicker. */
-.reveal-view > *,
-.reveal-view .verdict-chip {
+.focus-view > *,
+.focus-view .verdict-chip {
   transition: opacity 0.5s ease, transform 0.75s cubic-bezier(.2, .9, .25, 1);
   transform-origin: center;
 }
-.reveal-view.reveal-focus > *:not(.verdict),
-.reveal-view.reveal-focus .verdict-chip {
+.focus-view.focus-hold > *:not(.verdict),
+.focus-view.focus-hold .verdict-chip {
   opacity: 0;
   pointer-events: none;
 }
-.reveal-view.reveal-focus > *:not(.verdict) { transform: translateY(20px); }
-.reveal-view.reveal-focus .verdict {
-  transform: translateY(var(--verdict-lift, 0px)) scale(1.35);
+.focus-view.focus-hold > *:not(.verdict) { transform: translateY(20px); }
+.focus-view.focus-hold .verdict {
+  transform: translateY(var(--verdict-lift, 0px)) scale(1.25);
 }
-.reveal-view.reveal-instant > *,
-.reveal-view.reveal-instant .verdict-chip { transition: none !important; }
+.focus-view.focus-instant > *,
+.focus-view.focus-instant .verdict-chip { transition: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal-view > *,
-  .reveal-view .verdict-chip { transition: none; }
+  .focus-view > *,
+  .focus-view .verdict-chip { transition: none; }
 }
 
 .reveal-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 26px; width: 100%; min-height: 0; flex: 1 1 auto; }

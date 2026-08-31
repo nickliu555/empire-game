@@ -82,7 +82,7 @@
       <!-- Intro -->
       <section class="view" id="view-intro">
         <div class="intro-view">
-          <div class="intro-hint">Phones out — nobody peek at your neighbour</div>
+          <div class="intro-hint">Phones out — nobody peek at your neighbor</div>
           <h1 class="intro-title">Dealing the words…</h1>
           <div class="intro-countdown" id="introCountdown">4</div>
           <p class="intro-sub">One of you will get no word at all…</p>
@@ -146,12 +146,13 @@
 
       <!-- Guess (caught Chameleon picks the word) -->
       <section class="view" id="view-guess">
-        <div class="round-view">
+        <div class="round-view focus-view">
           <div class="round-meta">Round <span id="guessRound">1</span></div>
           <div class="verdict caught">
-            <div class="verdict-word">VOTED OUT</div>
+            <div class="verdict-word">CHAMELEON FOUND</div>
             <div class="verdict-name" id="guessName">—</div>
             <div class="verdict-chip" id="guessTieChip" hidden>Tied vote — still counts</div>
+            <div class="verdict-chip guess-hint">🦎 One guess at the secret word</div>
           </div>
           <div class="grow-region">
             <div class="grid-panel">
@@ -162,7 +163,6 @@
               <div class="side-scroll"><div class="tally-list" id="guessTally"></div></div>
             </div>
           </div>
-          <div class="phase-status">🦎 Guessing the word…</div>
           <div class="reveal-actions">
             <button id="skipGuessBtn" class="btn-ghost">Skip the guess</button>
           </div>
@@ -171,7 +171,7 @@
 
       <!-- Reveal -->
       <section class="view" id="view-reveal">
-        <div class="round-view reveal-view">
+        <div class="round-view focus-view">
           <div class="round-meta">Round <span id="revealRound">1</span> · First to <span id="revealTarget">5</span></div>
           <div class="verdict" id="revealVerdict">
             <div class="verdict-word" id="verdictWord">—</div>

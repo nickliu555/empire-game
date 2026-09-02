@@ -76,19 +76,12 @@
         function buildCard(game) {
             const card = document.createElement('div');
             card.className = 'game-card';
-
-            const rulesHtml = game.rules && game.rules.length
-                ? `<div class="game-rules">
-                    <h3>How to Play</h3>
-                    <ol>${game.rules.map(r => `<li>${esc(r)}</li>`).join('')}</ol>
-                   </div>`
-                : '';
+            card.setAttribute('role', 'button');
+            card.tabIndex = 0;
 
             card.innerHTML = `
                 <div class="game-card-header">
-                    <span class="game-emoji">${game.badgeText
-                        ? `<span class="game-badge" style="background:${esc(game.color || '#666')}">${esc(game.badgeText)}</span>`
-                        : esc(game.emoji)}</span>
+                    <span class="game-emoji">${emojiHtml(game)}</span>
                     <div class="game-info">
                         <div class="game-name">${esc(game.name)}</div>
                         <div class="game-tagline">${esc(game.tagline)}</div>
@@ -97,31 +90,103 @@
                             <span>⏱ ${esc(game.duration)}</span>
                         </div>
                     </div>
-                    <span class="game-chevron">▼</span>
-                </div>
-                <div class="game-card-body">
-                    <div class="game-card-body-inner">
-                        <p class="game-description">${esc(game.description)}</p>
-                        ${rulesHtml}
-                        <div class="game-actions">
-                            <a href="${esc(game.hostPath)}" class="btn-play">▶ Play</a>
-                            ${game.practicePath ? `<a href="${esc(game.practicePath)}" class="btn-practice">Practice solo</a>` : ''}
-                        </div>
-                    </div>
+                    <span class="game-details-hint" aria-hidden="true">ⓘ</span>
                 </div>
             `;
 
-            card.querySelector('.game-card-header').addEventListener('click', () => {
-                card.classList.toggle('expanded');
-            });
-
-            // Prevent card toggle when clicking the Play button
-            card.querySelector('.btn-play').addEventListener('click', (e) => {
-                e.stopPropagation();
-                startIrisTransition(e, game);
+            card.addEventListener('click', () => openDetails(game));
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openDetails(game);
+                }
             });
 
             return card;
+        }
+
+        function emojiHtml(game) {
+            return game.badgeText
+                ? `<span class="game-badge" style="background:${esc(game.color || '#666')}">${esc(game.badgeText)}</span>`
+                : esc(game.emoji);
+        }
+
+        // ─── Details modal ───────────────────────────────
+        let modalOverlay = null;
+
+        function ensureModal() {
+            if (modalOverlay) return;
+            modalOverlay = document.createElement('div');
+            modalOverlay.className = 'hub-modal-overlay';
+            modalOverlay.hidden = true;
+            modalOverlay.innerHTML = `
+                <div class="hub-modal" role="dialog" aria-modal="true" aria-labelledby="hubModalName">
+                    <button type="button" class="hub-modal-close" aria-label="Close">✕</button>
+                    <div class="hub-modal-header">
+                        <span class="game-emoji"></span>
+                        <div class="game-info">
+                            <div class="game-name" id="hubModalName"></div>
+                            <div class="game-tagline"></div>
+                            <div class="game-meta"></div>
+                        </div>
+                    </div>
+                    <div class="hub-modal-scroll"></div>
+                </div>
+            `;
+            document.body.appendChild(modalOverlay);
+
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) closeDetails();
+            });
+            modalOverlay.querySelector('.hub-modal-close')
+                .addEventListener('click', closeDetails);
+            document.addEventListener('keydown', (e) => {
+                if (!modalOverlay.hidden && e.key === 'Escape') closeDetails();
+            });
+        }
+
+        function openDetails(game) {
+            ensureModal();
+
+            modalOverlay.querySelector('.hub-modal-header .game-emoji').innerHTML = emojiHtml(game);
+            modalOverlay.querySelector('.hub-modal-header .game-name').textContent = game.name || '';
+            modalOverlay.querySelector('.hub-modal-header .game-tagline').textContent = game.tagline || '';
+            modalOverlay.querySelector('.hub-modal-header .game-meta').innerHTML = `
+                <span>👥 ${esc(game.playerCount)}</span>
+                <span>⏱ ${esc(game.duration)}</span>
+            `;
+
+            const rulesHtml = game.rules && game.rules.length
+                ? `<div class="game-rules">
+                    <h3>How to Play</h3>
+                    <ol>${game.rules.map(r => `<li>${esc(r)}</li>`).join('')}</ol>
+                   </div>`
+                : '';
+
+            const body = modalOverlay.querySelector('.hub-modal-scroll');
+            body.innerHTML = `
+                <p class="game-description">${esc(game.description)}</p>
+                ${rulesHtml}
+                <div class="game-actions">
+                    <a href="${esc(game.hostPath)}" class="btn-play">▶ Play</a>
+                    ${game.practicePath ? `<a href="${esc(game.practicePath)}" class="btn-practice">Practice solo</a>` : ''}
+                </div>
+            `;
+            body.scrollTop = 0;
+
+            body.querySelector('.btn-play').addEventListener('click', (e) => {
+                startIrisTransition(e, game);
+            });
+
+            modalOverlay.hidden = false;
+            document.body.style.overflow = 'hidden';
+            modalOverlay.querySelector('.hub-modal-close').focus();
+        }
+
+        function closeDetails() {
+            if (!modalOverlay || modalOverlay.hidden) return;
+            modalOverlay.hidden = true;
+            document.body.style.overflow = '';
         }
 
         function esc(str) {

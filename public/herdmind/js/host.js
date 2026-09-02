@@ -653,9 +653,22 @@
   if (hubBtn) hubBtn.addEventListener('click', function (e) {
     e.preventDefault();
     var href = hubBtn.getAttribute('href') || '/';
+    var origin = { clientX: e.clientX, clientY: e.clientY, currentTarget: hubBtn };
     showConfirm('Leaving will reset the game and kick all players. Go back to the hub?', 'Leave & Reset', { danger: true }).then(function (ok) {
       if (!ok) return;
-      socket.emit('host:leave', {}, function () { window.location.href = href; });
+      var navigated = false;
+      var go = function () {
+        if (navigated) return;
+        navigated = true;
+        if (window.Iris && typeof window.Iris.transitionTo === 'function') {
+          window.Iris.transitionTo(href, origin, { emoji: '🎮', name: 'Game Hub', color: '#1b2838' });
+        } else {
+          window.location.href = href;
+        }
+      };
+      socket.emit('host:leave', {}, go);
+      // The ack never arrives if the socket is already down.
+      setTimeout(go, 600);
     });
   });
 

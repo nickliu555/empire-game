@@ -184,10 +184,12 @@ async function playRound(outcome, label) {
   const others = players.filter((p) => p.id !== info.chameleon.id);
   const target = outcome === 'escape' ? others[0] : info.chameleon;
   const catchers = [];
+  const spotters = [];
   for (const p of others) {
     if (p.id === target.id && outcome === 'escape') {
       // The scapegoat can't vote for themselves — send them elsewhere.
       await emitAck(p.sock, 'player:vote', { targetId: info.chameleon.id });
+      spotters.push(p);
       continue;
     }
     await emitAck(p.sock, 'player:vote', { targetId: target.id });
@@ -201,7 +203,7 @@ async function playRound(outcome, label) {
     check(reveal.caught === false, 'the Chameleon was not caught');
     check(reveal.chameleonId === info.chameleon.id, 'reveal names the real Chameleon');
     check(reveal.secretWord === info.secretWord, 'reveal exposes the secret word');
-    return { info, reveal, catchers };
+    return { info, reveal, catchers, spotters };
   }
 
   const guess = await hostBus.next('state:guess');
@@ -220,12 +222,18 @@ async function playRound(outcome, label) {
   check(reveal.outcome === (outcome === 'caught-right' ? 'escaped-guess' : 'caught'),
     'outcome is ' + (outcome === 'caught-right' ? 'escaped-guess' : 'caught'));
   check(reveal.guessCorrect === (outcome === 'caught-right'), 'guess correctness recorded');
-  return { info, reveal, catchers };
+  return { info, reveal, catchers, spotters };
 }
 
 function scoreOf(reveal, playerId) {
   const row = reveal.leaderboard.find((e) => e.id === playerId);
   return row ? row.score : null;
+}
+
+// Points gained this round, independent of the running total.
+function gainOf(reveal, playerId) {
+  const row = (reveal.scorers || []).find((s) => s.playerId === playerId);
+  return row ? row.points : 0;
 }
 
 // Role → clues → vote, leaving the round parked on the open vote.
@@ -274,14 +282,18 @@ async function main() {
 
   const r1 = await playRound('escape', 'Chameleon escapes the vote');
   check(scoreOf(r1.reveal, r1.info.chameleon.id) === 2, 'escaping the vote scores the Chameleon 2');
-  const zeroes = r1.reveal.leaderboard.filter((e) => e.id !== r1.info.chameleon.id);
-  check(zeroes.every((e) => e.score === 0), 'nobody else scores when the Chameleon escapes');
+  check(r1.spotters.length > 0 && r1.spotters.every((p) => gainOf(r1.reveal, p.id) === 1),
+    'a player who named the Chameleon still scores 1 when they escape');
+  const zeroes = r1.reveal.leaderboard.filter((e) => e.id !== r1.info.chameleon.id
+    && !r1.spotters.some((s) => s.id === e.id));
+  check(zeroes.every((e) => e.score === 0), 'nobody who voted wrong scores when the Chameleon escapes');
 
   await emitAck(host, 'host:next', {});   // REVEAL → next round
   const r2 = await playRound('caught-wrong', 'caught, guesses wrong');
-  check(r2.catchers.every((p) => scoreOf(r2.reveal, p.id) >= 1), 'every correct voter scores 1');
+  check(r2.catchers.every((p) => gainOf(r2.reveal, p.id) === 2), 'every regular player scores 2 on a failed guess');
+  check(gainOf(r2.reveal, r2.info.chameleon.id) === 0, 'a caught Chameleon who guesses wrong scores nothing');
   const r2res = await r2.catchers[0].bus.next('player:result');
-  check(r2res.votedCorrectly === true && r2res.pointsEarned === 1, 'player:result reports the catch');
+  check(r2res.votedCorrectly === true && r2res.pointsEarned === 2, 'player:result reports the catch');
 
   await emitAck(host, 'host:next', {});
   const r3 = await playRound('caught-right', 'caught, guesses right');
@@ -412,7 +424,9 @@ async function main() {
   const revealTie = await hostBus.next('state:reveal');
   check(revealTie.outcome === 'caught', 'a shared-tie catch scores like any other catch');
   check(revealTie.caughtOnTie === true, 'state:reveal flags the shared tie');
-  check(scoreOf(revealTie, othersA[0].id) === 1, 'a voter who named the Chameleon still scores 1');
+  check(gainOf(revealTie, othersA[0].id) === 2, 'a voter who named the Chameleon scores 2');
+  check(gainOf(revealTie, othersA[2].id) === 2, 'a player who voted for an innocent still scores 2 on a catch');
+  check(gainOf(revealTie, tieA.chameleon.id) === 0, 'the caught Chameleon scores nothing');
 
   // Two votes each on two innocents — the Chameleon is not in the tie.
   await emitAck(host, 'host:next', {});

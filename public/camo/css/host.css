@@ -171,12 +171,15 @@ body.host {
 .config-row { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .config-row label { font-size: 12px; font-weight: 700; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.05em; }
 .config-row select { padding: 10px 12px; font-size: 15px; }
+/* The checkbox has no field label above it, so it borrows the select's box
+   metrics and bottom-aligns — the two controls then share a centreline. */
 .config-row-check { justify-content: flex-end; }
 .config-row-check label {
-  flex-direction: row; align-items: center; gap: 8px; text-transform: none;
+  display: flex; flex-direction: row; align-items: center; gap: 8px; text-transform: none;
   font-size: 14px; color: var(--ink); cursor: pointer; letter-spacing: 0;
+  padding: 10px 0; border: 1.5px solid transparent; line-height: 20px;
 }
-.config-row-check input { width: 18px; height: 18px; accent-color: var(--accent); }
+.config-row-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
 
 .lobby-actions { margin-top: 16px; }
 .lobby-actions .btn-accent { width: 100%; font-size: 20px; padding: 16px; }
@@ -290,6 +293,15 @@ body.host {
   text-transform: uppercase; color: rgba(255,255,255,0.7);
 }
 .side-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+/* Caption sitting at the top of a side panel (e.g. the tied-vote note). */
+.panel-chip {
+  flex: 0 0 auto;
+  font-size: clamp(12px, 0.95vw, 16px); font-weight: 700; text-align: center;
+  background: rgba(240, 168, 58, 0.18); color: var(--gold);
+  padding: 6px 12px; border-radius: 999px;
+  min-width: 0; overflow-wrap: anywhere;
+}
+.panel-chip[hidden] { display: none; }
 
 .order-row {
   display: grid; grid-template-columns: 30px minmax(0, 1fr) auto;
@@ -409,7 +421,7 @@ body.host {
    first frame so there's no entry flicker. */
 .focus-view > *,
 .focus-view .verdict-chip {
-  transition: opacity 0.5s ease, transform 0.75s cubic-bezier(.2, .9, .25, 1);
+  transition: opacity 0.6s ease, transform 0.8s cubic-bezier(.2, .9, .25, 1);
   transform-origin: center;
 }
 .focus-view.focus-hold > *:not(.verdict),

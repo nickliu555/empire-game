@@ -40,13 +40,14 @@ const MAX_PLAYERS = 8;
 const INTRO_DURATION_MS = 4000;
 const INTRO_GO_HOLD_MS = 1100;
 const ROLE_MAX_MS = 20 * 1000;
-const REVEAL_AUTO_ADVANCE_MS = 12 * 1000;
+const REVEAL_AUTO_ADVANCE_MS = 15 * 1000;
 const DEFAULT_TARGET = 5;
 
 // Scoring
 const POINTS_ESCAPE_VOTE = 2;   // Chameleon dodged the vote
 const POINTS_ESCAPE_GUESS = 1;  // caught, but guessed the secret word
-const POINTS_CATCH = 1;         // per player who voted for a Chameleon that failed
+const POINTS_CATCH = 2;         // per regular player when the caught Chameleon guesses wrong
+const POINTS_SPOTTED = 1;       // per player who named the Chameleon in a round they escaped
 
 const { buildQueue, GRID_SIZE } = require('./topics');
 
@@ -432,16 +433,24 @@ class Game {
     if (!this.caught) {
       outcome = 'escaped-vote';
       if (cham) { cham.score += POINTS_ESCAPE_VOTE; scorers.push({ playerId: cham.id, points: POINTS_ESCAPE_VOTE }); }
+      // The room went the wrong way, but anyone who did point at the Chameleon
+      // still gets credit for reading them right.
+      for (const p of this.players.values()) {
+        if (p.id === this.chameleonId) continue;
+        if (p.votedRound === this.roundIndex && p.votedFor === this.chameleonId) {
+          p.score += POINTS_SPOTTED;
+          scorers.push({ playerId: p.id, points: POINTS_SPOTTED });
+        }
+      }
     } else if (this.guessCorrect) {
       outcome = 'escaped-guess';
       if (cham) { cham.score += POINTS_ESCAPE_GUESS; scorers.push({ playerId: cham.id, points: POINTS_ESCAPE_GUESS }); }
     } else {
       outcome = 'caught';
       for (const p of this.players.values()) {
-        if (p.votedRound === this.roundIndex && p.votedFor === this.chameleonId) {
-          p.score += POINTS_CATCH;
-          scorers.push({ playerId: p.id, points: POINTS_CATCH });
-        }
+        if (p.id === this.chameleonId) continue;
+        p.score += POINTS_CATCH;
+        scorers.push({ playerId: p.id, points: POINTS_CATCH });
       }
     }
 

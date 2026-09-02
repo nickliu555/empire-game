@@ -322,7 +322,7 @@
 
   // Lead-in: hold the verdict alone and centred for a beat, then let the rest
   // of the details fade back in around it.
-  var FOCUS_HOLD_MS = 1800;
+  var FOCUS_HOLD_MS = 2000;
   var focusTimer = null;
   var focusedView = null;
   function clearVerdictFocus() {

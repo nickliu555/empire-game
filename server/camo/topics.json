@@ -2,7 +2,7 @@
   {
     "id": "t1",
     "topic": "Movies",
-    "words": ["Titanic", "Jaws", "The Godfather", "Star Wars", "Frozen", "Rocky", "Jurassic Park", "Avatar", "The Matrix", "Toy Story", "Gladiator", "Home Alone", "The Lion King", "Inception", "Shrek", "Casablanca"]
+    "words": ["Titanic", "Jaws", "The Godfather", "Star Wars", "Frozen", "Rocky", "Jurassic Park", "Avatar", "The Matrix", "Toy Story", "Gladiator", "Home Alone", "The Lion King", "Inception", "Shrek", "Forrest Gump"]
   },
   {
     "id": "t2",
@@ -77,12 +77,12 @@
   {
     "id": "t16",
     "topic": "Video Games",
-    "words": ["Minecraft", "Tetris", "Fortnite", "Maze Chomp", "Zelda", "Mario", "Sonic", "Pokemon", "Doom", "The Sims", "Overwatch", "Halo", "Candy Crush", "Among Us", "FIFA", "Skyrim"]
+    "words": ["Minecraft", "Tetris", "Fortnite", "Pacman", "Zelda", "Mario Kart", "League of Legends", "Pokemon", "Doom", "The Sims", "Overwatch", "Halo", "Candy Crush", "Among Us", "FIFA", "Dark Souls"]
   },
   {
     "id": "t17",
     "topic": "Board Games",
-    "words": ["Monopoly", "Chess", "Scrabble", "Cluedo", "Risk", "Jenga", "Battleship", "Checkers", "Backgammon", "Uno", "Pictionary", "Twister", "Dominoes", "Catan", "Connect Four", "Trivial Pursuit"]
+    "words": ["Monopoly", "Chess", "Scrabble", "Mahjong", "Risk", "Jenga", "Battleship", "Checkers", "Backgammon", "Uno", "Fish Bowl", "Twister", "Dominoes", "Catan", "Connect Four", "Sorry!"]
   },
   {
     "id": "t18",
@@ -92,7 +92,7 @@
   {
     "id": "t19",
     "topic": "Clothing",
-    "words": ["Scarf", "Hoodie", "Jeans", "Pyjamas", "Raincoat", "Sandals", "Tuxedo", "Mittens", "Beanie", "Blazer", "Dungarees", "Kilt", "Poncho", "Slippers", "Waistcoat", "Sunglasses"]
+    "words": ["Scarf", "Hoodie", "Jeans", "Pyjamas", "Raincoat", "Sandals", "Tuxedo", "Mittens", "Beanie", "Blazer", "Cardigan", "Cap", "Poncho", "Slippers", "Jersey", "Sunglasses"]
   },
   {
     "id": "t20",
@@ -101,8 +101,8 @@
   },
   {
     "id": "t21",
-    "topic": "Celebrations",
-    "words": ["Christmas", "Halloween", "New Year", "Easter", "Diwali", "Thanksgiving", "Birthday", "Ramadan", "Hanukkah", "Carnival", "Bonfire Night", "April Fools", "Wedding", "Graduation", "Baby Shower", "Anniversary"]
+    "topic": "Holidays",
+    "words": ["Christmas", "Halloween", "New Year", "Easter", "Diwali", "Thanksgiving", "Birthday", "Independence Day", "MLK", "Earth Day", "Veterans Day", "April Fools", "Wedding", "Juneteenth", "Labor Day", "Valentine's Day", "Memorial Day"]
   },
   {
     "id": "t22",
@@ -112,7 +112,7 @@
   {
     "id": "t23",
     "topic": "Camping",
-    "words": ["Tent", "Campfire", "Backpack", "Compass", "Sleeping Bag", "Marshmallow", "Lantern", "Hiking Boots", "Insect Spray", "Trail Mix", "Binoculars", "Firewood", "Torch", "Cooler Box", "Hammock", "Penknife"]
+    "words": ["Tent", "Campfire", "Backpack", "Compass", "Sleeping Bag", "Marshmallow", "Match box", "Hiking Boots", "Insect Spray", "Trail Mix", "Binoculars", "Firewood", "Torch", "Cooler Box", "Hammock", "Penknife"]
   },
   {
     "id": "t24",
@@ -167,7 +167,7 @@
   {
     "id": "t34",
     "topic": "Farm Life",
-    "words": ["Tractor", "Barn", "Scarecrow", "Haystack", "Chicken", "Sheep", "Milking", "Fence", "Pitchfork", "Cornfield", "Goat", "Windmill", "Pond", "Stable", "Harvest", "Wellies"]
+    "words": ["Tractor", "Barn", "Scarecrow", "Haystack", "Chicken", "Sheep", "Milking", "Fence", "Pitchfork", "Cornfield", "Goat", "Windmill", "Pond", "Stable", "Harvest", "Scarecrow"]
   },
   {
     "id": "t35",

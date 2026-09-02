@@ -188,7 +188,6 @@ body.join *, body.player * { touch-action: manipulation; }
   white-space: normal;
 }
 .vote-btn.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
-.vote-btn.is-me { opacity: 0.45; }
 .vote-scroll-hint { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
 
 /* ---- Guess grid (Chameleon's last shot) ---- */

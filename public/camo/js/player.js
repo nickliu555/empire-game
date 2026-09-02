@@ -69,7 +69,10 @@
     if (fn) fn();
   }
   function setArm(disarm) {
-    clearArm();
+    // Replace a pending arm without running its disarm: moving to another
+    // choice has already painted the new selection, and reverting the old one
+    // would wipe it and make the new choice need a third tap.
+    if (armTimer) { clearTimeout(armTimer); armTimer = null; }
     armedDisarm = disarm;
     armTimer = setTimeout(clearArm, ARM_TIMEOUT_MS);
   }
@@ -274,7 +277,7 @@
     clearArm();
     voteArmedId = null;
     if (myVote) return renderVoteLocked(v, myVote);
-    var players = (v && v.players) || [];
+    var players = ((v && v.players) || []).filter(function (p) { return p.id !== playerId; });
     elView.innerHTML =
       '<div class="state-card">' +
         secretCardHtml() +
@@ -282,11 +285,8 @@
         '<p class="vote-scroll-hint">Talk it out, then tap a name twice to lock your vote.</p>' +
         '<div class="vote-list scroll-region" id="voteList">' +
           players.map(function (p) {
-            var me = p.id === playerId;
-            var label = p.name + (me ? ' (you)' : '');
-            return '<button type="button" class="vote-btn' + (me ? ' is-me' : '') + '"' +
-              (me ? ' disabled' : '') + ' data-pid="' + escapeHtml(p.id) + '"' +
-              ' data-label="' + escapeHtml(label) + '">' + escapeHtml(label) + '</button>';
+            return '<button type="button" class="vote-btn" data-pid="' + escapeHtml(p.id) + '"' +
+              ' data-label="' + escapeHtml(p.name) + '">' + escapeHtml(p.name) + '</button>';
           }).join('') +
         '</div>' +
       '</div>';

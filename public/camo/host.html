@@ -133,7 +133,7 @@
               <div class="word-grid grid-small" id="voteGrid"></div>
             </div>
             <div class="side-panel">
-              <h3>Who said what</h3>
+              <h3>Speaking order</h3>
               <div class="side-scroll" id="voteOrder"></div>
             </div>
           </div>
@@ -151,7 +151,6 @@
           <div class="verdict caught">
             <div class="verdict-word">CHAMELEON FOUND</div>
             <div class="verdict-name" id="guessName">—</div>
-            <div class="verdict-chip" id="guessTieChip" hidden>Tied vote — still counts</div>
             <div class="verdict-chip guess-hint">🦎 One guess at the secret word</div>
           </div>
           <div class="grow-region">
@@ -159,6 +158,7 @@
               <div class="word-grid" id="guessGrid"></div>
             </div>
             <div class="side-panel">
+              <div class="panel-chip" id="guessTieChip" hidden>Tied vote — still counts</div>
               <h3>Votes</h3>
               <div class="side-scroll"><div class="tally-list" id="guessTally"></div></div>
             </div>
@@ -235,8 +235,8 @@
         <li>Say too little and you look suspicious; say too much and you hand it to the Chameleon</li>
         <li>Discuss, then <strong>vote</strong> for who you think is faking it</li>
         <li>A tie at the top only accuses someone if the Chameleon is in it</li>
-        <li>Vote wrong and the Chameleon scores <strong>2</strong>; catch them and every correct voter scores <strong>1</strong></li>
-        <li>A caught Chameleon gets <strong>one guess</strong> at the secret word — nail it and they still take <strong>1</strong></li>
+        <li>Vote wrong and the Chameleon scores <strong>2</strong> — anyone who did name them still takes <strong>1</strong></li>
+        <li>A caught Chameleon gets <strong>one guess</strong> at the secret word — nail it and they steal <strong>1</strong>, miss and every other player scores <strong>2</strong></li>
         <li>First player to the target score wins</li>
       </ol>
     </div>

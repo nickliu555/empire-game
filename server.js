@@ -5,6 +5,7 @@ const os = require('os');
 const http = require('http');
 const rateLimit = require('express-rate-limit');
 const games = require('./games');
+const { GROQ_MODEL, GROQ_CHAT_URL, GROQ_MODELS_URL, logGroqFailure } = require('./server/groq');
 const mountTrivia = require('./server/trivia');
 const mountTwentyFour = require('./server/twentyfour');
 const mountHerdMind = require('./server/herdmind');
@@ -413,6 +414,7 @@ app.post('/api/empire/start', async (req, res) => {
     }
 
     // Generate AI Bot decoy words if requested (before shuffling)
+    let aiWarning = null;
     if (gameState.botCount > 0) {
         try {
             const aiWords = await generateAiBotWords(
@@ -428,9 +430,11 @@ app.post('/api/empire/start', async (req, res) => {
                 console.log(`AI Bot words generated (${aiWords.length}/${gameState.botCount}): ${aiWords.map(w => `"${w}"`).join(', ')}`);
             } else {
                 console.warn('AI Bot word generation returned none, proceeding without bots.');
+                aiWarning = 'AI Bot words could not be generated, so the round started without them. Check the server log and your Groq API key.';
             }
         } catch (e) {
             console.error('AI Bot word generation failed, proceeding without bots:', e.message);
+            aiWarning = 'AI Bot words could not be generated, so the round started without them. Check the server log and your Groq API key.';
         }
     }
 
@@ -443,7 +447,7 @@ app.post('/api/empire/start', async (req, res) => {
     }
     gameState.shuffledWords = arr;
     broadcast();
-    res.json({ ok: true });
+    res.json({ ok: true, aiWarning });
 });
 
 // Get shuffled words (no names)
@@ -559,23 +563,28 @@ Respond ONLY with valid JSON (no markdown, no extra text):
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-        const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const resp = await fetch(GROQ_CHAT_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
+                model: GROQ_MODEL,
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.9,
-                max_tokens: 600,
+                max_tokens: 2048,
+                reasoning_effort: 'low',
+                response_format: { type: 'json_object' },
                 seed: Math.floor(Math.random() * 2147483647)
             }),
             signal: controller.signal,
         });
 
-        if (!resp.ok) return [];
+        if (!resp.ok) {
+            await logGroqFailure('AI Bot word generation', resp);
+            return [];
+        }
 
         const data = await resp.json();
         const text = data.choices[0].message.content.trim();
@@ -610,12 +619,24 @@ async function validateApiKey(key) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     try {
-        const resp = await fetch('https://api.groq.com/openai/v1/models', {
+        const resp = await fetch(GROQ_MODELS_URL, {
             headers: { 'Authorization': `Bearer ${key}` },
             signal: controller.signal,
         });
-        return resp.ok;
+        if (!resp.ok) {
+            await logGroqFailure('API key validation', resp);
+            return false;
+        }
+        // A valid key is useless if it can't reach the model we actually call.
+        const data = await resp.json();
+        const ids = (data.data || []).map(m => m.id);
+        if (ids.length && !ids.includes(GROQ_MODEL)) {
+            console.error(`API key validation: key is valid but model "${GROQ_MODEL}" is not available to it. Available: ${ids.join(', ')}`);
+            return false;
+        }
+        return true;
     } catch (e) {
+        console.error('API key validation error:', e.message);
         return false;
     } finally {
         clearTimeout(timeout);
@@ -652,22 +673,27 @@ Respond ONLY with valid JSON (no markdown, no extra text):
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-        const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const resp = await fetch(GROQ_CHAT_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
+                model: GROQ_MODEL,
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.3,
-                max_tokens: 200
+                max_tokens: 1024,
+                reasoning_effort: 'low',
+                response_format: { type: 'json_object' }
             }),
             signal: controller.signal,
         });
 
-        if (!resp.ok) return null;
+        if (!resp.ok) {
+            await logGroqFailure('Similarity check', resp);
+            return null;
+        }
 
         const data = await resp.json();
         const text = data.choices[0].message.content.trim();
@@ -710,22 +736,27 @@ Respond ONLY with valid JSON (no markdown, no extra text):
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-        const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        const resp = await fetch(GROQ_CHAT_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
+                model: GROQ_MODEL,
                 messages: [{ role: 'user', content: prompt }],
                 temperature: 0.3,
-                max_tokens: 200
+                max_tokens: 1024,
+                reasoning_effort: 'low',
+                response_format: { type: 'json_object' }
             }),
             signal: controller.signal,
         });
 
-        if (!resp.ok) return null;
+        if (!resp.ok) {
+            await logGroqFailure('Category check', resp);
+            return null;
+        }
 
         const data = await resp.json();
         const text = data.choices[0].message.content.trim();

@@ -1814,6 +1814,7 @@
                 wordsLoaded = false;
                 attributionLoaded = false;
                 fetchState();
+                if (data.aiWarning) showAlert(data.aiWarning);
             } catch (e) {
                 showAlert('Connection error.');
             }

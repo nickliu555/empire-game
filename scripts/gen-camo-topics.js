@@ -18,6 +18,7 @@
 require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+const { GROQ_MODEL, GROQ_CHAT_URL } = require('../server/groq');
 
 const OUT_FILE = path.join(__dirname, '..', 'server', 'camo', 'topics.json');
 const API_KEY = process.env.GROQ_API_KEY;
@@ -67,22 +68,24 @@ async function generateBatch() {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 40000);
   try {
-    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const resp = await fetch(GROQ_CHAT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: GROQ_MODEL,
         messages: [{ role: 'user', content: PROMPT }],
         temperature: 1.05,
-        max_tokens: 2400,
+        max_tokens: 8192,
+        reasoning_effort: 'low',
+        response_format: { type: 'json_object' },
       }),
       signal: controller.signal,
     });
     if (!resp.ok) {
-      console.warn(`  … batch failed (HTTP ${resp.status})`);
+      console.warn(`  … batch failed (HTTP ${resp.status}): ${(await resp.text()).slice(0, 300)}`);
       return [];
     }
     const data = await resp.json();

@@ -17,6 +17,8 @@
 // then merge/split/rename before scoring.
 // ─────────────────────────────────────────────────────────────────────────
 
+const { GROQ_MODEL, GROQ_CHAT_URL, logGroqFailure } = require('../groq');
+
 const NUMBER_WORDS = {
   '0': 'zero', '1': 'one', '2': 'two', '3': 'three', '4': 'four',
   '5': 'five', '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine',
@@ -276,27 +278,33 @@ Every index 0..${real.length - 1} must appear exactly once.`;
   const timeout = setTimeout(() => controller.abort(), 15000);
   let clusters;
   try {
-    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const resp = await fetch(GROQ_CHAT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${groqKey}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: GROQ_MODEL,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.2,
-        max_tokens: 600,
+        max_tokens: 2048,
+        reasoning_effort: 'low',
+        response_format: { type: 'json_object' },
       }),
       signal: controller.signal,
     });
-    if (!resp.ok) return groups;
+    if (!resp.ok) {
+      await logGroqFailure('Herd Mind AI grouping', resp);
+      return groups;
+    }
     const data = await resp.json();
     const text = (data.choices && data.choices[0] && data.choices[0].message.content || '').trim();
     const m = text.match(/\{[\s\S]*\}/);
     if (!m) return groups;
     clusters = JSON.parse(m[0]).clusters;
-  } catch (_) {
+  } catch (e) {
+    console.error('Herd Mind AI grouping error:', e.message);
     return groups;
   } finally {
     clearTimeout(timeout);

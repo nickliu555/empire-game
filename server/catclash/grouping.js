@@ -24,6 +24,8 @@
 // same word (spelling/plural/tense variants and typos) collapses.
 // ─────────────────────────────────────────────────────────────────────────
 
+const { GROQ_MODEL, GROQ_CHAT_URL, logGroqFailure } = require('../groq');
+
 const NUMBER_WORDS = {
   '0': 'zero', '1': 'one', '2': 'two', '3': 'three', '4': 'four',
   '5': 'five', '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine',
@@ -268,21 +270,26 @@ Every index 0..${labels.length - 1} must appear exactly once in "clusters".
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
-    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    const resp = await fetch(GROQ_CHAT_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${groqKey}`,
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: GROQ_MODEL,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.2,
-        max_tokens: 700,
+        max_tokens: 2048,
+        reasoning_effort: 'low',
+        response_format: { type: 'json_object' },
       }),
       signal: controller.signal,
     });
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      await logGroqFailure('Cat Clash AI grouping', resp);
+      return null;
+    }
     const data = await resp.json();
     const text = ((data.choices && data.choices[0] && data.choices[0].message.content) || '').trim();
     const m = text.match(/\{[\s\S]*\}/);
@@ -292,7 +299,8 @@ Every index 0..${labels.length - 1} must appear exactly once in "clusters".
       clusters: Array.isArray(parsed.clusters) ? parsed.clusters : null,
       invalid: Array.isArray(parsed.invalid) ? parsed.invalid : [],
     };
-  } catch (_) {
+  } catch (e) {
+    console.error('Cat Clash AI grouping error:', e.message);
     return null;
   } finally {
     clearTimeout(timeout);

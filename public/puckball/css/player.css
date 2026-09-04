@@ -1,0 +1,309 @@
+/* === Puck Ball controller: a fixed, non-scrolling, non-zooming gamepad. === */
+/* The controller is a native-feeling app surface: the page itself can never
+   scroll, pan, rubber-band, zoom or select — every touch belongs to a control. */
+html { height: 100%; overflow: hidden; }
+body.player {
+  margin: 0;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(160deg, var(--bg) 0%, var(--bg-deep) 100%);
+  color: #fff;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+/* Must stay `none` everywhere: `manipulation` still allows panning, and this
+   selector outranks the per-control rules below. */
+body.player * {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+body.player button:disabled { pointer-events: none; }
+
+.pview {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: calc(16px + env(safe-area-inset-top)) 18px calc(16px + env(safe-area-inset-bottom));
+  text-align: center;
+}
+
+/* ---------------- Lobby / waiting ---------------- */
+.lobby-brand { font-size: 22px; font-weight: 900; display: flex; align-items: center; gap: 8px; }
+.lobby-card {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 20px;
+  padding: 26px 22px;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.lc-you { font-size: 15px; color: rgba(255,255,255,0.7); font-weight: 700; }
+.lc-name { font-size: 30px; font-weight: 900; overflow-wrap: anywhere; }
+.lc-team { font-size: 17px; font-weight: 900; }
+.lc-team.is-red { color: var(--red-soft); }
+.lc-team.is-blue { color: var(--blue-soft); }
+.lc-wait { margin-top: 8px; font-size: 14px; color: rgba(255,255,255,0.72); display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+/* ---------------- Controller ---------------- */
+#view-controller { justify-content: flex-start; gap: 10px; padding-left: 12px; padding-right: 12px; }
+body.has-gamepad #view-controller { padding-top: calc(50px + env(safe-area-inset-top)); }
+.hud {
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0,0,0,0.28);
+  border-radius: 14px;
+  padding: 8px 14px;
+}
+.hud-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 800;
+  font-size: 14px;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(255,255,255,0.85);
+}
+body.team-red .hud-name { color: var(--red-soft); }
+body.team-blue .hud-name { color: var(--blue-soft); }
+.hud-score { flex: 0 0 auto; font-size: 22px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.hud-score .hs-red { color: var(--red-soft); }
+.hud-score .hs-blue { color: var(--blue-soft); }
+.hud-score .hs-sep { color: rgba(255,255,255,0.45); margin: 0 5px; }
+.hud-clock {
+  flex: 0 0 auto;
+  min-width: 54px;
+  text-align: right;
+  font-size: 18px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+.hud-clock.urgent { color: #ffb0b0; }
+
+.emote-bar {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.emote-btn {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 12px;
+  font-size: 22px;
+  line-height: 1;
+  padding: 7px 10px;
+  color: #fff;
+  transition: transform 0.1s ease, opacity 0.15s ease;
+}
+.emote-btn:active { transform: scale(0.9); }
+.emote-btn.sent { opacity: 0.35; }
+
+.controls {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.stick-layer {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  touch-action: none;
+  overflow: hidden;
+}
+.stick-base {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: none;
+  width: 168px;
+  height: 168px;
+  margin: 0;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.25);
+  border: 2px solid rgba(255,255,255,0.16);
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+/* Centre the resting stick; once grabbed it is positioned under the thumb. */
+.stick-base:not(.active) { left: calc(50% - 84px); top: calc(50% - 84px); }
+.stick-base.active { opacity: 1; }
+.stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--accent);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.45);
+  pointer-events: none;
+}
+body.team-red .stick-knob { background: var(--red); }
+body.team-blue .stick-knob { background: var(--blue); }
+.stick-hint {
+  position: absolute;
+  left: 0; right: 0; bottom: 10px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.stick-hint.faded { opacity: 0; }
+
+/* The whole right-hand side kicks — the disc is just the target to aim at. */
+.kick-zone {
+  flex: 0 0 44%;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.kick-face {
+  width: min(34vw, 152px);
+  height: min(34vw, 152px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #17210F;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  box-shadow: 0 8px 0 rgba(0,0,0,0.35);
+  pointer-events: none;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+.kick-zone.held { background: rgba(245,213,71,0.14); border-color: rgba(245,213,71,0.4); }
+.kick-zone.held .kick-face { transform: translateY(6px); box-shadow: 0 2px 0 rgba(0,0,0,0.35); }
+
+.ctrl-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 22px;
+  background: rgba(12,28,10,0.82);
+  padding: 20px;
+  /* Purely informational: the stick underneath stays grabbable during the
+     countdown so play starts the moment the whistle goes. */
+  pointer-events: none;
+}
+.ctrl-overlay[hidden] { display: none; }
+.co-note {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--accent);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.co-note[hidden] { display: none; }
+.co-count { font-size: 74px; font-weight: 900; }
+
+/* ---------------- Final / kicked ---------------- */
+.final-emoji { font-size: 76px; }
+.final-title { font-size: 28px; font-weight: 900; overflow-wrap: anywhere; }
+.final-sub { font-size: 20px; font-weight: 700; color: rgba(255,255,255,0.8); overflow-wrap: anywhere; }
+.final-wait { margin-top: 10px; font-size: 14px; color: rgba(255,255,255,0.68); display: flex; align-items: center; gap: 8px; }
+#view-kicked .btn-primary {
+  margin-top: 16px;
+  background: var(--accent);
+  color: #17210F;
+  padding: 14px 28px;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+/* ---------------- Pause cover ---------------- */
+.pause-cover {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(12,28,10,0.92);
+  text-align: center;
+  padding: 26px;
+}
+.pause-cover[hidden] { display: none; }
+#reconnectOverlay { z-index: 45; }
+.pc-icon { font-size: 66px; }
+.pc-title { font-size: 30px; font-weight: 900; }
+.pc-sub { font-size: 15px; color: rgba(255,255,255,0.78); }
+
+.gamepad-badge {
+  position: fixed;
+  top: calc(8px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  background: rgba(12,28,10,0.88);
+  border: 1px solid rgba(255,255,255,0.18);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.gamepad-badge[hidden] { display: none; }
+
+/* Wider phones / landscape: give the stick and the kick button more room. */
+@media (min-width: 520px) {
+  .stick-base, .stick-base:not(.active) { width: 200px; height: 200px; }
+  .stick-base:not(.active) { left: calc(50% - 100px); top: calc(50% - 100px); }
+  .stick-knob { width: 88px; height: 88px; }
+}

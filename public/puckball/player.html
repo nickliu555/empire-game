@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Puck Ball · Player</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1B2E17">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/puckball/css/base.css" />
+  <link rel="stylesheet" href="/puckball/css/player.css" />
+</head>
+<body class="player">
+
+  <!-- Waiting in the lobby -->
+  <section class="pview" id="view-lobby">
+    <div class="lobby-brand"><span class="brand-bg">🏟️</span> Puck Ball</div>
+    <div class="lobby-card">
+      <div class="lc-you">You're in!</div>
+      <div class="lc-name" id="lobbyName">Player</div>
+      <div class="lc-team" id="lobbyTeam">Team Red</div>
+      <div class="lc-wait"><span class="pulse-dot"></span> Waiting for the host to kick off…</div>
+    </div>
+    <div class="player-attribution" id="playerAttribution">
+      <div>Developed by Nick Liu (with help from Claude)</div>
+    </div>
+  </section>
+
+  <!-- The controller -->
+  <section class="pview" id="view-controller" style="display:none">
+    <div class="hud">
+      <div class="hud-name" id="hudName">Player</div>
+      <div class="hud-score">
+        <span class="hs-red" id="hudRed">0</span>
+        <span class="hs-sep">–</span>
+        <span class="hs-blue" id="hudBlue">0</span>
+      </div>
+      <div class="hud-clock" id="hudClock">3:00</div>
+    </div>
+
+    <div class="emote-bar" id="emoteBar"></div>
+
+    <div class="controls" id="controls">
+      <div class="stick-layer" id="stickLayer">
+        <div class="stick-base" id="stickBase">
+          <div class="stick-knob" id="stickKnob"></div>
+        </div>
+        <div class="stick-hint" id="stickHint">Drag to move</div>
+      </div>
+      <button type="button" class="kick-zone" id="kickBtn">
+        <span class="kick-face">KICK</span>
+      </button>
+
+      <!-- Covers the stick + kick only, so reactions stay tappable between plays. -->
+      <div class="ctrl-overlay" id="ctrlOverlay" hidden>
+        <div class="co-note" id="coNote"></div>
+        <div class="co-count" id="coCount">3</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Match over -->
+  <section class="pview" id="view-final" style="display:none">
+    <div class="final-emoji" id="finalEmoji">🏆</div>
+    <div class="final-title" id="finalTitle">Your team wins!</div>
+    <div class="final-sub" id="finalSub">3 – 1</div>
+    <div class="final-wait"><span class="pulse-dot"></span> Waiting for the host…</div>
+  </section>
+
+  <!-- Removed by the host -->
+  <section class="pview" id="view-kicked" style="display:none">
+    <div class="final-emoji">👋</div>
+    <div class="final-title">You were removed</div>
+    <div class="final-sub">The host removed you from the lobby.</div>
+    <button type="button" class="btn-primary" id="kickRejoinBtn">Join again</button>
+  </section>
+
+  <div class="host-absent-overlay" id="hostAbsentOverlay" hidden>
+    <div class="host-absent-card">
+      <div class="icon">🏟️</div>
+      <div class="title">Host disconnected</div>
+      <div class="sub"><span class="pulse-dot"></span> Hang tight — this unlocks when the host is back.</div>
+    </div>
+  </div>
+
+  <div class="pause-cover" id="pauseCover" hidden>
+    <div class="pc-icon">⏸</div>
+    <div class="pc-title">Paused</div>
+    <div class="pc-sub">The host paused the match.</div>
+  </div>
+
+  <div class="pause-cover" id="reconnectOverlay" hidden>
+    <div class="pc-icon">📶</div>
+    <div class="pc-title">Reconnecting…</div>
+    <div class="pc-sub"><span class="pulse-dot"></span> You're still in the match — hang tight.</div>
+  </div>
+
+  <div class="gamepad-badge" id="gamepadBadge" hidden>🎮 Controller connected</div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/puckball/js/player.js"></script>
+</body>
+</html>

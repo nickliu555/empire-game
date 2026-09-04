@@ -147,6 +147,19 @@ A four-way bomber battle on the Host screen — blast open the arena, grab power
 
 The host can **Pause** at any time. Every round generates a fresh arena.
 
+### 🏟️ Puck Ball
+Two teams, one ball, pure chaos — a HaxBall-style pitch on the Host screen with every phone as a controller.
+
+1. Players scan the QR code to join (**2–8 players**, from **1 v 1** up to **4 v 4**); the host can **Add CPU** players to fill a side
+2. The host balances the sides by **dragging names between the two team columns** (or tapping a name to swap), sets the **match length**, then hits **Kick off!**
+3. The **pitch grows with the teams** — a tight rink for 1 v 1 all the way up to a full stadium for 4 v 4
+4. Each phone is a **thumbstick + KICK button**: drag anywhere on the left to move, tap **KICK** when the ball is in range
+5. There's **no dribbling** — you nudge the ball by bumping into it and launch it by kicking, so passing, rebounds and positioning are everything
+6. Bounce shots off the **walls**, ring one off the **post**, and body-check opponents out of the way
+7. After every goal both teams **reset for a kick-off** and the countdown restarts
+8. The match runs until the **clock hits zero** — **highest score wins**, and level scores are a **draw**
+9. The host can **Pause** at any time, and players can fire off **reactions** that pop above their disc
+
 ## How It Works
 
 1. **The host** opens Game Hub on a laptop or TV screen and picks a game

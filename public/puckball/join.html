@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Puck Ball · Join</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1B2E17">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/puckball/css/base.css" />
+  <link rel="stylesheet" href="/puckball/css/join.css" />
+</head>
+<body class="join">
+  <div class="join-brand"><span class="brand-bg">🏟️</span> Puck Ball</div>
+
+  <div class="join-hero">
+    <h1>Join the match</h1>
+    <p>Enter your name to take the pitch</p>
+
+    <form id="joinForm" class="join-form" autocomplete="off">
+      <label for="nameInput">Your Name:</label>
+      <input id="nameInput" type="text" maxlength="20" autocomplete="given-name" autocapitalize="words" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Enter your name" required />
+      <button type="submit" class="btn-primary">Join</button>
+      <div id="errorMsg" class="error-msg" aria-live="polite"></div>
+    </form>
+  </div>
+
+  <div class="player-attribution">
+    <div>Developed by Nick Liu (with help from Claude)</div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/puckball/js/join.js"></script>
+</body>
+</html>

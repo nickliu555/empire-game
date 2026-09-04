@@ -295,6 +295,31 @@ const games = [
         hostPath: '/bombbrawl/host',
         playPath: '/bombbrawl/play',
     },
+    {
+        id: 'puckball',
+        name: 'Puck Ball',
+        tagline: 'Two teams, one ball, pure chaos',
+        emoji: '🏟️',
+        color: '#4E7A3A',
+        category: 'Arcade',
+        playerCount: '2–8 (+CPU)',
+        duration: '3–8 min',
+        description: 'Top-down disc soccer on the shared screen. Every player is a circle on the pitch, steered from their phone with a thumbstick and a Kick button. Shove, pass, and blast the ball past the keeper into the opposing net. The pitch grows with the teams — a tight 1v1 rink or a full 4v4 stadium. First team to the score limit wins; if the clock runs out level, it goes to golden goal.',
+        rules: [
+            'The host opens the game on a shared screen (TV, laptop, etc.)',
+            'Players scan the QR code on their phones and enter a name (2–8 players; add CPU players to fill a side)',
+            'The host balances the teams — drag players between Red and Blue, or hit Shuffle',
+            'The host sets the score limit and the match length, then hits Start',
+            'Your phone is a thumbstick plus a big Kick button — steer your disc around the pitch',
+            'Bump into the ball to nudge it; tap Kick when you\'re touching it to blast it',
+            'Kick it into the opposing net to score — the pitch resets for a kickoff',
+            'The pitch size scales with the teams, from a tight 1v1 rink to a full 4v4 stadium',
+            'First team to the score limit wins; otherwise the leader when the clock hits zero takes it',
+            'Level at full time? Golden goal — next goal wins!'
+        ],
+        hostPath: '/puckball/host',
+        playPath: '/puckball/play',
+    },
 ];
 
 module.exports = games;

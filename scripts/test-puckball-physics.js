@@ -171,6 +171,23 @@ console.log('Puck Ball physics');
   check('barrier drops once the ball is played', w.koActive === false);
 })();
 
+// 9b. A kick thrown during the goal freeze must not still be flashing at kickoff.
+(function () {
+  const w = makeWorld();
+  const p = w.byId.get('r');
+  p.x = 0; p.y = 0;
+  w.ball.x = 20; w.ball.y = 0;
+  w.setInput('r', 0, 0, true);
+  w.step();
+  check('kicking sets the flash ring', p.kickFlash > 0, 'flash=' + p.kickFlash);
+  w.frozen = true;
+  stepN(w, 30);
+  check('the flash is held while the world is frozen', p.kickFlash > 0, 'flash=' + p.kickFlash);
+  w.kickoff('blue');
+  check('kickoff clears the flash on every player',
+    w.players.every(function (q) { return q.kickFlash === 0; }), 'flash=' + p.kickFlash);
+})();
+
 // 10. Pitch tiers.
 (function () {
   check('tier for 1v1 is small', PB.pickTier(1) === 'small');

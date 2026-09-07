@@ -327,6 +327,9 @@
       p.px = p.x; p.py = p.y;
       p.vx = 0; p.vy = 0;
       p.inX = 0; p.inY = 0; p.inKick = false; p.kickArmed = true;
+      // The flash only counts down while the world runs, so a kick thrown during
+      // the goal freeze would otherwise still be ringing at the next kickoff.
+      p.kickFlash = 0;
     }
     this._buildKickoffBarriers();
   };
